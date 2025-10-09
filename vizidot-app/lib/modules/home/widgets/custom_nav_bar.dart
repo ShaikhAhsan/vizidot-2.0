@@ -32,8 +32,8 @@ class _CustomNavBarState extends State<CustomNavBar> {
 
     return Material(
       color: background,
-      elevation: 6,
-      shadowColor: Colors.black.withOpacity(isDark ? 0.16 : 0.08),
+      elevation: 0,
+      shadowColor: Colors.transparent,
       child: SafeArea(
         top: false,
         child: Obx(() {
@@ -42,16 +42,9 @@ class _CustomNavBarState extends State<CustomNavBar> {
           final List<String> icons =  _defaultIcons;
 
           return Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.only(top: 5, bottom: 0),
             decoration: BoxDecoration(
               color: background,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.12 : 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, -2),
-                ),
-              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -100,42 +93,47 @@ class _NavItemState extends State<_NavItem> {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell
-    (
+    return InkWell(
       onTap: _handleTap,
       onHighlightChanged: _handleHighlight,
       borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedScale(
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOut,
-              scale: _pressed ? 0.92 : 1.0,
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: ThemedAssetIcon(
-                  assetPath: widget.assetPath,
-                  iconColor: widget.iconColor,
-                  size: 24,
+      child: Container(
+        // color: Colors.red,
+        child: SizedBox(
+          width: 64,
+          height: 54,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedScale(
+                  duration: const Duration(milliseconds: 120),
+                  curve: Curves.easeOut,
+                  scale: _pressed ? 0.92 : 1.0,
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: ThemedAssetIcon(
+                      assetPath: widget.assetPath,
+                      iconColor: widget.iconColor,
+                      size: 24,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  height: 3,
+                  width: widget.isSelected ? 24 : 0,
+                  decoration: BoxDecoration(
+                    color: widget.isSelected ? const Color(0xFFFF7110) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              height: 3,
-              width: widget.isSelected ? 24 : 0,
-              decoration: BoxDecoration(
-                color: widget.isSelected ? const Color(0xFFFF7110) : Colors.transparent,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
