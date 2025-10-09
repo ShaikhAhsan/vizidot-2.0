@@ -56,11 +56,11 @@ class HomeView extends GetView<HomeController> {
         onItemTapped: controller.onNavTap,
         assetNames: const [
           // Order: Home, eLocker, Shop, Streaming, Profile
-          'tab-home-ic.svg',
-          'tab-elocker-ic.svg',
-          'tab-shop-ic.svg',
-          'tab-streaming-ic.svg',
-          'tab-profile-ic.svg',
+          'tab-home-ic.png',
+          'tab-elocker-ic.png',
+          'tab-shop-ic.png',
+          'tab-streaming-ic.png',
+          'tab-profile-ic.png',
         ],
       ),
     );

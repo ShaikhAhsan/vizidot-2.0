@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -16,34 +17,37 @@ class CustomNavBar extends StatefulWidget {
 class _CustomNavBarState extends State<CustomNavBar> {
   static const String _assetsBase = 'assets/tab-ic';
   static const List<String> _defaultIcons = <String>[
-    'home.png',
-    'elocker.png',
-    'shop.png',
-    'streaming.png',
-    'profile.png',
+    'tab-home-ic.png',
+    'tab-elocker-ic.png',
+    'tab-shop-ic.png',
+    'tab-streaming-ic.png',
+    'tab-profile-ic.png',
   ];
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color iconColor = isDark ? Colors.white : Colors.black;
+    final Color background = Theme.of(context).colorScheme.surface;
 
     return Material(
-      color: Colors.white,
+      color: background,
       elevation: 6,
-      shadowColor: Colors.black.withOpacity(0.08),
+      shadowColor: Colors.black.withOpacity(isDark ? 0.16 : 0.08),
       child: SafeArea(
         top: false,
         child: Obx(() {
           final int current = widget.selectedIndex.value;
-          final List<String> icons = widget.assetNames ?? _defaultIcons;
+          // final List<String> icons = widget.assetNames ?? _defaultIcons;
+          final List<String> icons =  _defaultIcons;
+
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: background,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withOpacity(isDark ? 0.12 : 0.06),
                   blurRadius: 12,
                   offset: const Offset(0, -2),
                 ),
@@ -68,7 +72,7 @@ class _CustomNavBarState extends State<CustomNavBar> {
   }
 }
 
-class _NavItem extends StatelessWidget {
+class _NavItem extends StatefulWidget {
   final String assetPath;
   final bool isSelected;
   final Color iconColor;
@@ -77,40 +81,92 @@ class _NavItem extends StatelessWidget {
   const _NavItem({required this.assetPath, required this.isSelected, required this.iconColor, required this.onTap});
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> {
+  bool _pressed = false;
+
+  void _handleHighlight(bool value) {
+    setState(() {
+      _pressed = value;
+    });
+  }
+
+  void _handleTap() {
+    HapticFeedback.lightImpact();
+    widget.onTap();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return InkWell
+    (
+      onTap: _handleTap,
+      onHighlightChanged: _handleHighlight,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 30,
-              height: 30,
-              child: SvgPicture.asset(
-                assetPath,
-                width: 28,
-                height: 28,
-                fit: BoxFit.contain,
-                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+            AnimatedScale(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+              scale: _pressed ? 0.92 : 1.0,
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: ThemedAssetIcon(
+                  assetPath: widget.assetPath,
+                  iconColor: widget.iconColor,
+                  size: 24,
+                ),
               ),
             ),
             const SizedBox(height: 6),
             AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               height: 3,
-              width: 26,
+              width: widget.isSelected ? 24 : 0,
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFFF7110) : Colors.transparent,
+                color: widget.isSelected ? const Color(0xFFFF7110) : Colors.transparent,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class ThemedAssetIcon extends StatelessWidget {
+  final String assetPath;
+  final Color iconColor;
+  final double size;
+
+  const ThemedAssetIcon({required this.assetPath, required this.iconColor, this.size = 28});
+
+  @override
+  Widget build(BuildContext context) {
+    if (assetPath.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(
+        assetPath,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+      );
+    }
+    return Image.asset(
+      assetPath,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      color: iconColor,
+      colorBlendMode: BlendMode.srcIn,
     );
   }
 }
