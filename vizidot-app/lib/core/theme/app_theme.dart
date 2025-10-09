@@ -6,7 +6,7 @@ class AppColors {
   static const Color lightPrimary = Color(0xFF4F46E5);
   static const Color lightSecondary = Color(0xFF06B6D4);
   static const Color lightAccent = Color(0xFF22C55E);
-  static const Color lightBackground = Color(0xFFF7F7FB);
+  static const Color lightBackground = Color(0xFFEFF3F5);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightError = Color(0xFFEF4444);
 
