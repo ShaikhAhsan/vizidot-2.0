@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../routes/app_pages.dart';
 import '../controllers/auth_controller.dart';
+import '../../../core/widgets/overlay_back_button.dart';
 
 class SignInView extends GetView<AuthController> {
   const SignInView({super.key});
@@ -14,25 +15,27 @@ class SignInView extends GetView<AuthController> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Banner(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 12),
+
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _Banner(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text('Sign in', style: textTheme.headlineLarge),
                         const SizedBox(width: 10),
-                        Text('/  sign up', style: textTheme.titleLarge?.copyWith(color: colors.onBackground.withOpacity(0.6))),
+                        GestureDetector(
+                          onTap: () => Get.toNamed(AppRoutes.signUp),
+                          child: Text('/  sign up', style: textTheme.titleLarge?.copyWith(color: colors.onBackground.withOpacity(0.6))),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -98,19 +101,36 @@ class SignInView extends GetView<AuthController> {
             ],
           ),
         ),
-      ),
     );
   }
 }
 
 class _Banner extends StatelessWidget {
+  const _Banner();
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Image.asset('assets/icons/onboarding-nav-banner.png', height: 180, width: double.infinity, fit: BoxFit.cover),
+    final double top = MediaQuery.of(context).padding.top;
+    return SizedBox(
+      height: 112,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.only(top: top),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
+                child: Image.asset('assets/icons/onboarding-nav-banner.png', width: double.infinity, height: double.infinity, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+          Positioned(
+            top: top + ((112 - top) / 2),
+            left: 16,
+            child: const OverlayBackButton(),
+          ),
+        ],
       ),
     );
   }
