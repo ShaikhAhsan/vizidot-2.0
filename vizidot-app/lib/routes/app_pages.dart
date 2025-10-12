@@ -7,11 +7,16 @@ import '../modules/auth/views/forgot_password_view.dart';
 import '../modules/auth/views/new_password_view.dart';
 import '../modules/auth/views/sign_up_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
+import '../modules/auth/views/splash_view.dart';
 
 part 'app_routes.dart';
 
 class AppPages {
   static final routes = <GetPage<dynamic>>[
+    GetPage(
+      name: AppRoutes.splash,
+      page: () => const SplashView(),
+    ),
     GetPage(
       name: AppRoutes.home,
       page: () => const HomeView(),

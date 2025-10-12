@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/utils/auth_service.dart';
 
 class AuthController extends GetxController {
   final emailController = TextEditingController();
@@ -44,7 +45,8 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     await Future.delayed(const Duration(milliseconds: 700));
     isSubmitting.value = false;
-    Get.snackbar('Success', 'Signed in');
+    await Get.find<AuthService>().signIn();
+    Get.offAllNamed('/');
   }
 
   Future<void> sendReset() async {
@@ -71,7 +73,8 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     await Future.delayed(const Duration(milliseconds: 700));
     isSubmitting.value = false;
-    Get.snackbar('Success', 'Account created');
+    await Get.find<AuthService>().signIn();
+    Get.offAllNamed('/');
   }
 }
 

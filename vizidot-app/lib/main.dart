@@ -24,7 +24,7 @@ class App extends StatelessWidget {
       title: 'Vizidot',
       initialBinding: InitialBindings(),
       getPages: AppPages.routes,
-      initialRoute: AppRoutes.home,
+      initialRoute: AppRoutes.splash,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,

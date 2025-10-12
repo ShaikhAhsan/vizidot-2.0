@@ -7,6 +7,7 @@ import '../controllers/home_controller.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/custom_nav_bar.dart';
 import '../../../routes/app_pages.dart';
+import 'profile_view.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -14,43 +15,36 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     final themeController = Get.find<ThemeController>();
-    return Scaffold(
-      appBar: const HomeAppBar(title: 'Vizidot'),
-      body: Center(
+    final pages = <Widget>[
+      Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Obx(() => Text(
-                  'Counter: ${controller.counter.value}',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                )),
+            Obx(() => Text('Counter: ${controller.counter.value}', style: Theme.of(context).textTheme.headlineMedium)),
             const SizedBox(height: 16),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
-                FilledButton(
-                  onPressed: controller.increment,
-                  child: const Text('Increment'),
-                ),
-                OutlinedButton(
-                  onPressed: themeController.toggleTheme,
-                  child: const Text('Toggle Theme'),
-                ),
-                TextButton(
-                  onPressed: () => Get.toNamed(AppRoutes.details),
-                  child: const Text('Open Details'),
-                ),
+                FilledButton(onPressed: controller.increment, child: const Text('Increment')),
+                OutlinedButton(onPressed: themeController.toggleTheme, child: const Text('Toggle Theme')),
+                TextButton(onPressed: () => Get.toNamed(AppRoutes.details), child: const Text('Open Details')),
               ],
             ),
             const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const AppSearchBar(),
-            ),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: AppSearchBar()),
           ],
         ),
       ),
+      const Center(child: Text('eLocker')),
+      const Center(child: Text('Shop')),
+      const Center(child: Text('Streaming')),
+      const ProfileView(),
+    ];
+
+    return Scaffold(
+      appBar: const HomeAppBar(title: 'Vizidot'),
+      body: Obx(() => pages[controller.selectedIndex.value]),
       bottomNavigationBar: CustomNavBar(
         selectedIndex: controller.selectedIndex,
         onItemTapped: controller.onNavTap,
