@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../routes/app_pages.dart';
 import '../controllers/auth_controller.dart';
-import '../../../core/widgets/overlay_back_button.dart';
+import '../../../core/widgets/onboarding_app_bar.dart';
 
 class SignInView extends GetView<AuthController> {
   const SignInView({super.key});
@@ -20,13 +20,14 @@ class SignInView extends GetView<AuthController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _Banner(),
+            // Use the same iOS-style onboarding app bar without back button on sign in
+            const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: false),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 40),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -40,7 +41,7 @@ class SignInView extends GetView<AuthController> {
                     ),
                     const SizedBox(height: 8),
                     Text('Fill the form to sign in into account', style: textTheme.bodyLarge),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 40),
                     Form(
                       key: controller.formKeySignIn,
                       child: Column(
@@ -52,7 +53,7 @@ class SignInView extends GetView<AuthController> {
                             keyboardType: TextInputType.emailAddress,
                             validator: controller.validateEmail,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           AppTextField(
                             controller: controller.passwordController,
                             label: 'Password',
@@ -91,9 +92,9 @@ class SignInView extends GetView<AuthController> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 40),
+                    Center(child: Text('OR SIGN IN WITH', style: textTheme.labelSmall?.copyWith(color: colors.onSurface.withOpacity(1.0)))),
                     const SizedBox(height: 26),
-                    Center(child: Text('OR SIGN IN WITH', style: textTheme.labelLarge?.copyWith(color: colors.onSurface.withOpacity(0.6)))),
-                    const SizedBox(height: 18),
                     const _SocialRow(),
                   ],
                 ),
@@ -101,37 +102,6 @@ class SignInView extends GetView<AuthController> {
             ],
           ),
         ),
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  const _Banner();
-
-  @override
-  Widget build(BuildContext context) {
-    final double top = MediaQuery.of(context).padding.top;
-    return SizedBox(
-      height: 112,
-      width: double.infinity,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.only(top: top),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
-                child: Image.asset('assets/icons/onboarding-nav-banner.png', width: double.infinity, height: double.infinity, fit: BoxFit.cover),
-              ),
-            ),
-          ),
-          Positioned(
-            top: top + ((112 - top) / 2),
-            left: 16,
-            child: const OverlayBackButton(),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -162,13 +132,13 @@ class _SocialButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      width: 64,
-      height: 64,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.onSurface.withOpacity(0.4)),
+        border: Border.all(color: colors.onSurface.withOpacity(1.0)),
       ),
-      child: Center(child: Image.asset(asset, width: 28, height: 28, color: colors.onSurface)),
+      child: Center(child: Image.asset(asset, width: 15, height: 15, color: colors.onSurface)),
     );
   }
 }

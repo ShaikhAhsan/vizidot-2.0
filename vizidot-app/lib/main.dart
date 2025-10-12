@@ -32,8 +32,8 @@ class App extends StatelessWidget {
         // Ignore SafeArea globally
         return MediaQuery.removePadding(
           context: context,
-          removeTop: true,
-          removeBottom: true,
+          // removeTop: true,
+          // removeBottom: true,
           removeLeft: true,
           removeRight: true,
           child: child ?? const SizedBox.shrink(),

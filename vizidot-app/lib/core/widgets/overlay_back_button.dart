@@ -25,7 +25,12 @@ class OverlayBackButton extends StatelessWidget {
       ),
       child: IconButton(
         onPressed: onPressed ?? () => Navigator.of(context).maybePop(),
-        icon: Icon(Icons.arrow_back, color: colors.onSurface),
+        icon: Image.asset(
+          'assets/icons/back-arrow-ic.png',
+          width: 18,
+          height: 18,
+          color: colors.onSurface,
+        ),
         splashRadius: 24,
       ),
     );

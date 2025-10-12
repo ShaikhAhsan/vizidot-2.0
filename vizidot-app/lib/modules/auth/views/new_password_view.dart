@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../controllers/auth_controller.dart';
-import '../../../core/widgets/overlay_back_button.dart';
+import '../../../core/widgets/onboarding_app_bar.dart';
 
 class NewPasswordView extends GetView<AuthController> {
   const NewPasswordView({super.key});
@@ -11,36 +11,13 @@ class NewPasswordView extends GetView<AuthController> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    final double top = MediaQuery.of(context).padding.top;
-    final double bottom = MediaQuery.of(context).padding.bottom;
     return Scaffold(
+      appBar: const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: true),
       body: SingleChildScrollView(
-        padding: EdgeInsets.only(bottom: 16 + bottom),
+        padding: EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 112,
-              width: double.infinity,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: top),
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
-                        child: Image.asset('assets/icons/onboarding-nav-banner.png', fit: BoxFit.cover),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: top + ((112 - top - 44) / 2),
-                    left: 16,
-                    child: const OverlayBackButton(),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
