@@ -16,13 +16,14 @@ class SignUpView extends GetView<AuthController> {
       top: false,
       bottom: false,
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: true),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 0),
+          // padding: const EdgeInsets.only(bottom: 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
+              const SizedBox(height: 0),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -39,7 +40,7 @@ class SignUpView extends GetView<AuthController> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text('Fill the form to create an account', style: textTheme.bodyLarge),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 40),
               Form(
                 key: controller.formKeySignUp,
                 child: Padding(

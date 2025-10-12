@@ -49,11 +49,13 @@ class AuthController extends GetxController {
     Get.offAllNamed('/');
   }
 
-  Future<void> sendReset() async {
-    if (!(formKeyForgot.currentState?.validate() ?? false)) return;
+  Future<bool> sendReset() async {
+    final bool isValid = formKeyForgot.currentState?.validate() ?? false;
+    if (!isValid) return false;
     isSubmitting.value = true;
     await Future.delayed(const Duration(milliseconds: 700));
     isSubmitting.value = false;
+    return true;
   }
 
   Future<void> setNewPassword() async {

@@ -14,11 +14,11 @@ class ForgotPasswordView extends GetView<AuthController> {
     return Scaffold(
       appBar: const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: true),
       body: SingleChildScrollView(
-        padding: EdgeInsets.only(bottom: 16),
+        // padding: EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
+            // const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text('Forgot password', style: textTheme.headlineLarge),
@@ -52,8 +52,10 @@ class ForgotPasswordView extends GetView<AuthController> {
                     onPressed: controller.isSubmitting.value
                         ? null
                         : () async {
-                            await controller.sendReset();
-                            if (!controller.isSubmitting.value) _showCheckMailboxDialog(context);
+                            final ok = await controller.sendReset();
+                            if (ok && !controller.isSubmitting.value) {
+                              _showCheckMailboxDialog(context);
+                            }
                           },
                       child: controller.isSubmitting.value
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))

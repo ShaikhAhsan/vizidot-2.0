@@ -13,95 +13,97 @@ class SignInView extends GetView<AuthController> {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Use the same iOS-style onboarding app bar without back button on sign in
-            const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: false),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 40),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('Sign in', style: textTheme.headlineLarge),
-                        const SizedBox(width: 10),
-                        GestureDetector(
-                          onTap: () => Get.toNamed(AppRoutes.signUp),
-                          child: Text('/  sign up', style: textTheme.titleLarge?.copyWith(color: colors.onBackground.withOpacity(0.6))),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Fill the form to sign in into account', style: textTheme.bodyLarge),
+    return SafeArea(
+      top: false,
+      bottom: false,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: false),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     const SizedBox(height: 40),
-                    Form(
-                      key: controller.formKeySignIn,
-                      child: Column(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          AppTextField(
-                            controller: controller.emailController,
-                            label: 'Email',
-                            hint: 'Enter your email address',
-                            keyboardType: TextInputType.emailAddress,
-                            validator: controller.validateEmail,
+                          Text('Sign in', style: textTheme.headlineLarge),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () => Get.toNamed(AppRoutes.signUp),
+                            child: Text('/  sign up', style: textTheme.titleLarge?.copyWith(color: colors.onBackground.withOpacity(0.6))),
                           ),
-                          const SizedBox(height: 20),
-                          AppTextField(
-                            controller: controller.passwordController,
-                            label: 'Password',
-                            hint: 'Enter your password',
-                            isPassword: true,
-                            validator: controller.validatePassword,
-                            textInputAction: TextInputAction.done,
-                            onSubmitted: (_) => controller.signIn(),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Obx(() => Switch(
-                                value: controller.rememberMe.value,
-                                onChanged: (v) => controller.rememberMe.value = v,
-                              )),
-                              const SizedBox(width: 8),
-                              Text('REMEMBER', style: textTheme.labelLarge),
-                              const Spacer(),
-                              TextButton(
-                                onPressed: () => Get.toNamed(AppRoutes.forgotPassword),
-                                child: const Text('Forgot password?'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Obx(() => SizedBox(
-                                width: double.infinity,
-                                child: FilledButton(
-                                  onPressed: controller.isSubmitting.value ? null : controller.signIn,
-                                  child: controller.isSubmitting.value
-                                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                      : const Text('Sign in'),
-                                ),
-                              )),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 40),
-                    Center(child: Text('OR SIGN IN WITH', style: textTheme.labelSmall?.copyWith(color: colors.onSurface.withOpacity(1.0)))),
-                    const SizedBox(height: 26),
-                    const _SocialRow(),
-                  ],
+                      const SizedBox(height: 8),
+                      Text('Fill the form to sign in into account', style: textTheme.bodyLarge),
+                      const SizedBox(height: 40),
+                      Form(
+                        key: controller.formKeySignIn,
+                        child: Column(
+                          children: [
+                            AppTextField(
+                              controller: controller.emailController,
+                              label: 'Email',
+                              hint: 'Enter your email address',
+                              keyboardType: TextInputType.emailAddress,
+                              validator: controller.validateEmail,
+                            ),
+                            const SizedBox(height: 20),
+                            AppTextField(
+                              controller: controller.passwordController,
+                              label: 'Password',
+                              hint: 'Enter your password',
+                              isPassword: true,
+                              validator: controller.validatePassword,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => controller.signIn(),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Obx(() => Switch(
+                                  value: controller.rememberMe.value,
+                                  onChanged: (v) => controller.rememberMe.value = v,
+                                )),
+                                const SizedBox(width: 8),
+                                Text('REMEMBER', style: textTheme.labelLarge),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: () => Get.toNamed(AppRoutes.forgotPassword),
+                                  child: const Text('Forgot password?'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Obx(() => SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton(
+                                    onPressed: controller.isSubmitting.value ? null : controller.signIn,
+                                    child: controller.isSubmitting.value
+                                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                        : const Text('Sign in'),
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      Center(child: Text('OR SIGN IN WITH', style: textTheme.labelSmall?.copyWith(color: colors.onSurface.withOpacity(1.0)))),
+                      const SizedBox(height: 26),
+                      const _SocialRow(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+      ),
     );
   }
 }

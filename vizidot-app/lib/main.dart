@@ -5,9 +5,14 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/bindings/initial_bindings.dart';
 import 'core/theme/app_theme.dart';
 import 'routes/app_pages.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {}
