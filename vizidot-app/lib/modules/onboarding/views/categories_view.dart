@@ -9,6 +9,7 @@ class CategoriesView extends GetView<CategoriesController> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -72,10 +73,15 @@ class CategoriesView extends GetView<CategoriesController> {
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: controller.canContinue ? Colors.black : colors.onSurface.withOpacity(0.2),
+                            color: controller.canContinue
+                                ? (isDark ? Colors.white : Colors.black)
+                                : colors.onSurface.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(22),
                           ),
-                          child: const Icon(Icons.arrow_forward, color: Colors.white),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            color: isDark ? Colors.black : Colors.white,
+                          ),
                         ),
                       )),
                 ],
@@ -143,7 +149,7 @@ class _UnselectedCategoryCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               name,
-              style: Theme.of(context).textTheme.titleSmall,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(color: colors.onBackground),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -170,6 +176,7 @@ class _SelectedCategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     print("_SelectedCategoryCard");
     return InkWell(
       onTap: onTap,
@@ -185,12 +192,7 @@ class _SelectedCategoryCard extends StatelessWidget {
                 Container(
                   width: 18,
                   height: 18,
-                  // decoration: BoxDecoration(
-                  //   // color: Colors.black,
-                  //   borderRadius: BorderRadius.circular(6),
-                  //   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8)],
-                  // ),
-                  child: const Icon(Icons.check_rounded, color: Colors.black, size: 18),
+                  child: Icon(Icons.check_rounded, color: isDark ? Colors.white : Colors.black, size: 18),
 
                 ),
               ],
@@ -212,7 +214,7 @@ class _SelectedCategoryCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               name,
-              style: Theme.of(context).textTheme.titleSmall,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(color: colors.onBackground),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,

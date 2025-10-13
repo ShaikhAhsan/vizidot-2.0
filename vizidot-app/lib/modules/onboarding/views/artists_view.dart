@@ -9,6 +9,7 @@ class ArtistsView extends GetView<ArtistsController> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -57,10 +58,15 @@ class ArtistsView extends GetView<ArtistsController> {
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: controller.canContinue ? Colors.black : colors.onSurface.withOpacity(0.2),
+                            color: controller.canContinue
+                                ? (isDark ? Colors.white : Colors.black)
+                                : colors.onSurface.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(22),
                           ),
-                          child: const Icon(Icons.arrow_forward, color: Colors.white),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            color: isDark ? Colors.black : Colors.white,
+                          ),
                         ),
                       )),
                 ],
@@ -112,7 +118,7 @@ class _UnselectedArtistCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(name, style: Theme.of(context).textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+            Text(name, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.onBackground), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -138,7 +144,7 @@ class _SelectedArtistCard extends StatelessWidget {
         height: 122,
         child: Column(
           children: [
-            Row(children: const [Spacer(), Icon(Icons.check_rounded, color: Colors.black, size: 18)]),
+            Row(children: [const Spacer(), Icon(Icons.check_rounded, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black, size: 18)]),
             Container(
               width: 78,
               height: 74,
@@ -149,7 +155,7 @@ class _SelectedArtistCard extends StatelessWidget {
               child: ClipRRect(borderRadius: _tileRadius, child: Image.asset(asset, fit: BoxFit.cover)),
             ),
             const SizedBox(height: 6),
-            Text(name, style: Theme.of(context).textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+            Text(name, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.onBackground), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
           ],
         ),
       ),
