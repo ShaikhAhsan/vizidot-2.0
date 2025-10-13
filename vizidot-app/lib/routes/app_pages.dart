@@ -8,6 +8,7 @@ import '../modules/auth/views/new_password_view.dart';
 import '../modules/auth/views/sign_up_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/splash_view.dart';
+import '../modules/auth/views/auth_landing_view.dart';
 import '../modules/onboarding/views/categories_view.dart';
 import '../modules/onboarding/bindings/categories_binding.dart';
 import '../modules/onboarding/views/artists_view.dart';
@@ -20,6 +21,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.splash,
       page: () => const SplashView(),
+    ),
+    GetPage(
+      name: AppRoutes.landing,
+      page: () => const AuthLandingView(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.home,

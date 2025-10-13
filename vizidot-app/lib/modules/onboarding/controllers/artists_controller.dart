@@ -34,3 +34,4 @@ class ArtistsController extends GetxController {
 }
 
 
+

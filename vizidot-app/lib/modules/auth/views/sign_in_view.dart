@@ -18,17 +18,18 @@ class SignInView extends GetView<AuthController> {
       bottom: false,
       child: Scaffold(
         resizeToAvoidBottomInset: true,
+        appBar: const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: true),
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: false),
+              // const OnboardingAppBar(imageAsset: 'assets/icons/onboarding-nav-banner.png', showBack: false),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 40),
+                    // const SizedBox(height: 40),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

@@ -9,3 +9,4 @@ class ArtistsBinding extends Bindings {
 }
 
 
+
