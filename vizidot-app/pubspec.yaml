@@ -76,6 +76,7 @@ flutter:
     - assets/splash/
     - assets/tab-ic/
     - assets/categories/
+    - assets/artists/
 
 flutter_launcher_icons:
   android: true

@@ -59,13 +59,12 @@ class CategoriesView extends GetView<CategoriesController> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TextButton(onPressed: () => Get.back(), child: const Text('Skip')),
+                  TextButton(onPressed: () => Get.offAllNamed('/artists'), child: const Text('Skip')),
                   const SizedBox(width: 5),
                   Obx(() => InkWell(
                         onTap: controller.canContinue
                             ? () {
-                                // TODO: Persist selection / navigate
-                                Get.back();
+                                Get.offAllNamed('/artists');
                               }
                             : null,
                         borderRadius: BorderRadius.circular(28),

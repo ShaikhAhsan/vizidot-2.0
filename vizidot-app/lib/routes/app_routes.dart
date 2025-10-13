@@ -9,6 +9,7 @@ abstract class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String newPassword = '/new-password';
   static const String categories = '/categories';
+  static const String artists = '/artists';
 }
 
 

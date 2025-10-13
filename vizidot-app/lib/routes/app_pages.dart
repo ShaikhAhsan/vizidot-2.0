@@ -10,6 +10,8 @@ import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/splash_view.dart';
 import '../modules/onboarding/views/categories_view.dart';
 import '../modules/onboarding/bindings/categories_binding.dart';
+import '../modules/onboarding/views/artists_view.dart';
+import '../modules/onboarding/bindings/artists_binding.dart';
 
 part 'app_routes.dart';
 
@@ -56,6 +58,12 @@ class AppPages {
       name: AppRoutes.categories,
       page: () => const CategoriesView(),
       binding: CategoriesBinding(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.artists,
+      page: () => const ArtistsView(),
+      binding: ArtistsBinding(),
       transition: Transition.cupertino,
     ),
   ];
