@@ -96,7 +96,7 @@ class SignInView extends GetView<AuthController> {
                       const SizedBox(height: 40),
                       Center(child: Text('OR SIGN IN WITH', style: textTheme.labelSmall?.copyWith(color: colors.onSurface.withOpacity(1.0)))),
                       const SizedBox(height: 26),
-                      const _SocialRow(),
+                      _SocialRow(onGoogleTap: controller.googleSignIn),
                     ],
                   ),
                 ),
@@ -109,18 +109,19 @@ class SignInView extends GetView<AuthController> {
 }
 
 class _SocialRow extends StatelessWidget {
-  const _SocialRow();
+  final VoidCallback? onGoogleTap;
+  const _SocialRow({this.onGoogleTap});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        _SocialButton(asset: 'assets/icons/facebook.png'),
-        SizedBox(width: 16),
-        _SocialButton(asset: 'assets/icons/instagram.png'),
-        SizedBox(width: 16),
-        _SocialButton(asset: 'assets/icons/google.png'),
+      children: [
+        _SocialButton(asset: 'assets/icons/facebook.png', onTap: () => Get.find<AuthController>().facebookSignIn()),
+        const SizedBox(width: 16),
+        _SocialButton(asset: 'assets/icons/apple.png', onTap: () => Get.find<AuthController>().appleSignIn()),
+        const SizedBox(width: 16),
+        _SocialButton(asset: 'assets/icons/google.png', onTap: onGoogleTap),
       ],
     );
   }
@@ -128,12 +129,13 @@ class _SocialRow extends StatelessWidget {
 
 class _SocialButton extends StatelessWidget {
   final String asset;
-  const _SocialButton({required this.asset});
+  final VoidCallback? onTap;
+  const _SocialButton({required this.asset, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
+    final button = Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
@@ -141,6 +143,12 @@ class _SocialButton extends StatelessWidget {
         border: Border.all(color: colors.onSurface.withOpacity(1.0)),
       ),
       child: Center(child: Image.asset(asset, width: 15, height: 15, color: colors.onSurface)),
+    );
+    if (onTap == null) return button;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: button,
     );
   }
 }

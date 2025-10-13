@@ -115,6 +115,30 @@ class AuthController extends GetxController {
       isSubmitting.value = false;
     }
   }
+
+  Future<void> appleSignIn() async {
+    isSubmitting.value = true;
+    try {
+      await Get.find<AuthService>().signInWithApple();
+      Get.offAllNamed(AppRoutes.home);
+    } on Exception catch (e) {
+      Get.snackbar('Apple sign-in failed', _mapError(e));
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  Future<void> facebookSignIn() async {
+    isSubmitting.value = true;
+    try {
+      await Get.find<AuthService>().signInWithFacebook();
+      Get.offAllNamed(AppRoutes.home);
+    } on Exception catch (e) {
+      Get.snackbar('Facebook sign-in failed', _mapError(e));
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
 }
 
 
