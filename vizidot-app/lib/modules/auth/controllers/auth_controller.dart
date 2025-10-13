@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../routes/app_pages.dart';
 
 class AuthController extends GetxController {
   final emailController = TextEditingController();
@@ -43,19 +44,29 @@ class AuthController extends GetxController {
   Future<void> signIn() async {
     if (!(formKeySignIn.currentState?.validate() ?? false)) return;
     isSubmitting.value = true;
-    await Future.delayed(const Duration(milliseconds: 700));
-    isSubmitting.value = false;
-    await Get.find<AuthService>().signIn();
-    Get.offAllNamed('/');
+    try {
+      await Get.find<AuthService>().signInWithEmail(emailController.text.trim(), passwordController.text);
+      Get.offAllNamed(AppRoutes.home);
+    } on Exception catch (e) {
+      Get.snackbar('Sign in failed', _mapError(e));
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 
   Future<bool> sendReset() async {
     final bool isValid = formKeyForgot.currentState?.validate() ?? false;
     if (!isValid) return false;
     isSubmitting.value = true;
-    await Future.delayed(const Duration(milliseconds: 700));
-    isSubmitting.value = false;
-    return true;
+    try {
+      await Get.find<AuthService>().sendPasswordReset(emailController.text.trim());
+      return true;
+    } on Exception catch (e) {
+      Get.snackbar('Reset failed', _mapError(e));
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 
   Future<void> setNewPassword() async {
@@ -73,10 +84,36 @@ class AuthController extends GetxController {
   Future<void> signUp() async {
     if (!(formKeySignUp.currentState?.validate() ?? false)) return;
     isSubmitting.value = true;
-    await Future.delayed(const Duration(milliseconds: 700));
-    isSubmitting.value = false;
-    await Get.find<AuthService>().signIn();
-    Get.offAllNamed('/');
+    try {
+      await Get.find<AuthService>().signUpWithEmail(emailController.text.trim(), passwordController.text);
+      Get.offAllNamed(AppRoutes.home);
+    } on Exception catch (e) {
+      Get.snackbar('Sign up failed', _mapError(e));
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  String _mapError(Exception e) {
+    final msg = e.toString();
+    if (msg.contains('invalid-credential') || msg.contains('wrong-password')) return 'Invalid email or password';
+    if (msg.contains('user-not-found')) return 'No account found for that email';
+    if (msg.contains('email-already-in-use')) return 'Email already in use';
+    if (msg.contains('weak-password')) return 'Choose a stronger password';
+    if (msg.contains('network-request-failed')) return 'Network error. Please try again';
+    return 'Something went wrong. Please try again';
+  }
+
+  Future<void> googleSignIn() async {
+    isSubmitting.value = true;
+    try {
+      await Get.find<AuthService>().signInWithGoogle();
+      Get.offAllNamed(AppRoutes.home);
+    } on Exception catch (e) {
+      Get.snackbar('Google sign-in failed', _mapError(e));
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 }
 

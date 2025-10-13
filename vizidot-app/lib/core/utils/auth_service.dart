@@ -1,26 +1,49 @@
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService extends GetxService {
-  static const _keyLoggedIn = 'logged_in';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final isLoggedIn = false.obs;
 
   Future<AuthService> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    isLoggedIn.value = prefs.getBool(_keyLoggedIn) ?? false;
+    isLoggedIn.value = _auth.currentUser != null;
+    _auth.authStateChanges().listen((u) => isLoggedIn.value = u != null);
     return this;
   }
 
-  Future<void> signIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyLoggedIn, true);
-    isLoggedIn.value = true;
+  Future<UserCredential> signInWithEmail(String email, String password) async {
+    final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
+    return cred;
+  }
+
+  Future<UserCredential> signUpWithEmail(String email, String password) async {
+    final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    return cred;
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  Future<UserCredential> signInWithGoogle() async {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) {
+      throw FirebaseAuthException(code: 'canceled', message: 'Sign in canceled');
+    }
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    return await _auth.signInWithCredential(credential);
   }
 
   Future<void> signOut() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyLoggedIn, false);
-    isLoggedIn.value = false;
+    await _auth.signOut();
+    try {
+      await GoogleSignIn().signOut();
+    } catch (_) {}
   }
 }
 
