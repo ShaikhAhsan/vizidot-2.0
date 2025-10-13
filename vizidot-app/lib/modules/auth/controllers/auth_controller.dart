@@ -46,7 +46,7 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithEmail(emailController.text.trim(), passwordController.text);
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Sign in failed', _mapError(e));
     } finally {
@@ -86,7 +86,7 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signUpWithEmail(emailController.text.trim(), passwordController.text);
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Sign up failed', _mapError(e));
     } finally {
@@ -108,7 +108,7 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithGoogle();
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Google sign-in failed', _mapError(e));
     } finally {
@@ -120,7 +120,7 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithApple();
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Apple sign-in failed', _mapError(e));
     } finally {
@@ -132,7 +132,7 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithFacebook();
-      Get.offAllNamed(AppRoutes.home);
+      Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Facebook sign-in failed', _mapError(e));
     } finally {

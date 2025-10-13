@@ -15,7 +15,7 @@ class SplashView extends StatelessWidget {
       } else {
         auth = Get.find<AuthService>();
       }
-      final next = auth.isLoggedIn.value ? AppRoutes.home : AppRoutes.signIn;
+      final next = auth.isLoggedIn.value ? AppRoutes.categories : AppRoutes.signIn;
       Get.offAllNamed(next);
     });
     return const Scaffold(body: SizedBox());

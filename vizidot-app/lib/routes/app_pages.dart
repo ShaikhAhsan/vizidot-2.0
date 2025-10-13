@@ -8,6 +8,8 @@ import '../modules/auth/views/new_password_view.dart';
 import '../modules/auth/views/sign_up_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/splash_view.dart';
+import '../modules/onboarding/views/categories_view.dart';
+import '../modules/onboarding/bindings/categories_binding.dart';
 
 part 'app_routes.dart';
 
@@ -48,6 +50,12 @@ class AppPages {
     GetPage(
       name: AppRoutes.details,
       page: () => const DetailsView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.categories,
+      page: () => const CategoriesView(),
+      binding: CategoriesBinding(),
       transition: Transition.cupertino,
     ),
   ];
