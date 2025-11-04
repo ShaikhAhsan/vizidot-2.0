@@ -8,6 +8,9 @@ import '../widgets/home_app_bar.dart';
 import '../widgets/custom_nav_bar.dart';
 import '../../../routes/app_pages.dart';
 import 'profile_view.dart';
+import 'elocker_view.dart';
+import '../bindings/elocker_binding.dart';
+import '../controllers/elocker_controller.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -15,6 +18,12 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     final themeController = Get.find<ThemeController>();
+    
+    // Initialize E-locker controller if not already initialized
+    if (!Get.isRegistered<ELockerController>()) {
+      ELockerBinding().dependencies();
+    }
+    
     final pages = <Widget>[
       Center(
         child: Column(
@@ -36,15 +45,17 @@ class HomeView extends GetView<HomeController> {
           ],
         ),
       ),
-      const Center(child: Text('eLocker')),
+      const ELockerView(),
       const Center(child: Text('Shop')),
       const Center(child: Text('Streaming')),
       const ProfileView(),
     ];
 
-    return Scaffold(
-      appBar: const HomeAppBar(title: 'Vizidot'),
-      body: Obx(() => pages[controller.selectedIndex.value]),
+    return Obx(() => Scaffold(
+      appBar: controller.selectedIndex.value == 1 
+          ? null 
+          : const HomeAppBar(title: 'Vizidot'),
+      body: pages[controller.selectedIndex.value],
       bottomNavigationBar: CustomNavBar(
         selectedIndex: controller.selectedIndex,
         onItemTapped: controller.onNavTap,
@@ -57,7 +68,7 @@ class HomeView extends GetView<HomeController> {
           'tab-profile-ic.png',
         ],
       ),
-    );
+    ));
   }
 }
 
