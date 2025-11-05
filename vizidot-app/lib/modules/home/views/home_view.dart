@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/utils/theme_controller.dart';
-import '../../../core/widgets/app_search_bar.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/custom_nav_bar.dart';
-import '../../../routes/app_pages.dart';
 import 'profile_view.dart';
 import 'elocker_view.dart';
+import 'shop_view.dart';
+import 'home_content_view.dart';
 import '../bindings/elocker_binding.dart';
 import '../controllers/elocker_controller.dart';
 
@@ -17,42 +16,21 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final themeController = Get.find<ThemeController>();
-    
     // Initialize E-locker controller if not already initialized
     if (!Get.isRegistered<ELockerController>()) {
       ELockerBinding().dependencies();
     }
     
     final pages = <Widget>[
-      Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Obx(() => Text('Counter: ${controller.counter.value}', style: Theme.of(context).textTheme.headlineMedium)),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                FilledButton(onPressed: controller.increment, child: const Text('Increment')),
-                OutlinedButton(onPressed: themeController.toggleTheme, child: const Text('Toggle Theme')),
-                TextButton(onPressed: () => Get.toNamed(AppRoutes.details), child: const Text('Open Details')),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: AppSearchBar()),
-          ],
-        ),
-      ),
+      const HomeContentView(),
       const ELockerView(),
-      const Center(child: Text('Shop')),
+      const ShopView(),
       const Center(child: Text('Streaming')),
       const ProfileView(),
     ];
 
     return Obx(() => Scaffold(
-      appBar: controller.selectedIndex.value == 1 
+      appBar: (controller.selectedIndex.value == 1 || controller.selectedIndex.value == 0)
           ? null 
           : const HomeAppBar(title: 'Vizidot'),
       body: pages[controller.selectedIndex.value],

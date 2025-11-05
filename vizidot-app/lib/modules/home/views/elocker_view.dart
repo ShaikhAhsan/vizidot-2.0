@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import '../controllers/elocker_controller.dart';
 
@@ -7,91 +8,111 @@ class ELockerView extends GetView<ELockerController> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'E-locker',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 28,
-          ),
-        ),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search functionality
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-        elevation: 0,
-        backgroundColor: colors.surface,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                // FEATURED Section
-                _SectionHeader(
-                  title: 'FEATURED',
-                  onSeeAllTap: () {
-                    // TODO: Navigate to see all featured
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            title: const Text('E-locker'),
+            centerTitle: false,
+            titleSpacing: 0,
+            floating: true,
+            pinned: true,
+            toolbarHeight: 44,
+            expandedHeight: 96,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  onPressed: () {
+                    // TODO: Implement search functionality
                   },
+                  child: Icon(
+                    CupertinoIcons.search,
+                    color: colors.onSurface,
+                    size: 20,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 220,
-                  child: Obx(() => ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 4),
-                        itemCount: controller.featuredArtists.length,
+              ),
+            ],
+            elevation: 0,
+            backgroundColor: colors.surface,
+            surfaceTintColor: Colors.transparent,
+            scrolledUnderElevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+              title: const Text(
+                'E-locker',
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.37,
+                ),
+              ),
+            ),
+          ),
+          SliverSafeArea(
+            top: false,
+            sliver: SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const SizedBox(height: 8),
+                  // FEATURED Section
+                  _SectionHeader(
+                    title: 'FEATURED',
+                    onSeeAllTap: () {
+                      // TODO: Navigate to see all featured
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 220,
+                    child: Obx(() => ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 4),
+                          itemCount: controller.featuredArtists.length,
+                          itemBuilder: (context, index) {
+                            final artist = controller.featuredArtists[index];
+                            return _FeaturedCard(
+                              artist: artist,
+                              index: index,
+                              onBookmarkTap: () => controller.toggleBookmark(index),
+                            );
+                          },
+                        )),
+                  ),
+                  const SizedBox(height: 32),
+                  // RISING STARS Section
+                  _SectionHeader(
+                    title: 'RISING STARS',
+                    onSeeAllTap: () {
+                      // TODO: Navigate to see all rising stars
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Obx(() => ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: controller.risingStars.length,
                         itemBuilder: (context, index) {
-                          final artist = controller.featuredArtists[index];
-                          return _FeaturedCard(
+                          final artist = controller.risingStars[index];
+                          return _RisingStarItem(
                             artist: artist,
                             index: index,
-                            onBookmarkTap: () => controller.toggleBookmark(index),
+                            onBookmarkTap: () => controller.toggleBookmark(index, isRisingStar: true),
                           );
                         },
                       )),
-                ),
-                const SizedBox(height: 32),
-                // RISING STARS Section
-                _SectionHeader(
-                  title: 'RISING STARS',
-                  onSeeAllTap: () {
-                    // TODO: Navigate to see all rising stars
-                  },
-                ),
-                const SizedBox(height: 16),
-                Obx(() => ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: controller.risingStars.length,
-                      itemBuilder: (context, index) {
-                        final artist = controller.risingStars[index];
-                        return _RisingStarItem(
-                          artist: artist,
-                          index: index,
-                          onBookmarkTap: () => controller.toggleBookmark(index, isRisingStar: true),
-                        );
-                      },
-                    )),
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ]),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
