@@ -4,7 +4,7 @@ const { User } = require('../models');
 // Initialize Firebase Admin SDK
 const initializeFirebase = () => {
   try {
-    const serviceAccount = require('../tea-boy-3b443-firebase-adminsdk-d3ewt-8cee515502.json');
+    const serviceAccount = require('../vizidot-4b492-firebase-adminsdk-mmzox-c3a057f143.json');
     
     if (!admin.apps.length) {
       admin.initializeApp({

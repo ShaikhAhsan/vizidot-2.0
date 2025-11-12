@@ -15,15 +15,15 @@ const initializeFirebase = async () => {
 
     // Get service account path
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 
-      path.join(__dirname, '../tea-boy-3b443-firebase-adminsdk-d3ewt-8cee515502.json');
+      path.join(__dirname, '../vizidot-4b492-firebase-adminsdk-mmzox-c3a057f143.json');
 
     // Initialize Firebase Admin SDK
     const serviceAccount = require(serviceAccountPath);
     
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://tea-boy-3b443.firebaseio.com',
-      projectId: process.env.FIREBASE_PROJECT_ID || 'tea-boy-3b443'
+      databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://vizidot-4b492.firebaseio.com',
+      projectId: process.env.FIREBASE_PROJECT_ID || 'vizidot-4b492'
     });
 
     db = admin.firestore();
