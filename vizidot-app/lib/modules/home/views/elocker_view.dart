@@ -26,7 +26,7 @@ class ELockerView extends GetView<ELockerController> {
                 padding: const EdgeInsets.only(right: 8),
                 child: CupertinoButton(
                   padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
+                  minimumSize: 0,
                   onPressed: () {
                     // TODO: Implement search functionality
                   },
