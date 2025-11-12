@@ -82,11 +82,9 @@ const LoginPage = () => {
             alt="eBazar Logo" 
             style={{ 
               height: '80px', 
-              width: 'auto',
-              marginBottom: '16px'
+              width: 'auto'
             }} 
           />
-          <h2 style={{ margin: 0, color: '#1890ff' }}>eBazar Admin Panel</h2>
         </div>
         <Form
           name="login"
@@ -116,7 +114,7 @@ const LoginPage = () => {
             />
           </Form.Item>
 
-          <Form.Item>
+          <Form.Item style={{ marginBottom: '8px' }}>
             <Button
               type="primary"
               htmlType="submit"
@@ -125,6 +123,17 @@ const LoginPage = () => {
               style={{ width: '100%' }}
             >
               Login
+            </Button>
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: 0, textAlign: 'right' }}>
+            <Button
+              type="link"
+              onClick={handleForgotPassword}
+              loading={forgotPasswordLoading}
+              style={{ padding: 0 }}
+            >
+              Forgot Password?
             </Button>
           </Form.Item>
 
@@ -141,24 +150,7 @@ const LoginPage = () => {
               Login with Google
             </Button>
           </Form.Item>
-
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button
-              type="link"
-              onClick={handleForgotPassword}
-              loading={forgotPasswordLoading}
-              style={{ width: '100%' }}
-            >
-              Forgot Password?
-            </Button>
-          </Form.Item>
         </Form>
-        
-        <div style={{ textAlign: 'center', marginTop: '16px' }}>
-          <p style={{ color: '#666', fontSize: '12px' }}>
-            Firebase Authentication: Create an account or use existing credentials
-          </p>
-        </div>
       </Card>
     </div>
   );
