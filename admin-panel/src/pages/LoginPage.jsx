@@ -79,12 +79,16 @@ const LoginPage = () => {
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <img 
             src="/logo.png" 
-            alt="eBazar Logo" 
+            alt="Vizidot Logo" 
             style={{ 
               height: '80px', 
-              width: 'auto'
+              width: 'auto',
+              marginBottom: '16px'
             }} 
           />
+          <h2 style={{ margin: 0, color: '#1890ff', fontSize: '20px', fontWeight: '600' }}>
+            Vizidot Admin Panel
+          </h2>
         </div>
         <Form
           name="login"

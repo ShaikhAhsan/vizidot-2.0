@@ -93,14 +93,14 @@ const Sidebar = () => {
       }}>
         <img 
           src="/logo.png" 
-          alt="eBazar Logo" 
+          alt="Vizidot Logo" 
           style={{ 
             height: '40px', 
             width: 'auto',
             marginBottom: '8px'
           }} 
         />
-        <h2 style={{ margin: 0, color: '#1890ff', fontSize: '16px' }}>eBazar Admin</h2>
+        <h2 style={{ margin: 0, color: '#1890ff', fontSize: '16px' }}>Vizidot Admin</h2>
       </div>
       
       <Menu

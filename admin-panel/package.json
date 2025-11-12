@@ -1,7 +1,7 @@
 {
-  "name": "ebazar-admin-panel",
+  "name": "vizidot-admin-panel",
   "version": "1.0.0",
-  "description": "eBazar Admin Panel with Complete CRUD Operations",
+  "description": "Vizidot Admin Panel with Complete CRUD Operations",
   "private": true,
   "dependencies": {
     "@ant-design/icons": "^5.2.6",

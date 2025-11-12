@@ -19,7 +19,7 @@ export const MockAuthProvider = ({ children }) => {
   // Mock user data
   const mockUser = {
     id: 'mock-user-1',
-    email: 'admin@ebazar.com',
+    email: 'admin@vizidot.com',
     first_name: 'Admin',
     last_name: 'User',
     phone: '1234567890',

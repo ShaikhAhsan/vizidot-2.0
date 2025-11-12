@@ -47,14 +47,14 @@ const Header = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <img 
           src="/logo.png" 
-          alt="eBazar Logo" 
+          alt="Vizidot Logo" 
           style={{ 
             height: '32px', 
             width: 'auto'
           }} 
         />
         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
-          eBazar Admin Panel
+          Vizidot Admin Panel
         </h1>
       </div>
       

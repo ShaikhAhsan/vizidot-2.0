@@ -124,7 +124,7 @@ const Dashboard = () => {
     <div>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <p>Overview of your eBazar platform</p>
+        <p>Overview of your Vizidot platform</p>
       </div>
 
       {/* Statistics Cards */}
