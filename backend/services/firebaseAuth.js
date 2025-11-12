@@ -1,0 +1,233 @@
+const admin = require('firebase-admin');
+const { User } = require('../models');
+
+// Initialize Firebase Admin SDK
+const initializeFirebase = () => {
+  try {
+    const serviceAccount = require('../tea-boy-3b443-firebase-adminsdk-d3ewt-8cee515502.json');
+    
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com`
+      });
+    }
+    
+    console.log('🔥 Firebase Admin SDK initialized successfully');
+    return admin;
+  } catch (error) {
+    console.error('❌ Error initializing Firebase Admin SDK:', error);
+    throw error;
+  }
+};
+
+// Initialize Firebase
+const firebaseAdmin = initializeFirebase();
+
+class FirebaseAuthService {
+  /**
+   * Verify Firebase ID token and get user data
+   */
+  static async verifyToken(idToken) {
+    try {
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+      return decodedToken;
+    } catch (error) {
+      console.error('Error verifying Firebase token:', error);
+      throw new Error('Invalid or expired token');
+    }
+  }
+
+  /**
+   * Create user in Firebase and MySQL
+   */
+  static async createUser(userData) {
+    try {
+      const { email, password, firstName, lastName, phone, countryCode, role } = userData;
+      
+      // Create user in Firebase
+      const firebaseUser = await firebaseAdmin.auth().createUser({
+        email,
+        password,
+        displayName: `${firstName} ${lastName}`,
+        phoneNumber: countryCode ? `${countryCode}${phone}` : undefined
+      });
+
+      // Create user in MySQL
+      const mysqlUser = await User.create({
+        firebase_uid: firebaseUser.uid,
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        country_code: countryCode || '+92',
+        role: role || 'customer',
+        is_verified: firebaseUser.emailVerified,
+        is_active: true
+      });
+
+      return {
+        firebaseUser,
+        mysqlUser: mysqlUser.toJSON()
+      };
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get or create user from Firebase token
+   */
+  static async getUserFromToken(idToken) {
+    try {
+      const decodedToken = await this.verifyToken(idToken);
+      
+      // Find user in MySQL by Firebase UID
+      let user = await User.findOne({
+        where: { firebase_uid: decodedToken.uid }
+      });
+
+      // If user doesn't exist in MySQL, create them
+      if (!user) {
+        const firebaseUser = await firebaseAdmin.auth().getUser(decodedToken.uid);
+        
+        user = await User.create({
+          firebase_uid: decodedToken.uid,
+          email: firebaseUser.email,
+          first_name: firebaseUser.displayName?.split(' ')[0] || 'User',
+          last_name: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
+          phone: firebaseUser.phoneNumber?.replace(/^\+\d{1,3}/, '') || null,
+          country_code: firebaseUser.phoneNumber ? `+${firebaseUser.phoneNumber.match(/^\+\d{1,3}/)[0].slice(1)}` : '+92',
+          role: 'customer',
+          is_verified: firebaseUser.emailVerified,
+          is_active: true
+        });
+      }
+
+      return user;
+    } catch (error) {
+      console.error('Error getting user from token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user in Firebase and MySQL
+   */
+  static async updateUser(firebaseUid, updateData) {
+    try {
+      const { email, firstName, lastName, phone, countryCode, role } = updateData;
+      
+      // Update Firebase user
+      const firebaseUpdateData = {};
+      if (email) firebaseUpdateData.email = email;
+      if (firstName || lastName) {
+        firebaseUpdateData.displayName = `${firstName || ''} ${lastName || ''}`.trim();
+      }
+      if (phone && countryCode) {
+        firebaseUpdateData.phoneNumber = `${countryCode}${phone}`;
+      }
+
+      if (Object.keys(firebaseUpdateData).length > 0) {
+        await firebaseAdmin.auth().updateUser(firebaseUid, firebaseUpdateData);
+      }
+
+      // Update MySQL user
+      const mysqlUpdateData = {};
+      if (email) mysqlUpdateData.email = email;
+      if (firstName) mysqlUpdateData.first_name = firstName;
+      if (lastName) mysqlUpdateData.last_name = lastName;
+      if (phone) mysqlUpdateData.phone = phone;
+      if (countryCode) mysqlUpdateData.country_code = countryCode;
+      if (role) mysqlUpdateData.role = role;
+
+      if (Object.keys(mysqlUpdateData).length > 0) {
+        await User.update(mysqlUpdateData, {
+          where: { firebase_uid: firebaseUid }
+        });
+      }
+
+      return await User.findOne({ where: { firebase_uid: firebaseUid } });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete user from Firebase and MySQL (soft delete)
+   */
+  static async deleteUser(firebaseUid) {
+    try {
+      // Disable Firebase user
+      await firebaseAdmin.auth().updateUser(firebaseUid, {
+        disabled: true
+      });
+
+      // Soft delete MySQL user
+      await User.destroy({
+        where: { firebase_uid: firebaseUid }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  static async sendPasswordResetEmail(email) {
+    try {
+      const link = await firebaseAdmin.auth().generatePasswordResetLink(email);
+      // In a real application, you would send this link via email
+      return link;
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set custom user claims (roles)
+   */
+  static async setUserRole(firebaseUid, role) {
+    try {
+      const claims = {
+        role: role,
+        admin: role === 'super_admin' || role === 'admin',
+        business_admin: role === 'business_admin'
+      };
+
+      await firebaseAdmin.auth().setCustomUserClaims(firebaseUid, claims);
+      
+      // Update MySQL user role
+      await User.update({ role }, {
+        where: { firebase_uid: firebaseUid }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error setting user role:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user role from Firebase claims
+   */
+  static async getUserRole(firebaseUid) {
+    try {
+      const user = await firebaseAdmin.auth().getUser(firebaseUid);
+      return user.customClaims?.role || 'customer';
+    } catch (error) {
+      console.error('Error getting user role:', error);
+      throw error;
+    }
+  }
+}
+
+module.exports = FirebaseAuthService;
