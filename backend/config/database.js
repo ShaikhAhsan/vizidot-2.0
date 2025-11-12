@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Database configuration
 const baseSequelizeConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || 'c1109547.sgvps.net',
   port: process.env.DB_PORT || 3306,
   dialect: 'mysql',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
@@ -18,20 +18,28 @@ const baseSequelizeConfig = {
     underscored: true,
     freezeTableName: true
   },
-  timezone: '+05:00' // Pakistan Standard Time
+  timezone: '+05:00', // Pakistan Standard Time
+  dialectOptions: {
+    // Enable SSL for remote connections (if required)
+    ssl: process.env.DB_SSL === 'true' ? {
+      rejectUnauthorized: false
+    } : false
+  },
+  dialectModule: require('mysql2')
 };
 
 // Only use socketPath if explicitly provided via env
 if (process.env.DB_SOCKET) {
   baseSequelizeConfig.dialectOptions = {
+    ...baseSequelizeConfig.dialectOptions,
     socketPath: process.env.DB_SOCKET
   };
 }
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'ebazar',
-  process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD || '',
+  process.env.DB_NAME || 'dbvwnuu5gdchot',
+  process.env.DB_USER || 'u84b1oa3bdbvu',
+  process.env.DB_PASSWORD || 'oi_-DR!b1GCh2qsip4',
   baseSequelizeConfig
 );
 
