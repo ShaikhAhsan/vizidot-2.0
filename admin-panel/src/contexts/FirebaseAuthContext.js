@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
+import { getAnalytics } from 'firebase/analytics';
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
@@ -12,17 +13,18 @@ import { message } from 'antd';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAU2w5noCr4ZsKqCVZvmQApVTbn9NzIvp4",
-  authDomain: "tea-boy-3b443.firebaseapp.com",
-  projectId: "tea-boy-3b443",
-  storageBucket: "tea-boy-3b443.appspot.com",
-  messagingSenderId: "1054229893680",
-  appId: "1:1054229893680:web:4cdda39484f515d5b513f5",
-  measurementId: "G-83TFKRHJFV"
+  apiKey: "AIzaSyAxoexhg5tGF9ee_7BUHxZrirZgcpvlQGQ",
+  authDomain: "vizidot-4b492.firebaseapp.com",
+  projectId: "vizidot-4b492",
+  storageBucket: "vizidot-4b492.appspot.com",
+  messagingSenderId: "538542923941",
+  appId: "1:538542923941:web:3bbf4ff31b1eeb70caad4c",
+  measurementId: "G-JR37CPBNR2"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
