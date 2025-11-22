@@ -421,17 +421,23 @@ router.delete('/shops/:id', async (req, res) => {
 
 router.get('/albums', async (req, res) => {
   try {
-    const { page = 1, limit = 10, artist_id, album_type, includeDeleted = false } = req.query;
+    const { page = 1, limit = 10, search = '', artist_id, album_type, includeDeleted = false } = req.query;
     const offset = (page - 1) * limit;
     const whereClause = {};
+    if (search) {
+      whereClause[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { description: { [Op.like]: `%${search}%` } }
+      ];
+    }
     if (artist_id) whereClause.artist_id = artist_id;
     if (album_type) whereClause.album_type = album_type;
     
     const queryOptions = {
       where: whereClause,
       include: [
-        { model: Artist, as: 'artist' },
-        { model: ArtistBranding, as: 'branding' }
+        { model: Artist, as: 'artist', required: false },
+        { model: ArtistBranding, as: 'branding', required: false }
       ],
       limit: parseInt(limit),
       offset: parseInt(offset),
@@ -444,7 +450,7 @@ router.get('/albums', async (req, res) => {
 
     res.json({
       success: true,
-      data: albums,
+      data: albums, // This is already the rows array from findAndCountAll
       pagination: {
         total: count,
         page: parseInt(page),
@@ -461,11 +467,11 @@ router.get('/albums/:id', async (req, res) => {
   try {
     const album = await Album.findByPk(req.params.id, {
       include: [
-        { model: Artist, as: 'artist' },
-        { model: ArtistBranding, as: 'branding' },
-        { model: AudioTrack, as: 'audioTracks' },
-        { model: VideoTrack, as: 'videoTracks' },
-        { model: Artist, as: 'collaboratingArtists', through: { attributes: ['role'] } }
+        { model: Artist, as: 'artist', required: false },
+        { model: ArtistBranding, as: 'branding', required: false },
+        { model: AudioTrack, as: 'audioTracks', required: false },
+        { model: VideoTrack, as: 'videoTracks', required: false },
+        { model: Artist, as: 'collaboratingArtists', through: { attributes: ['role'] }, required: false }
       ]
     });
     if (!album) {

@@ -90,9 +90,12 @@ const ShopsPage = () => {
     {
       title: 'Status',
       key: 'status',
-      render: (_, record) => (
-        record.is_deleted ? <Tag color="red">Deleted</Tag> : <Tag color="green">Active</Tag>
-      ),
+      render: (_, record) => {
+        if (record.is_deleted) {
+          return <Tag color="red">Deleted</Tag>;
+        }
+        return record.is_active ? <Tag color="green">Active</Tag> : <Tag color="orange">Inactive</Tag>;
+      },
     },
     {
       title: 'Actions',

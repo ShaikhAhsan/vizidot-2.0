@@ -32,6 +32,11 @@ const ArtistShop = sequelize.define('ArtistShop', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  is_active: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    field: 'is_active'
+  },
   is_deleted: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,

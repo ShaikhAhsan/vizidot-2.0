@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, Card, message, Popconfirm, Tag, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Input, Card, message, Popconfirm, Tag, Select, Image, Avatar } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, UserOutlined, SoundOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 
@@ -39,8 +39,10 @@ const AlbumsPage = () => {
       if (type) url += `&album_type=${type}`;
       
       const response = await apiService.get(url);
-      setAlbums(response.data || []);
-      setPagination(prev => ({ ...prev, current: page, total: response.pagination?.total || 0 }));
+      // Handle both response.data (if it's an array) or response.data.data (if nested)
+      const albumsData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setAlbums(albumsData);
+      setPagination(prev => ({ ...prev, current: page, total: response.data?.pagination?.total || response.pagination?.total || 0 }));
     } catch (error) {
       message.error('Failed to fetch albums');
     } finally {
@@ -59,6 +61,70 @@ const AlbumsPage = () => {
   };
 
   const columns = [
+    {
+      title: 'Album Image',
+      dataIndex: 'cover_image_url',
+      key: 'album_image',
+      width: 100,
+      render: (imageUrl) => {
+        if (imageUrl) {
+          return (
+            <Image
+              src={imageUrl}
+              alt="Album"
+              width={60}
+              height={60}
+              style={{
+                objectFit: 'cover',
+                borderRadius: '8px'
+              }}
+              preview={{
+                mask: 'Preview'
+              }}
+            />
+          );
+        }
+        return (
+          <Avatar
+            size={60}
+            icon={<SoundOutlined />}
+            style={{ backgroundColor: '#f0f0f0', color: '#999' }}
+          />
+        );
+      },
+    },
+    {
+      title: 'Artist Image',
+      key: 'artist_image',
+      width: 100,
+      render: (_, record) => {
+        const artistImageUrl = record.artist?.image_url;
+        if (artistImageUrl) {
+          return (
+            <Image
+              src={artistImageUrl}
+              alt="Artist"
+              width={60}
+              height={60}
+              style={{
+                objectFit: 'cover',
+                borderRadius: '8px'
+              }}
+              preview={{
+                mask: 'Preview'
+              }}
+            />
+          );
+        }
+        return (
+          <Avatar
+            size={60}
+            icon={<UserOutlined />}
+            style={{ backgroundColor: '#f0f0f0', color: '#999' }}
+          />
+        );
+      },
+    },
     {
       title: 'Title',
       dataIndex: 'title',
@@ -84,6 +150,16 @@ const AlbumsPage = () => {
       dataIndex: 'release_date',
       key: 'release_date',
       render: (date) => date ? new Date(date).toLocaleDateString() : '-',
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      render: (_, record) => {
+        if (record.is_deleted) {
+          return <Tag color="red">Deleted</Tag>;
+        }
+        return record.is_active ? <Tag color="green">Active</Tag> : <Tag color="orange">Inactive</Tag>;
+      },
     },
     {
       title: 'Actions',

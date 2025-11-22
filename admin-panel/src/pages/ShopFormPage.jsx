@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, message, Select, Tag, Space } from 'antd';
+import { Form, Input, Button, Card, message, Select, Tag, Space, Switch } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../services/api';
@@ -97,6 +97,7 @@ const ShopFormPage = () => {
         form={form}
         layout="vertical"
         onFinish={onFinish}
+        initialValues={{ is_active: true }}
       >
         <Form.Item
           name="shop_name"
@@ -119,6 +120,18 @@ const ShopFormPage = () => {
 
         <Form.Item name="description" label="Description">
           <Input.TextArea rows={4} placeholder="Enter description" />
+        </Form.Item>
+
+        <Form.Item
+          name="is_active"
+          label="Status"
+          valuePropName="checked"
+          initialValue={true}
+        >
+          <Switch
+            checkedChildren="Active"
+            unCheckedChildren="Inactive"
+          />
         </Form.Item>
 
         <Form.Item label="Artists">

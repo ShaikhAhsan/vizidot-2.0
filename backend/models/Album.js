@@ -41,6 +41,11 @@ const Album = sequelize.define('Album', {
     allowNull: true,
     field: 'cover_image_url'
   },
+  is_active: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    field: 'is_active'
+  },
   is_deleted: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
