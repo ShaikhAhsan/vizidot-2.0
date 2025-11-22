@@ -23,6 +23,7 @@ import ArtistsPage from './pages/ArtistsPage';
 import ArtistFormPage from './pages/ArtistFormPage';
 import AlbumsPage from './pages/AlbumsPage';
 import AlbumFormPage from './pages/AlbumFormPage';
+import AlbumTracksPage from './pages/AlbumTracksPage';
 import BrandingsPage from './pages/BrandingsPage';
 import BrandingFormPage from './pages/BrandingFormPage';
 import ShopsPage from './pages/ShopsPage';
@@ -66,6 +67,7 @@ function App() {
                           <Route path="/albums" element={<AlbumsPage />} />
                           <Route path="/albums/create" element={<AlbumFormPage />} />
                           <Route path="/albums/edit/:id" element={<AlbumFormPage />} />
+                          <Route path="/albums/:id/tracks" element={<AlbumTracksPage />} />
                           <Route path="/brandings" element={<BrandingsPage />} />
                           <Route path="/brandings/create" element={<BrandingFormPage />} />
                           <Route path="/brandings/edit/:id" element={<BrandingFormPage />} />

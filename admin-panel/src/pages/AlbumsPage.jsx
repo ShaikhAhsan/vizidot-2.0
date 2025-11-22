@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Input, Card, message, Popconfirm, Tag, Select, Image, Avatar } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, UserOutlined, SoundOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, UserOutlined, SoundOutlined, FileAddOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 
@@ -167,10 +167,11 @@ const AlbumsPage = () => {
       render: (_, record) => (
         <Space>
           <Button
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/albums/${record.album_id}`)}
+            icon={<FileAddOutlined />}
+            onClick={() => navigate(`/albums/${record.album_id}/tracks`)}
+            type="primary"
           >
-            View
+            Manage Tracks
           </Button>
           <Button
             icon={<EditOutlined />}
