@@ -477,7 +477,30 @@ router.get('/albums/:id', async (req, res) => {
     if (!album) {
       return res.status(404).json({ success: false, error: 'Album not found' });
     }
-    res.json({ success: true, data: album });
+    
+    const albumData = album.toJSON();
+    
+    // Populate empty thumbnail_url with album's default_track_thumbnail for audio tracks
+    if (albumData.audioTracks && album.default_track_thumbnail) {
+      albumData.audioTracks = albumData.audioTracks.map(track => {
+        if (!track.thumbnail_url) {
+          track.thumbnail_url = album.default_track_thumbnail;
+        }
+        return track;
+      });
+    }
+    
+    // Populate empty thumbnail_url with album's default_track_thumbnail for video tracks
+    if (albumData.videoTracks && album.default_track_thumbnail) {
+      albumData.videoTracks = albumData.videoTracks.map(track => {
+        if (!track.thumbnail_url) {
+          track.thumbnail_url = album.default_track_thumbnail;
+        }
+        return track;
+      });
+    }
+    
+    res.json({ success: true, data: albumData });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -527,11 +550,26 @@ router.delete('/albums/:id', async (req, res) => {
 
 router.get('/albums/:albumId/audio-tracks', async (req, res) => {
   try {
+    const album = await Album.findByPk(req.params.albumId);
+    if (!album) {
+      return res.status(404).json({ success: false, error: 'Album not found' });
+    }
+    
     const tracks = await AudioTrack.findAll({
       where: { album_id: req.params.albumId },
       order: [['track_number', 'ASC']]
     });
-    res.json({ success: true, data: tracks });
+    
+    // Populate empty thumbnail_url with album's default_track_thumbnail
+    const tracksWithDefaults = tracks.map(track => {
+      const trackData = track.toJSON();
+      if (!trackData.thumbnail_url && album.default_track_thumbnail) {
+        trackData.thumbnail_url = album.default_track_thumbnail;
+      }
+      return trackData;
+    });
+    
+    res.json({ success: true, data: tracksWithDefaults });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -584,11 +622,26 @@ router.delete('/audio-tracks/:id', async (req, res) => {
 
 router.get('/albums/:albumId/video-tracks', async (req, res) => {
   try {
+    const album = await Album.findByPk(req.params.albumId);
+    if (!album) {
+      return res.status(404).json({ success: false, error: 'Album not found' });
+    }
+    
     const tracks = await VideoTrack.findAll({
       where: { album_id: req.params.albumId },
       order: [['track_number', 'ASC']]
     });
-    res.json({ success: true, data: tracks });
+    
+    // Populate empty thumbnail_url with album's default_track_thumbnail
+    const tracksWithDefaults = tracks.map(track => {
+      const trackData = track.toJSON();
+      if (!trackData.thumbnail_url && album.default_track_thumbnail) {
+        trackData.thumbnail_url = album.default_track_thumbnail;
+      }
+      return trackData;
+    });
+    
+    res.json({ success: true, data: tracksWithDefaults });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

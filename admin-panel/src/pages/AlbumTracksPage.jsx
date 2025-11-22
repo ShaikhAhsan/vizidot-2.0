@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Card, message, Popconfirm, Upload, Input, Modal, Form, Image } from 'antd';
-import { ArrowLeftOutlined, UploadOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Card, message, Popconfirm, Upload, Input, Modal, Form, Image, Avatar } from 'antd';
+import { ArrowLeftOutlined, UploadOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, VideoCameraOutlined, SoundOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { useFirebaseAuth } from '../contexts/FirebaseAuthContext';
 import ImageUpload from '../components/ImageUpload';
 
 const { Dragger } = Upload;
+
+// Default thumbnail colors (no external requests needed)
+const DEFAULT_VIDEO_COLOR = '#3498db';
+const DEFAULT_AUDIO_COLOR = '#9b59b6';
 
 const AlbumTracksPage = () => {
   const { id: albumId } = useParams();
@@ -23,8 +27,13 @@ const AlbumTracksPage = () => {
 
   useEffect(() => {
     fetchAlbum();
-    fetchTracks();
   }, [albumId]);
+
+  useEffect(() => {
+    if (album) {
+      fetchTracks();
+    }
+  }, [album, albumId]);
 
   const fetchAlbum = async () => {
     try {
@@ -37,9 +46,11 @@ const AlbumTracksPage = () => {
   };
 
   const fetchTracks = async () => {
+    if (!album) return;
+    
     setLoading(true);
     try {
-      const endpoint = album?.album_type === 'audio'
+      const endpoint = album.album_type === 'audio'
         ? `/api/v1/music/albums/${albumId}/audio-tracks`
         : `/api/v1/music/albums/${albumId}/video-tracks`;
       
@@ -159,26 +170,47 @@ const AlbumTracksPage = () => {
       dataIndex: 'title',
       key: 'title',
     },
-    ...(album?.album_type === 'video' ? [{
+    {
       title: 'Thumbnail',
       key: 'thumbnail',
       width: 120,
       render: (_, record) => {
-        if (record.thumbnail_url) {
+        const isVideo = album?.album_type === 'video';
+        const thumbnailUrl = record.thumbnail_url;
+        
+        // thumbnail_url now contains the default thumbnail from API if track doesn't have one
+        const displayThumbnail = thumbnailUrl;
+        
+        if (displayThumbnail) {
           return (
             <Image
-              src={record.thumbnail_url}
+              src={displayThumbnail}
               alt="Thumbnail"
               width={80}
-              height={60}
+              height={isVideo ? 60 : 40}
               style={{ objectFit: 'cover', borderRadius: '4px' }}
               preview={{ mask: 'Preview' }}
             />
           );
         }
-        return <span style={{ color: '#999' }}>No thumbnail</span>;
+        
+        // Show default thumbnail using Avatar with icon (no external request, no loop)
+        return (
+          <Avatar
+            size={isVideo ? { width: 80, height: 60 } : { width: 80, height: 40 }}
+            icon={isVideo ? <VideoCameraOutlined /> : <SoundOutlined />}
+            style={{
+              backgroundColor: isVideo ? DEFAULT_VIDEO_COLOR : DEFAULT_AUDIO_COLOR,
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white'
+            }}
+          />
+        );
       },
-    }] : []),
+    },
     {
       title: 'Duration',
       dataIndex: 'duration',
@@ -293,22 +325,38 @@ const AlbumTracksPage = () => {
             <Input placeholder="Enter track title" />
           </Form.Item>
 
-          {album.album_type === 'video' && (
-            <>
-              <Form.Item name="thumbnail_url" label="Thumbnail URL" hidden>
-                <Input />
-              </Form.Item>
-              <Form.Item label="Thumbnail">
-                <ImageUpload
-                  folder="video-thumbnails"
-                  value={editForm.getFieldValue('thumbnail_url')}
-                  onChange={(url) => {
-                    editForm.setFieldsValue({ thumbnail_url: url });
-                  }}
-                />
-              </Form.Item>
-            </>
-          )}
+          <Form.Item name="thumbnail_url" label="Thumbnail URL" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Thumbnail">
+            <ImageUpload
+              folder={album.album_type === 'video' ? 'video-thumbnails' : 'audio-thumbnails'}
+              value={editForm.getFieldValue('thumbnail_url')}
+              onChange={(url) => {
+                // Update form field immediately
+                editForm.setFieldsValue({ thumbnail_url: url });
+                // Also update the editing track state for immediate preview
+                if (editingTrack) {
+                  setEditingTrack({ ...editingTrack, thumbnail_url: url });
+                }
+              }}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Button
+                type="link"
+                onClick={() => {
+                  // Clear thumbnail to use album's default (empty string means no custom thumbnail)
+                  editForm.setFieldsValue({ thumbnail_url: '' });
+                  // Update editing track state for immediate preview
+                  if (editingTrack) {
+                    setEditingTrack({ ...editingTrack, thumbnail_url: '' });
+                  }
+                }}
+              >
+                Use Default Thumbnail
+              </Button>
+            </div>
+          </Form.Item>
         </Form>
       </Modal>
     </Card>

@@ -13,6 +13,7 @@ const AlbumFormPage = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [defaultThumbnailUrl, setDefaultThumbnailUrl] = useState('');
   const [availableArtists, setAvailableArtists] = useState([]);
   const navigate = useNavigate();
   const { id } = useParams();
@@ -45,6 +46,9 @@ const AlbumFormPage = () => {
       if (album.cover_image_url) {
         setImageUrl(album.cover_image_url);
       }
+      if (album.default_track_thumbnail) {
+        setDefaultThumbnailUrl(album.default_track_thumbnail);
+      }
     } catch (error) {
       message.error('Failed to fetch album');
       navigate('/albums');
@@ -58,6 +62,7 @@ const AlbumFormPage = () => {
       const data = {
         ...albumData,
         cover_image_url: imageUrl,
+        default_track_thumbnail: defaultThumbnailUrl,
         release_date: values.release_date ? values.release_date.format('YYYY-MM-DD') : null
       };
 
@@ -168,6 +173,24 @@ const AlbumFormPage = () => {
               form.setFieldsValue({ cover_image_url: url });
             }}
           />
+        </Form.Item>
+
+        <Form.Item name="default_track_thumbnail" label="Default Track Thumbnail URL" hidden>
+          <Input />
+        </Form.Item>
+
+        <Form.Item label="Default Track Thumbnail">
+          <ImageUpload
+            folder="album-track-thumbnails"
+            value={defaultThumbnailUrl}
+            onChange={(url) => {
+              setDefaultThumbnailUrl(url);
+              form.setFieldsValue({ default_track_thumbnail: url });
+            }}
+          />
+          <div style={{ marginTop: 8, fontSize: '12px', color: '#999' }}>
+            This thumbnail will be used as default for all tracks in this album that don't have a custom thumbnail.
+          </div>
         </Form.Item>
 
         <Form.Item>

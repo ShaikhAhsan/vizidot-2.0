@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Upload, message, Image, Avatar } from 'antd';
 import { UploadOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import { useFirebaseAuth } from '../contexts/FirebaseAuthContext';
@@ -21,7 +21,13 @@ const ImageUpload = ({
   showPreview = true 
 }) => {
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(value);
   const { user } = useFirebaseAuth();
+
+  // Update preview URL when value changes
+  useEffect(() => {
+    setPreviewUrl(value);
+  }, [value]);
 
   const handleImageUpload = async (file) => {
     setUploading(true);
@@ -51,6 +57,9 @@ const ImageUpload = ({
 
       if (response.ok && data.success) {
         const uploadedUrl = data.data.url;
+        // Update preview immediately
+        setPreviewUrl(uploadedUrl);
+        // Call onChange callback
         if (onChange) {
           onChange(uploadedUrl);
         }
@@ -83,10 +92,10 @@ const ImageUpload = ({
 
   return (
     <div>
-      {showPreview && value ? (
+      {showPreview && previewUrl ? (
         <div style={{ marginBottom: 16 }}>
           <Image
-            src={value}
+            src={previewUrl}
             alt="Upload preview"
             style={defaultImageStyle}
             preview={{
@@ -98,6 +107,7 @@ const ImageUpload = ({
               icon={<DeleteOutlined />}
               danger
               onClick={() => {
+                setPreviewUrl('');
                 if (onChange) {
                   onChange('');
                 }

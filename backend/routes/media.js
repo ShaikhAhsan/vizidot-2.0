@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const { authenticateToken, requireSystemAdmin } = require('../middleware/authWithRoles');
 const { Album, AudioTrack, VideoTrack } = require('../models');
 const { uploadToGCS, isGCSAvailable } = require('../services/googleCloudStorage');
+const { processMediaFile } = require('../services/mediaProcessor');
 
 // Configure multer for media files (audio/video)
 const storage = multer.memoryStorage();
@@ -86,6 +87,15 @@ router.post('/albums/:albumId/media', upload.array('files', 20), async (req, res
         // Extract filename without extension for default title
         const filenameWithoutExt = path.basename(file.originalname, path.extname(file.originalname));
         
+        // Process media file to extract duration and thumbnail
+        let mediaMetadata = { duration: null, thumbnailUrl: null };
+        try {
+          mediaMetadata = await processMediaFile(file.buffer, file.mimetype, type);
+        } catch (metadataError) {
+          console.error(`Error extracting metadata from ${file.originalname}:`, metadataError);
+          // Continue without metadata if extraction fails
+        }
+        
         // Upload to Firebase Storage
         let mediaUrl = null;
         if (isGCSAvailable()) {
@@ -107,13 +117,19 @@ router.post('/albums/:albumId/media', upload.array('files', 20), async (req, res
           });
         }
 
-        // Create track record
+        // Create track record with metadata
         const trackData = {
           album_id: albumId,
           title: filenameWithoutExt, // Use filename as default title
           track_number: startTrackNumber++,
+          duration: mediaMetadata.duration,
           [type === 'audio' ? 'audio_url' : 'video_url']: mediaUrl
         };
+
+        // Add thumbnail URL for both audio and video tracks
+        if (mediaMetadata.thumbnailUrl) {
+          trackData.thumbnail_url = mediaMetadata.thumbnailUrl;
+        }
 
         const track = type === 'audio'
           ? await AudioTrack.create(trackData)

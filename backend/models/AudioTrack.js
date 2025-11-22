@@ -27,6 +27,11 @@ const AudioTrack = sequelize.define('AudioTrack', {
     allowNull: true,
     field: 'audio_url'
   },
+  thumbnail_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    field: 'thumbnail_url'
+  },
   track_number: {
     type: DataTypes.INTEGER,
     defaultValue: 1,
