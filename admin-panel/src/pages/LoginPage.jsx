@@ -15,8 +15,8 @@ const LoginPage = () => {
     try {
       const result = await signIn(values.email, values.password);
       if (result.success) {
-        // If login succeeded, user is already verified as admin by the API
-        navigate('/dashboard');
+        // If login succeeded, user is already verified as admin by the API or has assigned artists
+        navigate('/artists');
       } else {
         // Show the error message from the API
         if (result.error) {
@@ -41,8 +41,8 @@ const LoginPage = () => {
     try {
       const result = await signInWithGoogle();
       if (result.success) {
-        // If login succeeded, user is already verified as admin by the API
-        navigate('/dashboard');
+        // If login succeeded, user is already verified as admin by the API or has assigned artists
+        navigate('/artists');
       } else {
         // Show the error message from the API
         if (result.error) {

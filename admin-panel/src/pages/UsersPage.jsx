@@ -1,7 +1,8 @@
 import React from 'react';
 import GenericCRUDTable from '../components/GenericCRUDTable';
-import { Avatar, Image } from 'antd';
+import { Avatar, Image, Tag } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
+import UserForm from './UserForm';
 
 const UsersPage = () => {
   const userColumns = [
@@ -73,6 +74,25 @@ const UsersPage = () => {
           {isActive ? 'Active' : 'Inactive'}
         </span>
       ),
+    },
+    {
+      title: 'Assigned Artists',
+      dataIndex: 'assignedArtists',
+      key: 'assignedArtists',
+      render: (artists) => {
+        if (!artists || artists.length === 0) {
+          return <span style={{ color: '#999' }}>None</span>;
+        }
+        return (
+          <div>
+            {artists.map(artist => (
+              <Tag key={artist.artist_id} color="blue" style={{ marginBottom: 4 }}>
+                {artist.name}
+              </Tag>
+            ))}
+          </div>
+        );
+      },
     },
   ];
 
@@ -146,6 +166,7 @@ const UsersPage = () => {
         endpoint="/api/v1/admin/users"
         columns={userColumns}
         formFields={userFormFields}
+        customFormComponent={UserForm}
         defaultPageSize={20}
         searchPlaceholder="Search users..."
       />

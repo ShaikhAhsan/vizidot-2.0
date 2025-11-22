@@ -19,25 +19,39 @@ export const ArtistProvider = ({ children }) => {
   const [artists, setArtists] = useState([]);
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { userProfile, isSuperAdmin } = useFirebaseAuth();
 
-  // Fetch all artists
+  // Fetch all artists (filtered by assigned artists if user is not super admin)
   const fetchArtists = async () => {
     setLoading(true);
     try {
-      const response = await apiService.get('/api/v1/music/artists?limit=1000');
-      if (response.success) {
-        // Add "All Artists" option at the beginning
-        const allArtistsOption = {
-          artist_id: 'all',
-          name: 'All Artists',
-          is_active: true
-        };
-        setArtists([allArtistsOption, ...(response.data || [])]);
-        
-        // Set "All Artists" as default if none selected
-        if (!selectedArtist) {
-          setSelectedArtist(allArtistsOption);
+      let artistsToShow = [];
+      
+      // If user is super admin, show all artists
+      if (isSuperAdmin()) {
+        const response = await apiService.get('/api/v1/music/artists?limit=1000');
+        if (response.success) {
+          artistsToShow = response.data || [];
         }
+      } else if (userProfile?.assignedArtists && userProfile.assignedArtists.length > 0) {
+        // If user has assigned artists, only show those
+        artistsToShow = userProfile.assignedArtists;
+      } else {
+        // No artists assigned, show empty list
+        artistsToShow = [];
+      }
+      
+      // Add "All Artists" option at the beginning
+      const allArtistsOption = {
+        artist_id: 'all',
+        name: 'All Artists',
+        is_active: true
+      };
+      setArtists([allArtistsOption, ...artistsToShow]);
+      
+      // Set "All Artists" as default if none selected
+      if (!selectedArtist) {
+        setSelectedArtist(allArtistsOption);
       }
     } catch (error) {
       console.error('Failed to fetch artists:', error);
@@ -81,10 +95,10 @@ export const ArtistProvider = ({ children }) => {
     }
   }, []);
 
-  // Fetch artists on mount
+  // Fetch artists on mount and when user profile changes
   useEffect(() => {
     fetchArtists();
-  }, []);
+  }, [userProfile]);
 
   const value = {
     artists,

@@ -31,6 +31,7 @@ const AlbumArtist = require('./AlbumArtist');
 const TrackArtist = require('./TrackArtist');
 const BrandingArtist = require('./BrandingArtist');
 const ShopArtist = require('./ShopArtist');
+const UserArtist = require('./UserArtist');
 
 // Define associations
 const defineAssociations = () => {
@@ -39,6 +40,20 @@ const defineAssociations = () => {
   User.hasMany(Order, { foreignKey: 'user_id', as: 'orders' });
   User.hasMany(Review, { foreignKey: 'user_id', as: 'reviews' });
   User.hasMany(Cart, { foreignKey: 'user_id', as: 'carts' });
+  
+  // User-Artist associations (many-to-many)
+  User.belongsToMany(Artist, {
+    through: UserArtist,
+    foreignKey: 'user_id',
+    otherKey: 'artist_id',
+    as: 'artists'
+  });
+  Artist.belongsToMany(User, {
+    through: UserArtist,
+    foreignKey: 'artist_id',
+    otherKey: 'user_id',
+    as: 'users'
+  });
   
   // RBAC associations
   User.belongsToMany(Role, { 
@@ -249,6 +264,10 @@ const defineAssociations = () => {
   // ShopArtist associations
   ShopArtist.belongsTo(ArtistShop, { foreignKey: 'shop_id', as: 'shop' });
   ShopArtist.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+
+  // UserArtist associations
+  UserArtist.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  UserArtist.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
 };
 
 // Initialize associations
@@ -283,6 +302,9 @@ module.exports = {
   AudioTrack,
   VideoTrack,
   AlbumArtist,
-  TrackArtist
+  TrackArtist,
+  BrandingArtist,
+  ShopArtist,
+  UserArtist
 };
 

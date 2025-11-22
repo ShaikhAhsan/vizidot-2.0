@@ -152,7 +152,7 @@ router.get('/users', setBusinessContext, async (req, res) => {
       ]
     });
 
-    // Add role information to each user
+    // Add role information and assigned artists to each user
     const usersWithRoles = await Promise.all(users.map(async (user) => {
       const userData = user.toJSON();
       
@@ -163,6 +163,23 @@ router.get('/users', setBusinessContext, async (req, res) => {
       
       userData.roles = userRoles;
       userData.role = highestRole?.name || userData.primary_role || 'customer';
+      
+      // Get assigned artists
+      const { Artist, UserArtist } = require('../models');
+      try {
+        const userArtists = await UserArtist.findAll({
+          where: { user_id: user.id },
+          include: [{
+            model: Artist,
+            as: 'artist',
+            required: false
+          }]
+        });
+        userData.assignedArtists = userArtists.map(ua => ua.artist).filter(a => a);
+      } catch (artistError) {
+        console.error('Error fetching assigned artists:', artistError);
+        userData.assignedArtists = [];
+      }
       
       return userData;
     }));
@@ -190,6 +207,95 @@ router.get('/users/:id', setModel(User), crud.get);
 router.post('/users', setModel(User), crud.create);
 router.put('/users/:id', setModel(User), crud.update);
 router.delete('/users/:id', setModel(User), crud.delete);
+
+// User-Artist assignment endpoints
+router.get('/users/:id/artists', async (req, res) => {
+  try {
+    const { User, Artist, UserArtist } = require('../models');
+    const user = await User.findByPk(req.params.id, {
+      include: [{
+        model: Artist,
+        as: 'artists',
+        through: { attributes: [] }
+      }]
+    });
+    
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    
+    res.json({ success: true, data: user.artists || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/users/:id/artists', async (req, res) => {
+  try {
+    const { User, Artist, UserArtist } = require('../models');
+    const { artist_ids } = req.body;
+    
+    if (!Array.isArray(artist_ids)) {
+      return res.status(400).json({ success: false, error: 'artist_ids must be an array' });
+    }
+    
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    
+    // Validate artist IDs exist if provided
+    if (artist_ids.length > 0) {
+      const artists = await Artist.findAll({
+        where: { artist_id: artist_ids },
+        attributes: ['artist_id']
+      });
+      const validArtistIds = artists.map(a => a.artist_id);
+      const invalidIds = artist_ids.filter(id => !validArtistIds.includes(id));
+      
+      if (invalidIds.length > 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: `Invalid artist IDs: ${invalidIds.join(', ')}` 
+        });
+      }
+    }
+    
+    // Remove existing assignments
+    await UserArtist.destroy({ where: { user_id: parseInt(req.params.id) } });
+    
+    // Add new assignments
+    if (artist_ids.length > 0) {
+      const assignments = artist_ids.map(artist_id => ({
+        user_id: parseInt(req.params.id),
+        artist_id: parseInt(artist_id)
+      }));
+      
+      await UserArtist.bulkCreate(assignments, {
+        ignoreDuplicates: true
+      });
+    }
+    
+    // Fetch updated user with artists
+    const updatedUser = await User.findByPk(req.params.id, {
+      include: [{
+        model: Artist,
+        as: 'artists',
+        through: { attributes: [] },
+        required: false
+      }]
+    });
+    
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: 'User not found after update' });
+    }
+    
+    res.json({ success: true, data: updatedUser.artists || [] });
+  } catch (error) {
+    console.error('Error assigning artists to user:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 router.post('/users/bulk-delete', setModel(User), crud.bulkDelete);
 router.post('/users/bulk-update', setModel(User), crud.bulkUpdate);
 router.get('/users/stats/overview', setModel(User), crud.getStats);

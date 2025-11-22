@@ -159,20 +159,42 @@ router.post('/login', async (req, res) => {
       // Continue with empty roles - user can still login
     }
 
+    // Get assigned artists
+    const { Artist, UserArtist } = require('../models');
+    let assignedArtists = [];
+    try {
+      const userArtists = await UserArtist.findAll({
+        where: { user_id: user.id },
+        include: [{
+          model: Artist,
+          as: 'artist',
+          required: false
+        }]
+      });
+      assignedArtists = userArtists.map(ua => ua.artist).filter(a => a);
+      log('artists_fetched', { artistsCount: assignedArtists.length });
+    } catch (artistError) {
+      console.error('Artist fetch error (non-fatal):', artistError);
+      log('artists_fetch_failed', { error: artistError?.message });
+    }
+
     // Prepare user data with RBAC information
     const userData = user.toJSON();
     userData.roles = userRoles || [];
     userData.highestRole = highestRole;
     userData.userBusinesses = userBusinesses || [];
     userData.role = highestRole?.name || userData.primary_role || userData.role || 'customer'; // For backward compatibility
+    userData.assignedArtists = assignedArtists || [];
 
-    // Check if user has admin privileges (for admin panel access)
+    // Check if user has admin privileges OR assigned artists (for admin panel access)
     const isAdminUser = ['super_admin', 'admin'].includes(userData.role);
-    if (!isAdminUser) {
-      log('admin_check_failed', { userId: user.id, role: userData.role });
+    const hasAssignedArtists = assignedArtists.length > 0;
+    
+    if (!isAdminUser && !hasAssignedArtists) {
+      log('admin_check_failed', { userId: user.id, role: userData.role, hasArtists: hasAssignedArtists });
       return res.status(403).json({
         success: false,
-        error: 'Access denied. Admin privileges required.'
+        error: 'Access denied. Admin privileges required or user must have assigned artists.'
       });
     }
 

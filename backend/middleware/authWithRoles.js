@@ -151,7 +151,7 @@ const requireSuperAdmin = async (req, res, next) => {
 };
 
 /**
- * Middleware to require system admin or higher
+ * Middleware to require system admin or higher, or user with assigned artists
  */
 const requireSystemAdmin = async (req, res, next) => {
   try {
@@ -167,14 +167,22 @@ const requireSystemAdmin = async (req, res, next) => {
       'system_admin'
     ]);
     
-    if (!hasSystemAccess) {
-      return res.status(403).json({
-        success: false,
-        error: 'System admin access required'
-      });
+    if (hasSystemAccess) {
+      return next();
     }
-
-    next();
+    
+    // Check if user has assigned artists (allows access to admin panel)
+    const { UserArtist } = require('../models');
+    const artistCount = await UserArtist.count({ where: { user_id: req.userId } });
+    
+    if (artistCount > 0) {
+      return next();
+    }
+    
+    return res.status(403).json({
+      success: false,
+      error: 'System admin access required or user must have assigned artists'
+    });
   } catch (error) {
     console.error('System admin check error:', error);
     return res.status(500).json({

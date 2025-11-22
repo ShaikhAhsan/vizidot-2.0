@@ -66,6 +66,14 @@ const GenericCRUDTable = ({
 
   const handleCreate = async (values) => {
     try {
+      // If values has a success flag, it means the custom form already handled the create
+      if (values && values.success === true) {
+        setModalVisible(false);
+        form.resetFields();
+        fetchData();
+        return;
+      }
+      
       const resourceName = endpoint.split('/').pop();
       const methodName = `create${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}`;
       
@@ -90,6 +98,15 @@ const GenericCRUDTable = ({
 
   const handleUpdate = async (values) => {
     try {
+      // If values has a success flag, it means the custom form already handled the update
+      if (values && values.success === true) {
+        setModalVisible(false);
+        setEditingRecord(null);
+        form.resetFields();
+        fetchData();
+        return;
+      }
+      
       const resourceName = endpoint.split('/').pop();
       const methodName = `update${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}`;
       

@@ -37,9 +37,14 @@ const ProtectedRoute = ({ children, requireAdmin = true }) => {
     );
   }
 
-  // Check admin access if required
-  if (requireAdmin && !isAdmin()) {
-    return <Navigate to="/login" replace />;
+  // Check admin access if required - allow users with assigned artists
+  if (requireAdmin) {
+    const hasAdminRole = isAdmin();
+    const hasAssignedArtists = userProfile?.assignedArtists && userProfile.assignedArtists.length > 0;
+    
+    if (!hasAdminRole && !hasAssignedArtists) {
+      return <Navigate to="/login" replace />;
+    }
   }
 
   return children;
