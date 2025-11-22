@@ -25,7 +25,7 @@ router.use(requireSystemAdmin);
 
 router.get('/artists', async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', includeDeleted = false } = req.query;
+    const { page = 1, limit = 10, search = '', includeDeleted = false, artist_id } = req.query;
     const offset = (page - 1) * limit;
     
     const whereClause = {};
@@ -34,6 +34,11 @@ router.get('/artists', async (req, res) => {
         { name: { [Op.like]: `%${search}%` } },
         { country: { [Op.like]: `%${search}%` } }
       ];
+    }
+    
+    // Filter by artist_id if provided
+    if (artist_id) {
+      whereClause.artist_id = parseInt(artist_id);
     }
     
     // Use withDeleted scope if needed, otherwise use default scope (no need to specify)

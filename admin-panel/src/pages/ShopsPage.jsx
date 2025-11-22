@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { Input } from 'antd';
+import { useArtist } from '../contexts/ArtistContext';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -15,11 +16,12 @@ const ShopsPage = () => {
   const [searchText, setSearchText] = useState('');
   const [selectedArtist, setSelectedArtist] = useState('');
   const navigate = useNavigate();
+  const { getArtistQueryParam } = useArtist();
 
   useEffect(() => {
     fetchArtists();
     fetchShops();
-  }, []);
+  }, [getArtistQueryParam]);
 
   const fetchArtists = async () => {
     try {
@@ -33,8 +35,18 @@ const ShopsPage = () => {
   const fetchShops = async (artistId = '') => {
     setLoading(true);
     try {
-      let url = '/api/v1/music/shops';
-      if (artistId) url += `?artist_id=${artistId}`;
+      const artistFilter = getArtistQueryParam();
+      const queryParams = new URLSearchParams();
+      
+      // Use artist filter from context if available, otherwise use local filter
+      const filterArtistId = artistFilter.artist_id || artistId;
+      if (filterArtistId) {
+        queryParams.append('artist_id', filterArtistId);
+      }
+      
+      const url = queryParams.toString() 
+        ? `/api/v1/music/shops?${queryParams.toString()}`
+        : '/api/v1/music/shops';
       
       const response = await apiService.get(url);
       setShops(response.data || []);

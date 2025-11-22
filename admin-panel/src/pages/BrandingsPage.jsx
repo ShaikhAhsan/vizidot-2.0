@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@an
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { Input } from 'antd';
+import { useArtist } from '../contexts/ArtistContext';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -15,11 +16,12 @@ const BrandingsPage = () => {
   const [searchText, setSearchText] = useState('');
   const [selectedArtist, setSelectedArtist] = useState('');
   const navigate = useNavigate();
+  const { getArtistQueryParam } = useArtist();
 
   useEffect(() => {
     fetchArtists();
     fetchBrandings();
-  }, []);
+  }, [getArtistQueryParam]);
 
   const fetchArtists = async () => {
     try {
@@ -33,8 +35,18 @@ const BrandingsPage = () => {
   const fetchBrandings = async (artistId = '') => {
     setLoading(true);
     try {
-      let url = '/api/v1/music/brandings';
-      if (artistId) url += `?artist_id=${artistId}`;
+      const artistFilter = getArtistQueryParam();
+      const queryParams = new URLSearchParams();
+      
+      // Use artist filter from context if available, otherwise use local filter
+      const filterArtistId = artistFilter.artist_id || artistId;
+      if (filterArtistId) {
+        queryParams.append('artist_id', filterArtistId);
+      }
+      
+      const url = queryParams.toString() 
+        ? `/api/v1/music/brandings?${queryParams.toString()}`
+        : '/api/v1/music/brandings';
       
       const response = await apiService.get(url);
       setBrandings(response.data || []);

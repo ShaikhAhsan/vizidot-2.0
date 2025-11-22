@@ -2,7 +2,7 @@ import React from 'react';
 import { Layout, Button, Dropdown, Avatar, Space } from 'antd';
 import { UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import { useFirebaseAuth } from '../../contexts/FirebaseAuthContext';
-import BusinessSelector from '../BusinessSelector';
+import ArtistSelector from '../ArtistSelector';
 
 const { Header: AntHeader } = Layout;
 
@@ -59,7 +59,7 @@ const Header = () => {
       </div>
       
       <Space size="middle">
-        <BusinessSelector />
+        <ArtistSelector />
         <Dropdown
           menu={{ items: userMenuItems }}
           placement="bottomRight"

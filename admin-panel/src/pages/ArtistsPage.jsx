@@ -3,6 +3,7 @@ import { Table, Button, Space, Input, Card, message, Popconfirm, Tag, Image, Ava
 import { PlusOutlined, EditOutlined, DeleteOutlined, UndoOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
+import { useArtist } from '../contexts/ArtistContext';
 
 const { Search } = Input;
 
@@ -12,11 +13,24 @@ const ArtistsPage = () => {
   const [searchText, setSearchText] = useState('');
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   const navigate = useNavigate();
+  const { getArtistQueryParam } = useArtist();
 
   const fetchArtists = async (page = 1, search = '') => {
     setLoading(true);
     try {
-      const response = await apiService.get(`/api/v1/music/artists?page=${page}&limit=${pagination.pageSize}&search=${search}`);
+      const artistFilter = getArtistQueryParam();
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.pageSize.toString(),
+        search: search || ''
+      });
+      
+      // Add artist_id filter if an artist is selected
+      if (artistFilter.artist_id) {
+        queryParams.append('artist_id', artistFilter.artist_id);
+      }
+      
+      const response = await apiService.get(`/api/v1/music/artists?${queryParams.toString()}`);
       setArtists(response.data || []);
       setPagination(prev => ({ ...prev, current: page, total: response.pagination?.total || 0 }));
     } catch (error) {
@@ -28,7 +42,7 @@ const ArtistsPage = () => {
 
   useEffect(() => {
     fetchArtists();
-  }, []);
+  }, [getArtistQueryParam]);
 
   const handleDelete = async (id) => {
     try {

@@ -2,19 +2,9 @@ import React from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  DashboardOutlined,
   UserOutlined,
-  ShopOutlined,
-  ShoppingOutlined,
-  AppstoreOutlined,
-  GiftOutlined,
-  StarOutlined,
-  SettingOutlined,
-  TagsOutlined,
   CrownOutlined,
-  CustomerServiceOutlined,
   SoundOutlined,
-  VideoCameraOutlined,
   ShopOutlined as MusicShopOutlined
 } from '@ant-design/icons';
 
@@ -26,84 +16,24 @@ const Sidebar = () => {
 
   const menuItems = [
     {
-      key: '/dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
-    },
-    {
-      key: '/users',
+      key: '/artists',
       icon: <UserOutlined />,
-      label: 'Users',
+      label: 'Artists',
     },
     {
-      key: '/businesses',
-      icon: <ShopOutlined />,
-      label: 'Businesses',
+      key: '/albums',
+      icon: <SoundOutlined />,
+      label: 'Albums',
     },
     {
-      key: '/products',
-      icon: <ShoppingOutlined />,
-      label: 'Products',
-    },
-    {
-      key: '/orders',
-      icon: <AppstoreOutlined />,
-      label: 'Orders',
-    },
-    {
-      key: '/categories',
-      icon: <AppstoreOutlined />,
-      label: 'Categories',
-    },
-    {
-      key: '/brands',
+      key: '/brandings',
       icon: <CrownOutlined />,
-      label: 'Brands',
+      label: 'Brandings',
     },
     {
-      key: '/tags',
-      icon: <TagsOutlined />,
-      label: 'Tags',
-    },
-    {
-      key: '/coupons',
-      icon: <GiftOutlined />,
-      label: 'Coupons',
-    },
-    {
-      key: '/reviews',
-      icon: <StarOutlined />,
-      label: 'Reviews',
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'music-platform',
-      icon: <CustomerServiceOutlined />,
-      label: 'Music Platform',
-      children: [
-        {
-          key: '/artists',
-          icon: <UserOutlined />,
-          label: 'Artists',
-        },
-        {
-          key: '/albums',
-          icon: <SoundOutlined />,
-          label: 'Albums',
-        },
-        {
-          key: '/brandings',
-          icon: <CrownOutlined />,
-          label: 'Brandings',
-        },
-        {
-          key: '/shops',
-          icon: <MusicShopOutlined />,
-          label: 'Shops',
-        },
-      ],
+      key: '/shops',
+      icon: <MusicShopOutlined />,
+      label: 'Shops',
     },
   ];
 

@@ -3,6 +3,7 @@ import { Table, Button, Space, Input, Card, message, Popconfirm, Tag, Select, Im
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, UserOutlined, SoundOutlined, FileAddOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
+import { useArtist } from '../contexts/ArtistContext';
 
 const { Option } = Select;
 
@@ -15,11 +16,12 @@ const AlbumsPage = () => {
   const [albumType, setAlbumType] = useState('');
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   const navigate = useNavigate();
+  const { getArtistQueryParam } = useArtist();
 
   useEffect(() => {
     fetchArtists();
     fetchAlbums();
-  }, []);
+  }, [getArtistQueryParam]);
 
   const fetchArtists = async () => {
     try {
@@ -33,12 +35,22 @@ const AlbumsPage = () => {
   const fetchAlbums = async (page = 1, search = '', artistId = '', type = '') => {
     setLoading(true);
     try {
-      let url = `/api/v1/music/albums?page=${page}&limit=${pagination.pageSize}`;
-      if (search) url += `&search=${search}`;
-      if (artistId) url += `&artist_id=${artistId}`;
-      if (type) url += `&album_type=${type}`;
+      const artistFilter = getArtistQueryParam();
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.pageSize.toString()
+      });
       
-      const response = await apiService.get(url);
+      if (search) queryParams.append('search', search);
+      if (artistId) queryParams.append('artist_id', artistId);
+      if (type) queryParams.append('album_type', type);
+      
+      // Add artist_id filter from context if an artist is selected
+      if (artistFilter.artist_id) {
+        queryParams.append('artist_id', artistFilter.artist_id);
+      }
+      
+      const response = await apiService.get(`/api/v1/music/albums?${queryParams.toString()}`);
       // Handle both response.data (if it's an array) or response.data.data (if nested)
       const albumsData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       setAlbums(albumsData);
