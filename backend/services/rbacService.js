@@ -15,24 +15,65 @@ class RBACService {
         whereClause.business_id = businessId;
       }
       
+      // Try to include Business, but handle if table doesn't exist
+      let includes = [
+        {
+          model: Role,
+          as: 'role',
+          where: { is_active: true }
+        }
+      ];
+      
+      // Only include Business if business_id is not null (to avoid unnecessary joins)
+      // and handle gracefully if table doesn't exist
+      try {
+        includes.push({
+          model: Business,
+          as: 'business',
+          required: false
+        });
+      } catch (err) {
+        // Business table might not exist, continue without it
+        console.warn('Business table not available, skipping business association');
+      }
+      
       const userRoles = await UserRole.findAll({
         where: whereClause,
-        include: [
-          {
-            model: Role,
-            as: 'role',
-            where: { is_active: true }
-          },
-          {
-            model: Business,
-            as: 'business',
-            required: false
-          }
-        ]
+        include: includes
       });
       
       return userRoles;
     } catch (error) {
+      // If error is about missing Business table, try without it
+      if (error.message && error.message.includes("doesn't exist") && error.message.includes('business')) {
+        console.warn('Business table not found, fetching roles without business association');
+        try {
+          const whereClause = {
+            user_id: userId,
+            is_active: true
+          };
+          
+          if (businessId) {
+            whereClause.business_id = businessId;
+          }
+          
+          const userRoles = await UserRole.findAll({
+            where: whereClause,
+            include: [
+              {
+                model: Role,
+                as: 'role',
+                where: { is_active: true }
+              }
+            ]
+          });
+          
+          return userRoles;
+        } catch (retryError) {
+          console.error('Error getting user roles (retry):', retryError);
+          throw retryError;
+        }
+      }
       console.error('Error getting user roles:', error);
       throw error;
     }
@@ -49,8 +90,15 @@ class RBACService {
         return null;
       }
       
+      // Filter out any roles that don't have a role association
+      const validRoles = userRoles.filter(ur => ur.role && ur.role.level != null);
+      
+      if (validRoles.length === 0) {
+        return null;
+      }
+      
       // Sort by level (highest first) and return the role object
-      const sortedRoles = userRoles.sort((a, b) => b.role.level - a.role.level);
+      const sortedRoles = validRoles.sort((a, b) => b.role.level - a.role.level);
       return sortedRoles[0].role; // Return just the role object, not the UserRole
     } catch (error) {
       console.error('Error getting user highest role:', error);
@@ -191,6 +239,18 @@ class RBACService {
    */
   static async getUserBusinesses(userId) {
     try {
+      // Check if Business table exists, if not return empty array
+      try {
+        const { sequelize } = require('../config/database');
+        await sequelize.query("SELECT 1 FROM businesses LIMIT 1", { type: sequelize.QueryTypes.SELECT });
+      } catch (tableError) {
+        if (tableError.message && tableError.message.includes("doesn't exist")) {
+          console.warn('Businesses table not found, returning empty array');
+          return [];
+        }
+        throw tableError;
+      }
+      
       const userRoles = await UserRole.findAll({
         where: {
           user_id: userId,

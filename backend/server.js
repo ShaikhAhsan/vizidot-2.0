@@ -21,7 +21,8 @@ const uploadRoutes = require('./routes/upload');
 const unitRoutes = require('./routes/units');
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+// Hardcoded port - always use 8000
+const PORT = 8000;
 
 // Security middleware
 app.use(helmet());

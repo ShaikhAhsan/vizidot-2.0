@@ -102,13 +102,15 @@ export const FirebaseAuthProvider = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         setUserProfile(data.data.user);
-        message.success('Login successful!');
+        // Don't show success message here - let the LoginPage handle navigation
         return { success: true, user: data.data.user };
       } else {
         const error = await response.json();
-        // If login fails due to insufficient privileges, sign out the user
+        // If login fails due to insufficient privileges, sign out the user silently
         if (error.error && error.error.includes('privileges')) {
           await signOut(auth);
+          // Return the error so LoginPage can show it
+          return { success: false, error: error.error };
         }
         throw new Error(error.error || 'Login failed');
       }
@@ -181,13 +183,15 @@ export const FirebaseAuthProvider = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         setUserProfile(data.data.user);
-        message.success('Google login successful!');
+        // Don't show success message here - let the LoginPage handle navigation
         return { success: true, user: data.data.user };
       } else {
         const error = await response.json();
-        // If login fails due to insufficient privileges, sign out the user
+        // If login fails due to insufficient privileges, sign out the user silently
         if (error.error && error.error.includes('privileges')) {
           await signOut(auth);
+          // Return the error so LoginPage can show it
+          return { success: false, error: error.error };
         }
         throw new Error(error.error || 'Google login failed');
       }
@@ -201,7 +205,7 @@ export const FirebaseAuthProvider = ({ children }) => {
   };
 
   // Sign out
-  const signOutUser = async () => {
+  const signOutUser = async (silent = false) => {
     try {
       setLoading(true);
       
@@ -221,10 +225,15 @@ export const FirebaseAuthProvider = ({ children }) => {
       await signOut(auth);
       setUser(null);
       setUserProfile(null);
-      message.success('Logged out successfully!');
+      // Only show success message if not silent (e.g., when user manually logs out)
+      if (!silent) {
+        message.success('Logged out successfully!');
+      }
     } catch (error) {
       console.error('Sign out error:', error);
-      message.error('Logout failed');
+      if (!silent) {
+        message.error('Logout failed');
+      }
     } finally {
       setLoading(false);
     }

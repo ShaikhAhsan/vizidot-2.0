@@ -15,17 +15,22 @@ const LoginPage = () => {
     try {
       const result = await signIn(values.email, values.password);
       if (result.success) {
-        // Check if user has admin access - use the user data from the login response
-        if (result.user && ['super_admin', 'admin'].includes(result.user.role)) {
-          navigate('/dashboard');
+        // If login succeeded, user is already verified as admin by the API
+        navigate('/dashboard');
+      } else {
+        // Show the error message from the API
+        if (result.error) {
+          message.error(result.error);
+          // Sign out silently if access was denied
+          if (result.error.includes('privileges')) {
+            await signOut(true);
+          }
         } else {
-          message.error('Access denied. Admin privileges required.');
-          // Sign out the user if they don't have admin privileges
-          await signOut();
+          message.error('Login failed');
         }
       }
     } catch (error) {
-      message.error('Login failed');
+      message.error(error.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -36,17 +41,22 @@ const LoginPage = () => {
     try {
       const result = await signInWithGoogle();
       if (result.success) {
-        // Check if user has admin access - use the user data from the login response
-        if (result.user && ['super_admin', 'admin'].includes(result.user.role)) {
-          navigate('/dashboard');
+        // If login succeeded, user is already verified as admin by the API
+        navigate('/dashboard');
+      } else {
+        // Show the error message from the API
+        if (result.error) {
+          message.error(result.error);
+          // Sign out silently if access was denied
+          if (result.error.includes('privileges')) {
+            await signOut(true);
+          }
         } else {
-          message.error('Access denied. Admin privileges required.');
-          // Sign out the user if they don't have admin privileges
-          await signOut();
+          message.error('Google login failed');
         }
       }
     } catch (error) {
-      message.error('Google login failed');
+      message.error(error.message || 'Google login failed');
     } finally {
       setLoading(false);
     }

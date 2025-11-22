@@ -1,0 +1,15 @@
+{
+  "name": "vizidot-2.0",
+  "version": "1.0.0",
+  "description": "Vizidot 2.0 - Backend and Admin Panel",
+  "scripts": {
+    "start:backend": "cd backend && npm run dev",
+    "start:admin": "cd admin-panel && npm start",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:admin\"",
+    "install:all": "cd backend && npm install && cd ../admin-panel && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

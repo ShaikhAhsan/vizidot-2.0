@@ -144,17 +144,37 @@ router.post('/login', async (req, res) => {
 
     // Get user roles for RBAC
     const RBACService = require('../services/rbacService');
-    const userRoles = await RBACService.getUserRoles(user.id);
-    const highestRole = await RBACService.getUserHighestRole(user.id);
-    const userBusinesses = await RBACService.getUserBusinesses(user.id);
-    log('rbac_fetched', { rolesCount: userRoles?.length || 0, highestRole: highestRole?.name, businesses: userBusinesses?.length || 0 });
+    let userRoles = [];
+    let highestRole = null;
+    let userBusinesses = [];
+    
+    try {
+      userRoles = await RBACService.getUserRoles(user.id);
+      highestRole = await RBACService.getUserHighestRole(user.id);
+      userBusinesses = await RBACService.getUserBusinesses(user.id);
+      log('rbac_fetched', { rolesCount: userRoles?.length || 0, highestRole: highestRole?.name, businesses: userBusinesses?.length || 0 });
+    } catch (rbacError) {
+      console.error('RBAC fetch error (non-fatal):', rbacError);
+      log('rbac_fetch_failed', { error: rbacError?.message });
+      // Continue with empty roles - user can still login
+    }
 
     // Prepare user data with RBAC information
     const userData = user.toJSON();
-    userData.roles = userRoles;
+    userData.roles = userRoles || [];
     userData.highestRole = highestRole;
-    userData.userBusinesses = userBusinesses;
-    userData.role = highestRole?.name || userData.primary_role; // For backward compatibility
+    userData.userBusinesses = userBusinesses || [];
+    userData.role = highestRole?.name || userData.primary_role || userData.role || 'customer'; // For backward compatibility
+
+    // Check if user has admin privileges (for admin panel access)
+    const isAdminUser = ['super_admin', 'admin'].includes(userData.role);
+    if (!isAdminUser) {
+      log('admin_check_failed', { userId: user.id, role: userData.role });
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Admin privileges required.'
+      });
+    }
 
     log('login_success', { userId: user.id });
     res.json({
