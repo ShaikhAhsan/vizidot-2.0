@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Card, message, Popconfirm, Tag, Select } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Card, message, Popconfirm, Tag, Select, Image, Avatar } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { Input } from 'antd';
@@ -57,14 +57,78 @@ const BrandingsPage = () => {
 
   const columns = [
     {
+      title: 'Logo',
+      dataIndex: 'logo_url',
+      key: 'logo',
+      width: 100,
+      render: (logoUrl) => {
+        if (logoUrl) {
+          return (
+            <Image
+              src={logoUrl}
+              alt="Branding Logo"
+              width={60}
+              height={60}
+              style={{ objectFit: 'cover', borderRadius: '8px' }}
+              preview={{ mask: 'Preview' }}
+            />
+          );
+        }
+        return (
+          <Avatar
+            size={60}
+            icon={<PictureOutlined />}
+            style={{ backgroundColor: '#f0f0f0', color: '#999' }}
+          />
+        );
+      },
+    },
+    {
       title: 'Branding Name',
       dataIndex: 'branding_name',
       key: 'branding_name',
     },
     {
-      title: 'Artist',
-      key: 'artist',
-      render: (_, record) => record.artist?.name || '-',
+      title: 'Background Color',
+      dataIndex: 'background_color',
+      key: 'background_color',
+      width: 150,
+      render: (color) => {
+        if (color) {
+          return (
+            <Space>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: color,
+                  borderRadius: '4px',
+                  border: '1px solid #d9d9d9',
+                  display: 'inline-block'
+                }}
+              />
+              <span style={{ fontFamily: 'monospace' }}>{color}</span>
+            </Space>
+          );
+        }
+        return <span style={{ color: '#999' }}>No color</span>;
+      },
+    },
+    {
+      title: 'Artists',
+      key: 'artists',
+      render: (_, record) => {
+        if (record.artists && record.artists.length > 0) {
+          return record.artists.map(artist => (
+            <Tag key={artist.artist_id} style={{ marginBottom: 4 }}>
+              {artist.name}
+            </Tag>
+          ));
+        }
+        return record.primaryArtist?.name ? (
+          <Tag>{record.primaryArtist.name}</Tag>
+        ) : '-';
+      },
     },
     {
       title: 'Tagline',
@@ -75,9 +139,16 @@ const BrandingsPage = () => {
     {
       title: 'Status',
       key: 'status',
-      render: (_, record) => (
-        record.is_deleted ? <Tag color="red">Deleted</Tag> : <Tag color="green">Active</Tag>
-      ),
+      render: (_, record) => {
+        if (record.is_deleted) {
+          return <Tag color="red">Deleted</Tag>;
+        }
+        return record.is_active ? (
+          <Tag color="green">Active</Tag>
+        ) : (
+          <Tag color="orange">Inactive</Tag>
+        );
+      },
     },
     {
       title: 'Actions',

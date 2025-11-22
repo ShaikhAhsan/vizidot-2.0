@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, message, Select, Switch, Tag, Space, ColorPicker } from 'antd';
+import { Form, Input, Button, Card, message, Select, Tag, Space } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../services/api';
-import ImageUpload from '../components/ImageUpload';
 
 const { Option } = Select;
 
-const BrandingFormPage = () => {
+const ShopFormPage = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
   const [selectedArtists, setSelectedArtists] = useState([]);
   const [availableArtists, setAvailableArtists] = useState([]);
   const navigate = useNavigate();
@@ -20,7 +18,7 @@ const BrandingFormPage = () => {
   useEffect(() => {
     fetchArtists();
     if (isEdit) {
-      fetchBranding();
+      fetchShop();
     }
   }, [id]);
 
@@ -33,26 +31,18 @@ const BrandingFormPage = () => {
     }
   };
 
-  const fetchBranding = async () => {
+  const fetchShop = async () => {
     try {
-      const response = await apiService.get(`/api/v1/music/brandings/${id}`);
-      const branding = response.data;
-      form.setFieldsValue(branding);
-      if (branding.logo_url) {
-        setImageUrl(branding.logo_url);
-      }
-      if (branding.background_color) {
-        form.setFieldsValue({ background_color: branding.background_color });
-      } else {
-        form.setFieldsValue({ background_color: null });
-      }
+      const response = await apiService.get(`/api/v1/music/shops/${id}`);
+      const shop = response.data;
+      form.setFieldsValue(shop);
       // Set artists from the response
-      if (branding.artists) {
-        setSelectedArtists(branding.artists.map(a => a.artist_id));
+      if (shop.artists) {
+        setSelectedArtists(shop.artists.map(a => a.artist_id));
       }
     } catch (error) {
-      message.error('Failed to fetch branding');
-      navigate('/brandings');
+      message.error('Failed to fetch shop');
+      navigate('/shops');
     }
   };
 
@@ -61,20 +51,19 @@ const BrandingFormPage = () => {
     try {
       const data = {
         ...values,
-        logo_url: imageUrl,
         artists: selectedArtists
       };
 
       if (isEdit) {
-        await apiService.put(`/api/v1/music/brandings/${id}`, data);
-        message.success('Branding updated successfully');
+        await apiService.put(`/api/v1/music/shops/${id}`, data);
+        message.success('Shop updated successfully');
       } else {
-        await apiService.post('/api/v1/music/brandings', data);
-        message.success('Branding created successfully');
+        await apiService.post('/api/v1/music/shops', data);
+        message.success('Shop created successfully');
       }
-      navigate('/brandings');
+      navigate('/shops');
     } catch (error) {
-      message.error(isEdit ? 'Failed to update branding' : 'Failed to create branding');
+      message.error(isEdit ? 'Failed to update shop' : 'Failed to create shop');
     } finally {
       setLoading(false);
     }
@@ -95,12 +84,11 @@ const BrandingFormPage = () => {
     return artist ? artist.name : '';
   };
 
-
   return (
     <Card
-      title={isEdit ? 'Edit Branding' : 'Create Branding'}
+      title={isEdit ? 'Edit Shop' : 'Create Shop'}
       extra={
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/brandings')}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/shops')}>
           Back
         </Button>
       }
@@ -111,64 +99,26 @@ const BrandingFormPage = () => {
         onFinish={onFinish}
       >
         <Form.Item
-          name="branding_name"
-          label="Branding Name"
-          rules={[{ required: true, message: 'Please enter branding name' }]}
+          name="shop_name"
+          label="Shop Name"
+          rules={[{ required: true, message: 'Please enter shop name' }]}
         >
-          <Input placeholder="Enter branding name" />
-        </Form.Item>
-
-        <Form.Item name="tagline" label="Tagline">
-          <Input placeholder="Enter tagline" />
+          <Input placeholder="Enter shop name" />
         </Form.Item>
 
         <Form.Item
-          name="background_color"
-          label="Background Color"
+          name="shop_url"
+          label="Shop URL"
           rules={[
-            {
-              pattern: /^#[0-9A-Fa-f]{6}$/,
-              message: 'Please enter a valid hex color (e.g., #FF5733)'
-            }
+            { required: true, message: 'Please enter shop URL' },
+            { type: 'url', message: 'Please enter a valid URL' }
           ]}
-          getValueFromEvent={(color) => {
-            if (color) {
-              return typeof color === 'string' ? color : color.toHexString();
-            }
-            return null;
-          }}
         >
-          <ColorPicker
-            showText
-            format="hex"
-          />
+          <Input placeholder="https://example.com" />
         </Form.Item>
 
-        <Form.Item
-          name="is_active"
-          label="Status"
-          valuePropName="checked"
-          initialValue={true}
-        >
-          <Switch
-            checkedChildren="Active"
-            unCheckedChildren="Inactive"
-          />
-        </Form.Item>
-
-        <Form.Item name="logo_url" label="Logo URL" hidden>
-          <Input />
-        </Form.Item>
-
-        <Form.Item label="Logo">
-          <ImageUpload
-            folder="brandings"
-            value={imageUrl}
-            onChange={(url) => {
-              setImageUrl(url);
-              form.setFieldsValue({ logo_url: url });
-            }}
-          />
+        <Form.Item name="description" label="Description">
+          <Input.TextArea rows={4} placeholder="Enter description" />
         </Form.Item>
 
         <Form.Item label="Artists">
@@ -208,7 +158,7 @@ const BrandingFormPage = () => {
 
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
-            {isEdit ? 'Update Branding' : 'Create Branding'}
+            {isEdit ? 'Update Shop' : 'Create Shop'}
           </Button>
         </Form.Item>
       </Form>
@@ -216,4 +166,5 @@ const BrandingFormPage = () => {
   );
 };
 
-export default BrandingFormPage;
+export default ShopFormPage;
+

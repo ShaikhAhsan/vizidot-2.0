@@ -62,14 +62,20 @@ const ShopsPage = () => {
       key: 'shop_name',
     },
     {
-      title: 'Artist',
-      key: 'artist',
-      render: (_, record) => record.artist?.name || '-',
-    },
-    {
-      title: 'Branding',
-      key: 'branding',
-      render: (_, record) => record.branding?.branding_name || '-',
+      title: 'Artists',
+      key: 'artists',
+      render: (_, record) => {
+        if (record.artists && record.artists.length > 0) {
+          return record.artists.map(artist => (
+            <Tag key={artist.artist_id} style={{ marginBottom: 4 }}>
+              {artist.name}
+            </Tag>
+          ));
+        }
+        return record.primaryArtist?.name ? (
+          <Tag>{record.primaryArtist.name}</Tag>
+        ) : '-';
+      },
     },
     {
       title: 'Shop URL',

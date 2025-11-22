@@ -89,6 +89,57 @@ const ArtistsPage = () => {
       key: 'name',
     },
     {
+      title: 'Shop',
+      key: 'shop',
+      render: (_, record) => {
+        if (record.shop) {
+          return <Tag color="blue">{record.shop.shop_name}</Tag>;
+        }
+        return <span style={{ color: '#999' }}>-</span>;
+      },
+    },
+    {
+      title: 'Brandings',
+      key: 'brandings',
+      render: (_, record) => {
+        if (record.brandings && record.brandings.length > 0) {
+          return (
+            <Space size="small" wrap>
+              {record.brandings.map((branding) => (
+                <Space key={branding.branding_id} size="small">
+                  {branding.logo_url ? (
+                    <Image
+                      src={branding.logo_url}
+                      alt={branding.branding_name}
+                      width={24}
+                      height={24}
+                      style={{
+                        objectFit: 'cover',
+                        borderRadius: '4px'
+                      }}
+                      preview={{ mask: 'Preview' }}
+                    />
+                  ) : (
+                    <Avatar
+                      size={24}
+                      style={{
+                        backgroundColor: branding.background_color || '#f0f0f0',
+                        fontSize: '12px'
+                      }}
+                    >
+                      {branding.branding_name?.charAt(0) || 'B'}
+                    </Avatar>
+                  )}
+                  <span>{branding.branding_name}</span>
+                </Space>
+              ))}
+            </Space>
+          );
+        }
+        return <span style={{ color: '#999' }}>-</span>;
+      },
+    },
+    {
       title: 'Status',
       key: 'status',
       render: (_, record) => {
@@ -133,6 +184,7 @@ const ArtistsPage = () => {
       ),
     },
   ];
+
 
   return (
     <Card

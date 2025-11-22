@@ -29,6 +29,8 @@ const AudioTrack = require('./AudioTrack');
 const VideoTrack = require('./VideoTrack');
 const AlbumArtist = require('./AlbumArtist');
 const TrackArtist = require('./TrackArtist');
+const BrandingArtist = require('./BrandingArtist');
+const ShopArtist = require('./ShopArtist');
 
 // Define associations
 const defineAssociations = () => {
@@ -144,9 +146,17 @@ const defineAssociations = () => {
 
   // Music Platform Associations
   // Artist associations
-  Artist.hasMany(ArtistBranding, { foreignKey: 'artist_id', as: 'brandings' });
-  Artist.hasMany(ArtistShop, { foreignKey: 'artist_id', as: 'shops' });
   Artist.hasMany(Album, { foreignKey: 'artist_id', as: 'albums' });
+  Artist.belongsToMany(ArtistBranding, { 
+    through: BrandingArtist, 
+    foreignKey: 'artist_id', 
+    otherKey: 'branding_id',
+    as: 'brandings'
+  });
+  Artist.belongsTo(ArtistShop, { 
+    foreignKey: 'shop_id', 
+    as: 'shop'
+  });
   Artist.belongsToMany(Album, { 
     through: AlbumArtist, 
     foreignKey: 'artist_id', 
@@ -169,12 +179,28 @@ const defineAssociations = () => {
   });
 
   // ArtistBranding associations
-  ArtistBranding.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+  ArtistBranding.belongsTo(Artist, { foreignKey: 'artist_id', as: 'primaryArtist', required: false });
+  ArtistBranding.belongsToMany(Artist, { 
+    through: BrandingArtist, 
+    foreignKey: 'branding_id', 
+    otherKey: 'artist_id',
+    as: 'artists'
+  });
   ArtistBranding.hasMany(ArtistShop, { foreignKey: 'branding_id', as: 'shops' });
   ArtistBranding.hasMany(Album, { foreignKey: 'branding_id', as: 'albums' });
 
   // ArtistShop associations
-  ArtistShop.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+  ArtistShop.belongsTo(Artist, { foreignKey: 'artist_id', as: 'primaryArtist', required: false });
+  ArtistShop.hasMany(Artist, { 
+    foreignKey: 'shop_id', 
+    as: 'artists'
+  });
+  ArtistShop.belongsToMany(Artist, { 
+    through: ShopArtist, 
+    foreignKey: 'shop_id', 
+    otherKey: 'artist_id',
+    as: 'assignedArtists' // Keep junction table for backward compatibility or additional assignments
+  });
   ArtistShop.belongsTo(ArtistBranding, { foreignKey: 'branding_id', as: 'branding' });
 
   // Album associations
@@ -215,6 +241,14 @@ const defineAssociations = () => {
 
   // TrackArtist associations
   TrackArtist.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+
+  // BrandingArtist associations
+  BrandingArtist.belongsTo(ArtistBranding, { foreignKey: 'branding_id', as: 'branding' });
+  BrandingArtist.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+
+  // ShopArtist associations
+  ShopArtist.belongsTo(ArtistShop, { foreignKey: 'shop_id', as: 'shop' });
+  ShopArtist.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
 };
 
 // Initialize associations

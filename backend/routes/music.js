@@ -10,7 +10,9 @@ const {
   AudioTrack,
   VideoTrack,
   AlbumArtist,
-  TrackArtist
+  TrackArtist,
+  BrandingArtist,
+  ShopArtist
 } = require('../models');
 
 // Apply authentication and admin role to all routes
@@ -39,7 +41,11 @@ router.get('/artists', async (req, res) => {
       where: whereClause,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
+      include: [
+        { model: ArtistBranding, as: 'brandings', required: false },
+        { model: ArtistShop, as: 'shop', required: false }
+      ]
     };
     
     const { count, rows: artists } = includeDeleted === 'true' 
@@ -77,7 +83,7 @@ router.get('/artists/:id', async (req, res) => {
     const artist = await Artist.findByPk(req.params.id, {
       include: [
         { model: ArtistBranding, as: 'brandings', required: false },
-        { model: ArtistShop, as: 'shops', required: false },
+        { model: ArtistShop, as: 'shop', required: false },
         { model: Album, as: 'albums', required: false }
       ]
     });
@@ -106,7 +112,29 @@ router.put('/artists/:id', async (req, res) => {
     if (!artist) {
       return res.status(404).json({ success: false, error: 'Artist not found' });
     }
-    await artist.update(req.body);
+    
+    const { brandings, shop_id, ...artistData } = req.body;
+    
+    // Handle shop_id (one-to-one relationship)
+    if (shop_id !== undefined) {
+      artistData.shop_id = shop_id || null;
+    }
+    
+    await artist.update(artistData);
+    
+    // Handle many-to-many brandings
+    if (Array.isArray(brandings)) {
+      await artist.setBrandings(brandings);
+    }
+    
+    // Reload with associations
+    await artist.reload({
+      include: [
+        { model: ArtistBranding, as: 'brandings', required: false },
+        { model: ArtistShop, as: 'shop', required: false }
+      ]
+    });
+    
     res.json({ success: true, data: artist });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
@@ -152,12 +180,27 @@ router.post('/artists/:id/restore', async (req, res) => {
 router.get('/brandings', async (req, res) => {
   try {
     const { artist_id, includeDeleted = false } = req.query;
-    const whereClause = {};
-    if (artist_id) whereClause.artist_id = artist_id;
+    let whereClause = {};
+    
+    if (artist_id) {
+      // Filter by artist through junction table
+      const brandingsWithArtist = await BrandingArtist.findAll({
+        where: { artist_id }
+      });
+      const brandingIds = brandingsWithArtist.map(b => b.branding_id);
+      if (brandingIds.length > 0) {
+        whereClause.branding_id = { [Op.in]: brandingIds };
+      } else {
+        whereClause.branding_id = { [Op.in]: [] }; // No results
+      }
+    }
     
     const queryOptions = {
       where: whereClause,
-      include: [{ model: Artist, as: 'artist' }],
+      include: [
+        { model: Artist, as: 'primaryArtist', required: false },
+        { model: Artist, as: 'artists', required: false }
+      ],
       order: [['created_at', 'DESC']]
     };
     
@@ -173,7 +216,10 @@ router.get('/brandings', async (req, res) => {
 router.get('/brandings/:id', async (req, res) => {
   try {
     const branding = await ArtistBranding.findByPk(req.params.id, {
-      include: [{ model: Artist, as: 'artist' }]
+      include: [
+        { model: Artist, as: 'primaryArtist', required: false },
+        { model: Artist, as: 'artists', required: false }
+      ]
     });
     if (!branding) {
       return res.status(404).json({ success: false, error: 'Branding not found' });
@@ -186,9 +232,22 @@ router.get('/brandings/:id', async (req, res) => {
 
 router.post('/brandings', async (req, res) => {
   try {
-    const branding = await ArtistBranding.create(req.body);
+    const { artists, artist_id, ...brandingData } = req.body; // Also exclude artist_id if present
+    const branding = await ArtistBranding.create(brandingData);
+    
+    // Handle many-to-many artists
+    if (Array.isArray(artists) && artists.length > 0) {
+      await branding.setArtists(artists);
+    }
+    
+    // Reload with associations
+    await branding.reload({
+      include: [{ model: Artist, as: 'artists', required: false }]
+    });
+    
     res.status(201).json({ success: true, data: branding });
   } catch (error) {
+    console.error('Error creating branding:', error);
     res.status(400).json({ success: false, error: error.message });
   }
 });
@@ -199,7 +258,20 @@ router.put('/brandings/:id', async (req, res) => {
     if (!branding) {
       return res.status(404).json({ success: false, error: 'Branding not found' });
     }
-    await branding.update(req.body);
+    
+    const { artists, ...brandingData } = req.body;
+    await branding.update(brandingData);
+    
+    // Handle many-to-many artists
+    if (Array.isArray(artists)) {
+      await branding.setArtists(artists);
+    }
+    
+    // Reload with associations
+    await branding.reload({
+      include: [{ model: Artist, as: 'artists', required: false }]
+    });
+    
     res.json({ success: true, data: branding });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
@@ -229,15 +301,25 @@ router.delete('/brandings/:id', async (req, res) => {
 router.get('/shops', async (req, res) => {
   try {
     const { artist_id, branding_id, includeDeleted = false } = req.query;
-    const whereClause = {};
-    if (artist_id) whereClause.artist_id = artist_id;
+    let whereClause = {};
+    
+    if (artist_id) {
+      // Filter by artist through shop_id foreign key (one-to-many relationship)
+      const artist = await Artist.findByPk(artist_id);
+      if (artist && artist.shop_id) {
+        whereClause.shop_id = artist.shop_id;
+      } else {
+        whereClause.shop_id = { [Op.in]: [] }; // No results if artist has no shop
+      }
+    }
     if (branding_id) whereClause.branding_id = branding_id;
     
     const queryOptions = {
       where: whereClause,
       include: [
-        { model: Artist, as: 'artist' },
-        { model: ArtistBranding, as: 'branding' }
+        { model: Artist, as: 'primaryArtist', required: false },
+        { model: Artist, as: 'artists', required: false }, // Artists assigned via shop_id
+        { model: ArtistBranding, as: 'branding', required: false }
       ],
       order: [['created_at', 'DESC']]
     };
@@ -255,8 +337,9 @@ router.get('/shops/:id', async (req, res) => {
   try {
     const shop = await ArtistShop.findByPk(req.params.id, {
       include: [
-        { model: Artist, as: 'artist' },
-        { model: ArtistBranding, as: 'branding' }
+        { model: Artist, as: 'primaryArtist', required: false },
+        { model: Artist, as: 'artists', required: false },
+        { model: ArtistBranding, as: 'branding', required: false }
       ]
     });
     if (!shop) {
@@ -270,9 +353,22 @@ router.get('/shops/:id', async (req, res) => {
 
 router.post('/shops', async (req, res) => {
   try {
-    const shop = await ArtistShop.create(req.body);
+    const { artists, artist_id, ...shopData } = req.body; // Also exclude artist_id if present
+    const shop = await ArtistShop.create(shopData);
+    
+    // Handle many-to-many artists
+    if (Array.isArray(artists) && artists.length > 0) {
+      await shop.setArtists(artists);
+    }
+    
+    // Reload with associations
+    await shop.reload({
+      include: [{ model: Artist, as: 'artists', required: false }]
+    });
+    
     res.status(201).json({ success: true, data: shop });
   } catch (error) {
+    console.error('Error creating shop:', error);
     res.status(400).json({ success: false, error: error.message });
   }
 });
@@ -283,7 +379,20 @@ router.put('/shops/:id', async (req, res) => {
     if (!shop) {
       return res.status(404).json({ success: false, error: 'Shop not found' });
     }
-    await shop.update(req.body);
+    
+    const { artists, ...shopData } = req.body;
+    await shop.update(shopData);
+    
+    // Handle many-to-many artists
+    if (Array.isArray(artists)) {
+      await shop.setArtists(artists);
+    }
+    
+    // Reload with associations
+    await shop.reload({
+      include: [{ model: Artist, as: 'artists', required: false }]
+    });
+    
     res.json({ success: true, data: shop });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });

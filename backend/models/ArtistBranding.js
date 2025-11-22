@@ -10,7 +10,7 @@ const ArtistBranding = sequelize.define('ArtistBranding', {
   },
   artist_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true, // Nullable because we use many-to-many relationship through branding_artists
     field: 'artist_id'
   },
   branding_name: {
@@ -26,6 +26,19 @@ const ArtistBranding = sequelize.define('ArtistBranding', {
   tagline: {
     type: DataTypes.STRING(255),
     allowNull: true
+  },
+  background_color: {
+    type: DataTypes.STRING(7), // Hex color format: #RRGGBB
+    allowNull: true,
+    field: 'background_color',
+    validate: {
+      is: /^#[0-9A-Fa-f]{6}$/ // Validate hex color format
+    }
+  },
+  is_active: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    field: 'is_active'
   },
   is_deleted: {
     type: DataTypes.BOOLEAN,

@@ -82,30 +82,89 @@ const uploadImageWithThumbnail = async (fileBuffer, originalFileName, folder = '
   }
 
   try {
+    // Detect image format - preserve PNG for transparency, use JPEG for others
+    const isPNG = mimetype === 'image/png' || path.extname(originalFileName).toLowerCase() === '.png';
+    const isWebP = mimetype === 'image/webp' || path.extname(originalFileName).toLowerCase() === '.webp';
+    
+    // Determine output format and content type
+    let outputFormat = 'jpeg';
+    let contentType = 'image/jpeg';
+    let outputOptions = { quality: 90 };
+    
+    if (isPNG) {
+      outputFormat = 'png';
+      contentType = 'image/png';
+      outputOptions = { compressionLevel: 9 }; // PNG compression
+    } else if (isWebP) {
+      outputFormat = 'webp';
+      contentType = 'image/webp';
+      outputOptions = { quality: 90 };
+    }
+
+    // Create sharp instance with format detection
+    let sharpInstance = sharp(fileBuffer);
+    
     // Resize main image to 1000x1000px
-    const resizedBuffer = await sharp(fileBuffer)
-      .resize(1000, 1000, {
-        fit: 'inside',
-        withoutEnlargement: false
-      })
-      .jpeg({ quality: 90 })
-      .toBuffer();
+    const resizeOptions = {
+      fit: 'inside',
+      withoutEnlargement: false
+    };
+    
+    // For PNG, preserve transparency by using a transparent background
+    if (isPNG) {
+      resizeOptions.background = { r: 0, g: 0, b: 0, alpha: 0 }; // Transparent background
+    }
+    
+    let resizedSharp = sharpInstance
+      .resize(1000, 1000, resizeOptions);
+    
+    // Apply format-specific options
+    if (isPNG) {
+      resizedSharp = resizedSharp.png(outputOptions);
+    } else if (isWebP) {
+      resizedSharp = resizedSharp.webp(outputOptions);
+    } else {
+      resizedSharp = resizedSharp.jpeg(outputOptions);
+    }
+    
+    const resizedBuffer = await resizedSharp.toBuffer();
 
     // Generate thumbnail (300x300px)
-    const thumbnailBuffer = await sharp(fileBuffer)
-      .resize(300, 300, {
-        fit: 'cover',
-        position: 'center'
-      })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-
-    // Upload original (resized) - always JPEG after processing
-    const originalUpload = await uploadToGCS(resizedBuffer, originalFileName, folder, 'image/jpeg');
+    // For thumbnails, preserve PNG format if original is PNG to maintain transparency
+    // Use 'contain' for PNG to preserve full image with transparency, 'cover' for others
+    const thumbnailResizeOptions = isPNG 
+      ? {
+          fit: 'contain', // Preserve full image with transparency
+          background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
+        }
+      : {
+          fit: 'cover',
+          position: 'center'
+        };
     
-    // Upload thumbnail - always JPEG
-    const thumbnailFileName = `thumb-${path.basename(originalUpload.fileName)}`;
-    const thumbnailUpload = await uploadToGCS(thumbnailBuffer, thumbnailFileName, `${folder}/thumbs`, 'image/jpeg');
+    let thumbnailSharp = sharp(fileBuffer)
+      .resize(300, 300, thumbnailResizeOptions);
+    
+    if (isPNG) {
+      thumbnailSharp = thumbnailSharp.png({ compressionLevel: 9 });
+    } else if (isWebP) {
+      thumbnailSharp = thumbnailSharp.webp({ quality: 80 });
+    } else {
+      thumbnailSharp = thumbnailSharp.jpeg({ quality: 80 });
+    }
+    
+    const thumbnailBuffer = await thumbnailSharp.toBuffer();
+
+    // Determine file extension for upload
+    const fileExt = isPNG ? '.png' : isWebP ? '.webp' : '.jpg';
+    const thumbnailExt = isPNG ? '.png' : isWebP ? '.webp' : '.jpg';
+
+    // Upload original (resized)
+    const originalUpload = await uploadToGCS(resizedBuffer, originalFileName.replace(path.extname(originalFileName), fileExt), folder, contentType);
+    
+    // Upload thumbnail
+    const thumbnailFileName = `thumb-${path.basename(originalUpload.fileName).replace(fileExt, thumbnailExt)}`;
+    const thumbnailUpload = await uploadToGCS(thumbnailBuffer, thumbnailFileName, `${folder}/thumbs`, contentType);
 
     return {
       original: {

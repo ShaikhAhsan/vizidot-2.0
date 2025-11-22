@@ -20,6 +20,11 @@ const Artist = sequelize.define('Artist', {
     type: DataTypes.STRING(500),
     allowNull: true
   },
+  shop_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'shop_id'
+  },
   is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

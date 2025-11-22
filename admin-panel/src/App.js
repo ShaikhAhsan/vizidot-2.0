@@ -25,6 +25,7 @@ import AlbumsPage from './pages/AlbumsPage';
 import BrandingsPage from './pages/BrandingsPage';
 import BrandingFormPage from './pages/BrandingFormPage';
 import ShopsPage from './pages/ShopsPage';
+import ShopFormPage from './pages/ShopFormPage';
 
 const { Content } = Layout;
 
@@ -66,6 +67,8 @@ function App() {
                           <Route path="/brandings/create" element={<BrandingFormPage />} />
                           <Route path="/brandings/edit/:id" element={<BrandingFormPage />} />
                           <Route path="/shops" element={<ShopsPage />} />
+                          <Route path="/shops/create" element={<ShopFormPage />} />
+                          <Route path="/shops/edit/:id" element={<ShopFormPage />} />
                         </Routes>
                       </Content>
                     </Layout>
