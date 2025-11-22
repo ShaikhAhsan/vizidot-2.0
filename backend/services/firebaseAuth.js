@@ -21,8 +21,15 @@ const initializeFirebase = () => {
   }
 };
 
-// Initialize Firebase
-const firebaseAdmin = initializeFirebase();
+// Initialize Firebase (with error handling)
+let firebaseAdmin;
+try {
+  firebaseAdmin = initializeFirebase();
+} catch (error) {
+  console.error('Failed to initialize Firebase Admin SDK:', error);
+  // Don't throw - allow the module to load, but methods will fail gracefully
+  firebaseAdmin = null;
+}
 
 class FirebaseAuthService {
   /**
@@ -30,11 +37,23 @@ class FirebaseAuthService {
    */
   static async verifyToken(idToken) {
     try {
+      if (!firebaseAdmin) {
+        throw new Error('Firebase Admin SDK not initialized');
+      }
       const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
       return decodedToken;
     } catch (error) {
-      console.error('Error verifying Firebase token:', error);
-      throw new Error('Invalid or expired token');
+      console.error('Error verifying Firebase token:', error.message);
+      console.error('Error code:', error.code);
+      // Provide more specific error messages
+      if (error.code === 'auth/id-token-expired') {
+        throw new Error('Token has expired. Please log in again.');
+      } else if (error.code === 'auth/argument-error') {
+        throw new Error('Invalid token format');
+      } else if (error.code === 'auth/id-token-revoked') {
+        throw new Error('Token has been revoked');
+      }
+      throw new Error(`Token verification failed: ${error.message}`);
     }
   }
 
@@ -82,6 +101,7 @@ class FirebaseAuthService {
   static async getUserFromToken(idToken) {
     try {
       const decodedToken = await this.verifyToken(idToken);
+      console.log('Token verified successfully, UID:', decodedToken.uid);
       
       // Find user in MySQL by Firebase UID
       let user = await User.findOne({
@@ -90,6 +110,7 @@ class FirebaseAuthService {
 
       // If user doesn't exist in MySQL, create them
       if (!user) {
+        console.log('User not found in DB, creating new user...');
         const firebaseUser = await firebaseAdmin.auth().getUser(decodedToken.uid);
         
         user = await User.create({
@@ -98,16 +119,20 @@ class FirebaseAuthService {
           first_name: firebaseUser.displayName?.split(' ')[0] || 'User',
           last_name: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
           phone: firebaseUser.phoneNumber?.replace(/^\+\d{1,3}/, '') || null,
-          country_code: firebaseUser.phoneNumber ? `+${firebaseUser.phoneNumber.match(/^\+\d{1,3}/)[0].slice(1)}` : '+92',
+          country_code: firebaseUser.phoneNumber ? `+${firebaseUser.phoneNumber.match(/^\+\d{1,3}/)?.[0]?.slice(1) || '92'}` : '+92',
           role: 'customer',
           is_verified: firebaseUser.emailVerified,
           is_active: true
         });
+        console.log('User created successfully:', user.email);
+      } else {
+        console.log('User found in DB:', user.email);
       }
 
       return user;
     } catch (error) {
-      console.error('Error getting user from token:', error);
+      console.error('Error getting user from token:', error.message);
+      console.error('Error stack:', error.stack);
       throw error;
     }
   }

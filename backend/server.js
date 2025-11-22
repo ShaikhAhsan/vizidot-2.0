@@ -19,6 +19,7 @@ const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
 const unitRoutes = require('./routes/units');
+const musicRoutes = require('./routes/music');
 
 const app = express();
 // Hardcoded port - always use 8000
@@ -83,6 +84,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/units', unitRoutes);
+app.use('/api/v1/music', musicRoutes);
 // Backward-compat alias to support frontend calling /businesses directly (dev proxy)
 app.use('/businesses', businessRoutes);
 

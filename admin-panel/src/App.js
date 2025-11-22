@@ -19,6 +19,12 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import './App.css';
 import CategoryProductsPage from './pages/CategoryProductsPage';
+import ArtistsPage from './pages/ArtistsPage';
+import ArtistFormPage from './pages/ArtistFormPage';
+import AlbumsPage from './pages/AlbumsPage';
+import BrandingsPage from './pages/BrandingsPage';
+import BrandingFormPage from './pages/BrandingFormPage';
+import ShopsPage from './pages/ShopsPage';
 
 const { Content } = Layout;
 
@@ -51,6 +57,15 @@ function App() {
                           <Route path="/tags" element={<TagsPage />} />
                           <Route path="/coupons" element={<CouponsPage />} />
                           <Route path="/reviews" element={<ReviewsPage />} />
+                          {/* Music Platform Routes */}
+                          <Route path="/artists" element={<ArtistsPage />} />
+                          <Route path="/artists/create" element={<ArtistFormPage />} />
+                          <Route path="/artists/edit/:id" element={<ArtistFormPage />} />
+                          <Route path="/albums" element={<AlbumsPage />} />
+                          <Route path="/brandings" element={<BrandingsPage />} />
+                          <Route path="/brandings/create" element={<BrandingFormPage />} />
+                          <Route path="/brandings/edit/:id" element={<BrandingFormPage />} />
+                          <Route path="/shops" element={<ShopsPage />} />
                         </Routes>
                       </Content>
                     </Layout>

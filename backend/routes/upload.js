@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const { upload, processImage, deleteFile, getFileUrl } = require('../services/imageUploadService');
+const { uploadImageWithThumbnail, isGCSAvailable, deleteFromGCS } = require('../services/googleCloudStorage');
 const { User } = require('../models');
 
 // Custom authentication middleware for uploads
@@ -42,16 +44,23 @@ const authenticateUpload = async (req, res, next) => {
     }
 
     // For production, use Firebase authentication
-    const { FirebaseAuthService } = require('../services/firebaseAuth');
-    const firebaseUser = await FirebaseAuthService.getUserFromToken(token);
-    req.user = firebaseUser;
-    req.firebaseUser = firebaseUser;
-    next();
+    const FirebaseAuthService = require('../services/firebaseAuth');
+    try {
+      const firebaseUser = await FirebaseAuthService.getUserFromToken(token);
+      req.user = firebaseUser;
+      req.firebaseUser = firebaseUser;
+      next();
+    } catch (authError) {
+      console.error('Upload auth middleware - Token verification failed:', authError.message);
+      console.error('Token preview:', token.substring(0, 50) + '...');
+      throw authError; // Re-throw to be caught by outer catch
+    }
   } catch (error) {
-    console.error('Upload auth middleware error:', error);
+    console.error('Upload auth middleware error:', error.message);
+    console.error('Error stack:', error.stack);
     return res.status(401).json({
       success: false,
-      error: 'Invalid or expired token'
+      error: error.message || 'Invalid or expired token'
     });
   }
 };
@@ -66,6 +75,44 @@ router.post('/image', authenticateUpload, upload.single('image'), async (req, re
       });
     }
 
+    // Determine folder based on query parameter or default to 'artists'
+    const folder = req.query.folder || 'artists';
+    
+    // Try Firebase Storage first, fallback to local storage
+    if (isGCSAvailable()) {
+      try {
+        const fs = require('fs');
+        const fileBuffer = fs.readFileSync(req.file.path);
+        
+        const firebaseResult = await uploadImageWithThumbnail(
+          fileBuffer,
+          req.file.originalname,
+          folder,
+          req.file.mimetype
+        );
+        
+        // Clean up local file
+        await require('fs').promises.unlink(req.file.path);
+        
+        return res.json({
+          success: true,
+          data: {
+            id: path.basename(firebaseResult.original.fileName),
+            original: firebaseResult.original.fileName,
+            thumbnail: firebaseResult.thumbnail.fileName,
+            url: firebaseResult.original.url,
+            thumbnailUrl: firebaseResult.thumbnail.url,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+          }
+        });
+      } catch (firebaseError) {
+        console.error('Firebase Storage upload failed, falling back to local storage:', firebaseError);
+        // Fall through to local storage
+      }
+    }
+
+    // Local storage fallback
     const processedImage = await processImage(req.file);
     
     res.json({
@@ -84,7 +131,7 @@ router.post('/image', authenticateUpload, upload.single('image'), async (req, re
     console.error('Upload error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to upload image'
+      error: error.message || 'Failed to upload image'
     });
   }
 });

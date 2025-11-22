@@ -20,6 +20,16 @@ const ProductTag = require('./ProductTag');
 const ProductCategory = require('./ProductCategory');
 const Unit = require('./Unit');
 
+// Music Platform Models
+const Artist = require('./Artist');
+const ArtistBranding = require('./ArtistBranding');
+const ArtistShop = require('./ArtistShop');
+const Album = require('./Album');
+const AudioTrack = require('./AudioTrack');
+const VideoTrack = require('./VideoTrack');
+const AlbumArtist = require('./AlbumArtist');
+const TrackArtist = require('./TrackArtist');
+
 // Define associations
 const defineAssociations = () => {
   // User associations
@@ -131,6 +141,80 @@ const defineAssociations = () => {
   // ProductCategory associations
   ProductCategory.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
   ProductCategory.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
+
+  // Music Platform Associations
+  // Artist associations
+  Artist.hasMany(ArtistBranding, { foreignKey: 'artist_id', as: 'brandings' });
+  Artist.hasMany(ArtistShop, { foreignKey: 'artist_id', as: 'shops' });
+  Artist.hasMany(Album, { foreignKey: 'artist_id', as: 'albums' });
+  Artist.belongsToMany(Album, { 
+    through: AlbumArtist, 
+    foreignKey: 'artist_id', 
+    otherKey: 'album_id',
+    as: 'collaboratedAlbums'
+  });
+  Artist.belongsToMany(AudioTrack, { 
+    through: { model: TrackArtist, scope: { track_type: 'audio' } }, 
+    foreignKey: 'artist_id', 
+    otherKey: 'track_id',
+    as: 'audioTrackCollaborations',
+    constraints: false
+  });
+  Artist.belongsToMany(VideoTrack, { 
+    through: { model: TrackArtist, scope: { track_type: 'video' } }, 
+    foreignKey: 'artist_id', 
+    otherKey: 'track_id',
+    as: 'videoTrackCollaborations',
+    constraints: false
+  });
+
+  // ArtistBranding associations
+  ArtistBranding.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+  ArtistBranding.hasMany(ArtistShop, { foreignKey: 'branding_id', as: 'shops' });
+  ArtistBranding.hasMany(Album, { foreignKey: 'branding_id', as: 'albums' });
+
+  // ArtistShop associations
+  ArtistShop.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+  ArtistShop.belongsTo(ArtistBranding, { foreignKey: 'branding_id', as: 'branding' });
+
+  // Album associations
+  Album.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+  Album.belongsTo(ArtistBranding, { foreignKey: 'branding_id', as: 'branding' });
+  Album.hasMany(AudioTrack, { foreignKey: 'album_id', as: 'audioTracks' });
+  Album.hasMany(VideoTrack, { foreignKey: 'album_id', as: 'videoTracks' });
+  Album.belongsToMany(Artist, { 
+    through: AlbumArtist, 
+    foreignKey: 'album_id', 
+    otherKey: 'artist_id',
+    as: 'collaboratingArtists'
+  });
+
+  // AudioTrack associations
+  AudioTrack.belongsTo(Album, { foreignKey: 'album_id', as: 'album' });
+  AudioTrack.belongsToMany(Artist, { 
+    through: { model: TrackArtist, scope: { track_type: 'audio' } }, 
+    foreignKey: 'track_id', 
+    otherKey: 'artist_id',
+    as: 'collaboratingArtists',
+    constraints: false
+  });
+
+  // VideoTrack associations
+  VideoTrack.belongsTo(Album, { foreignKey: 'album_id', as: 'album' });
+  VideoTrack.belongsToMany(Artist, { 
+    through: { model: TrackArtist, scope: { track_type: 'video' } }, 
+    foreignKey: 'track_id', 
+    otherKey: 'artist_id',
+    as: 'collaboratingArtists',
+    constraints: false
+  });
+
+  // AlbumArtist associations
+  AlbumArtist.belongsTo(Album, { foreignKey: 'album_id', as: 'album' });
+  AlbumArtist.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
+
+  // TrackArtist associations
+  TrackArtist.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
 };
 
 // Initialize associations
@@ -156,6 +240,15 @@ module.exports = {
   Tag,
   ProductTag,
   ProductCategory,
-  Unit
+  Unit,
+  // Music Platform Models
+  Artist,
+  ArtistBranding,
+  ArtistShop,
+  Album,
+  AudioTrack,
+  VideoTrack,
+  AlbumArtist,
+  TrackArtist
 };
 

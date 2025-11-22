@@ -11,7 +11,11 @@ import {
   StarOutlined,
   SettingOutlined,
   TagsOutlined,
-  CrownOutlined
+  CrownOutlined,
+  CustomerServiceOutlined,
+  SoundOutlined,
+  VideoCameraOutlined,
+  ShopOutlined as MusicShopOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -70,6 +74,36 @@ const Sidebar = () => {
       key: '/reviews',
       icon: <StarOutlined />,
       label: 'Reviews',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'music-platform',
+      icon: <CustomerServiceOutlined />,
+      label: 'Music Platform',
+      children: [
+        {
+          key: '/artists',
+          icon: <UserOutlined />,
+          label: 'Artists',
+        },
+        {
+          key: '/albums',
+          icon: <SoundOutlined />,
+          label: 'Albums',
+        },
+        {
+          key: '/brandings',
+          icon: <CrownOutlined />,
+          label: 'Brandings',
+        },
+        {
+          key: '/shops',
+          icon: <MusicShopOutlined />,
+          label: 'Shops',
+        },
+      ],
     },
   ];
 
