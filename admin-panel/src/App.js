@@ -17,6 +17,7 @@ import BrandingsPage from './pages/BrandingsPage';
 import BrandingFormPage from './pages/BrandingFormPage';
 import ShopsPage from './pages/ShopsPage';
 import ShopFormPage from './pages/ShopFormPage';
+import UsersPage from './pages/UsersPage';
 
 const { Content } = Layout;
 
@@ -38,6 +39,8 @@ function App() {
                       <Content>
                         <Routes>
                           <Route path="/" element={<Navigate to="/artists" replace />} />
+                          {/* Users Route - Only accessible to super admins */}
+                          <Route path="/users" element={<UsersPage />} />
                           {/* Music Platform Routes */}
                           <Route path="/artists" element={<ArtistsPage />} />
                           <Route path="/artists/create" element={<ArtistFormPage />} />

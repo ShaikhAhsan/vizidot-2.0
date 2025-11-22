@@ -5,7 +5,6 @@ import {
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { adminAPI, apiService } from '../services/api';
-import { useBusiness } from '../contexts/BusinessContext';
 
 const GenericCRUDTable = ({
   title,
@@ -25,7 +24,6 @@ const GenericCRUDTable = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [form] = Form.useForm();
-  const { selectedBusiness } = useBusiness();
   const [formKey, setFormKey] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);
@@ -39,7 +37,7 @@ const GenericCRUDTable = ({
     };
     run();
     return () => { cancelled = true; };
-  }, [selectedBusiness, page, pageSize, search, endpoint]); // Refetch when deps change
+  }, [page, pageSize, search, endpoint]); // Refetch when deps change
 
   const fetchData = async () => {
     setLoading(true);
@@ -257,42 +255,56 @@ const GenericCRUDTable = ({
             layout="vertical"
             onFinish={editingRecord ? handleUpdate : handleCreate}
           >
-            {formFields.map(field => (
-              <Form.Item
-                key={field.name}
-                label={field.label}
-                name={field.name}
-                rules={field.rules}
-              >
-                {field.type === 'select' ? (
-                  <Select
-                    placeholder={field.placeholder}
-                    options={field.options}
-                    mode={field.mode}
-                  />
-                ) : field.type === 'textarea' ? (
-                  <Input.TextArea
-                    placeholder={field.placeholder}
-                    rows={field.rows || 4}
-                  />
-                ) : field.type === 'number' ? (
-                  <Input
-                    type="number"
-                    placeholder={field.placeholder}
-                    min={field.min}
-                    max={field.max}
-                  />
-                ) : field.type === 'color' ? (
-                  <Input
-                    type="color"
-                    placeholder={field.placeholder}
-                    defaultValue={field.defaultValue}
-                  />
-                ) : (
-                  <Input placeholder={field.placeholder} />
-                )}
-              </Form.Item>
-            ))}
+            {formFields.map(field => {
+              // Check if field should be disabled (can be a boolean or a function)
+              const isDisabled = typeof field.disabled === 'function' 
+                ? field.disabled(editingRecord) 
+                : (field.disabled && !!editingRecord); // Only disable when editing if disabled is true
+              
+              return (
+                <Form.Item
+                  key={field.name}
+                  label={field.label}
+                  name={field.name}
+                  rules={field.rules}
+                >
+                  {field.type === 'select' ? (
+                    <Select
+                      placeholder={field.placeholder}
+                      options={field.options}
+                      mode={field.mode}
+                      disabled={isDisabled}
+                    />
+                  ) : field.type === 'textarea' ? (
+                    <Input.TextArea
+                      placeholder={field.placeholder}
+                      rows={field.rows || 4}
+                      disabled={isDisabled}
+                    />
+                  ) : field.type === 'number' ? (
+                    <Input
+                      type="number"
+                      placeholder={field.placeholder}
+                      min={field.min}
+                      max={field.max}
+                      disabled={isDisabled}
+                    />
+                  ) : field.type === 'color' ? (
+                    <Input
+                      type="color"
+                      placeholder={field.placeholder}
+                      defaultValue={field.defaultValue}
+                      disabled={isDisabled}
+                    />
+                  ) : (
+                    <Input 
+                      placeholder={field.placeholder}
+                      disabled={isDisabled}
+                    />
+                  )}
+                </Form.Item>
+              );
+            })}
             
             <Form.Item>
               <Space>

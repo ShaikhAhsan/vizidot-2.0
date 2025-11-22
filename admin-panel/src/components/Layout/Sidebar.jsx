@@ -5,14 +5,17 @@ import {
   UserOutlined,
   CrownOutlined,
   SoundOutlined,
-  ShopOutlined as MusicShopOutlined
+  ShopOutlined as MusicShopOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
+import { useFirebaseAuth } from '../../contexts/FirebaseAuthContext';
 
 const { Sider } = Layout;
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isSuperAdmin } = useFirebaseAuth();
 
   const menuItems = [
     {
@@ -35,6 +38,12 @@ const Sidebar = () => {
       icon: <MusicShopOutlined />,
       label: 'Shops',
     },
+    // Show Users tab only for super admins
+    ...(isSuperAdmin() ? [{
+      key: '/users',
+      icon: <TeamOutlined />,
+      label: 'Users',
+    }] : []),
   ];
 
   const handleMenuClick = ({ key }) => {

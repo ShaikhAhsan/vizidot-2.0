@@ -1,5 +1,7 @@
 import React from 'react';
 import GenericCRUDTable from '../components/GenericCRUDTable';
+import { Avatar, Image } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 
 const UsersPage = () => {
   const userColumns = [
@@ -8,6 +10,33 @@ const UsersPage = () => {
       dataIndex: 'id',
       key: 'id',
       width: 80,
+    },
+    {
+      title: 'Photo',
+      dataIndex: 'profile_image',
+      key: 'profile_image',
+      width: 80,
+      render: (imageUrl) => {
+        if (imageUrl) {
+          return (
+            <Image
+              src={imageUrl}
+              alt="Profile"
+              width={40}
+              height={40}
+              style={{ borderRadius: '50%', objectFit: 'cover' }}
+              preview={{ mask: 'Preview' }}
+            />
+          );
+        }
+        return (
+          <Avatar
+            size={40}
+            icon={<UserOutlined />}
+            style={{ backgroundColor: '#87d068' }}
+          />
+        );
+      },
     },
     {
       title: 'Name',
@@ -67,7 +96,8 @@ const UsersPage = () => {
       label: 'Email',
       type: 'text',
       placeholder: 'Enter email',
-      rules: [{ required: true, message: 'Please enter email' }]
+      rules: [{ required: true, message: 'Please enter email' }],
+      disabled: true, // Email is not editable
     },
     {
       name: 'phone',
