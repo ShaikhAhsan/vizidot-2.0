@@ -13,12 +13,23 @@ const initializeFirebase = async () => {
       return { admin, db, auth };
     }
 
-    // Get service account path
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 
-      path.join(__dirname, '../vizidot-4b492-firebase-adminsdk-mmzox-c3a057f143.json');
+    const serviceAccount = (() => {
+      const rawValue = (process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
+      if (!rawValue) {
+        throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is required but missing. Provide the minified JSON or base64-encoded JSON in your environment.');
+      }
 
-    // Initialize Firebase Admin SDK
-    const serviceAccount = require(serviceAccountPath);
+      const maybeDecoded = rawValue.startsWith('{')
+        ? rawValue
+        : Buffer.from(rawValue, 'base64').toString('utf8');
+
+      try {
+        return JSON.parse(maybeDecoded);
+      } catch (error) {
+        console.error('Invalid FIREBASE_SERVICE_ACCOUNT_JSON value. Make sure it is valid JSON or base64 encoded JSON.');
+        throw error;
+      }
+    })();
     
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
