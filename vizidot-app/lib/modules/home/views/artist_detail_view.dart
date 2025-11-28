@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import '../widgets/follow_message_buttons.dart';
+import '../widgets/content_tabs.dart';
+import '../widgets/albums_section.dart';
+import '../widgets/tracks_section.dart';
 
-class ArtistDetailView extends StatelessWidget {
+class ArtistDetailView extends StatefulWidget {
   final String artistName;
   final String artistImage;
   final String? description;
@@ -17,6 +21,65 @@ class ArtistDetailView extends StatelessWidget {
     this.followers,
     this.following,
   });
+
+  @override
+  State<ArtistDetailView> createState() => _ArtistDetailViewState();
+}
+
+class _ArtistDetailViewState extends State<ArtistDetailView> {
+  bool _isFollowing = false;
+  ContentTab _selectedTab = ContentTab.music;
+
+  // Dummy data - using same images and data from TOP AUDIO section
+  final List<AlbumItem> _albums = [
+    AlbumItem(
+      title: 'Beating on my heart',
+      artist: 'Choc B',
+      coverImage: 'assets/artists/Choc B.png',
+    ),
+    AlbumItem(
+      title: 'Fear of the water',
+      artist: 'Doja cat',
+      coverImage: 'assets/artists/Halsey.png',
+    ),
+    AlbumItem(
+      title: 'Girls just wanna have...',
+      artist: 'Tigerclub',
+      coverImage: 'assets/artists/Blair.png',
+    ),
+    AlbumItem(
+      title: 'Stop beating on my heart',
+      artist: 'Cindi lauper',
+      coverImage: 'assets/artists/Aalyah.png',
+    ),
+  ];
+
+  final List<TrackItem> _tracks = [
+    TrackItem(
+      title: 'Best friend',
+      artist: 'Luna bay',
+      albumArt: 'assets/artists/Choc B.png',
+      duration: '3:24',
+    ),
+    TrackItem(
+      title: 'Odd one out',
+      artist: 'Luna bay',
+      albumArt: 'assets/artists/Halsey.png',
+      duration: '3:24',
+    ),
+    TrackItem(
+      title: 'Girls just wanna have fun',
+      artist: 'Tigerclub',
+      albumArt: 'assets/artists/Blair.png',
+      duration: '3:24',
+    ),
+    TrackItem(
+      title: 'Stop beating on my heart',
+      artist: 'Cindi lauper',
+      albumArt: 'assets/artists/Aalyah.png',
+      duration: '3:24',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +120,7 @@ class ArtistDetailView extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 40),
                         child: _StatItem(
-                          value: _formatNumber(followers ?? 321000),
+                          value: _formatNumber(widget.followers ?? 321000),
                           label: 'followers',
                           colors: colors,
                           textTheme: textTheme,
@@ -67,25 +130,25 @@ class ArtistDetailView extends StatelessWidget {
                       // Profile Picture (Center)
                       Column(
                         children: [
-                        Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(24), // smooth rounded edges
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Image.asset(
-                          artistImage,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                      ),
-              const SizedBox(height: 16),
+                          Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: colors.surface,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.asset(
+                              widget.artistImage,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           // Artist Name
                           Text(
-                            artistName,
+                            widget.artistName,
                             style: textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               fontSize: 22,
@@ -95,7 +158,7 @@ class ArtistDetailView extends StatelessWidget {
                           const SizedBox(height: 6),
                           // Description
                           Text(
-                            description ?? 'Artist / Musician / Writer',
+                            widget.description ?? 'Artist / Musician / Writer',
                             style: textTheme.bodyMedium?.copyWith(
                               color: colors.onSurface.withOpacity(0.6),
                               fontSize: 13,
@@ -109,7 +172,7 @@ class ArtistDetailView extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 40),
                         child: _StatItem(
-                          value: '${following ?? 125}',
+                          value: '${widget.following ?? 125}',
                           label: 'following',
                           colors: colors,
                           textTheme: textTheme,
@@ -117,6 +180,65 @@ class ArtistDetailView extends StatelessWidget {
                       ),
                     ],
                   ),
+                  // Follow and Message Buttons
+                  FollowMessageButtons(
+                    isFollowing: _isFollowing,
+                    onFollowTap: () {
+                      setState(() {
+                        _isFollowing = !_isFollowing;
+                      });
+                    },
+                    onMessageTap: () {
+                      // TODO: Navigate to message screen
+                    },
+                  ),
+                  // Content Tabs
+                  ContentTabs(
+                    selectedTab: _selectedTab,
+                    onTabChanged: (tab) {
+                      setState(() {
+                        _selectedTab = tab;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  // Content based on selected tab
+                  if (_selectedTab == ContentTab.music) ...[
+                    AlbumsSection(
+                      albums: _albums,
+                      // onAlbumTap is null, so it will use default navigation in AlbumsSection
+                    ),
+                    const SizedBox(height: 24),
+                    TracksSection(
+                      tracks: _tracks,
+                      onTrackTap: () {
+                        // TODO: Play track
+                      },
+                    ),
+                  ] else if (_selectedTab == ContentTab.video) ...[
+                    // TODO: Add video content
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'Video content coming soon',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ),
+                  ] else if (_selectedTab == ContentTab.about) ...[
+                    // TODO: Add about content
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'About content coming soon',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -261,4 +383,3 @@ class _StatItem extends StatelessWidget {
     );
   }
 }
-

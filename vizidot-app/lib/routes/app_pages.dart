@@ -14,6 +14,8 @@ import '../modules/onboarding/bindings/categories_binding.dart';
 import '../modules/onboarding/views/artists_view.dart';
 import '../modules/onboarding/bindings/artists_binding.dart';
 import '../modules/home/views/artist_detail_view.dart';
+import '../modules/home/views/album_detail_view.dart';
+import '../modules/home/widgets/tracks_section.dart';
 
 part 'app_routes.dart';
 
@@ -83,6 +85,36 @@ class AppPages {
           description: args['description'],
           followers: args['followers'],
           following: args['following'],
+        );
+      },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.albumDetail,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>;
+        final tracksList = args['tracks'] as List?;
+        final tracks = tracksList?.map((t) {
+          if (t is TrackItem) {
+            return t;
+          } else if (t is Map) {
+            return TrackItem(
+              title: t['title'] ?? '',
+              artist: t['artist'] ?? '',
+              albumArt: t['albumArt'] ?? '',
+              duration: t['duration'] ?? '',
+            );
+          }
+          throw ArgumentError('Invalid track item type');
+        }).toList().cast<TrackItem>() ?? [];
+        
+        return AlbumDetailView(
+          albumTitle: args['albumTitle'] ?? '',
+          albumImage: args['albumImage'] ?? '',
+          releaseYear: args['releaseYear'],
+          songCount: args['songCount'],
+          totalDuration: args['totalDuration'],
+          tracks: tracks,
         );
       },
       transition: Transition.cupertino,
