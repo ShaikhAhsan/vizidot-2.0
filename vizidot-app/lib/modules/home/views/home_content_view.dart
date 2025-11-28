@@ -65,10 +65,17 @@ class HomeContentView extends GetView<HomeController> {
                           itemCount: controller.topAudioItems.length,
                           itemBuilder: (context, index) {
                             final item = controller.topAudioItems[index];
-                            return _MediaAudioCard(
+                            return _MediaCard(
                               title: item.title,
                               artist: item.artist,
                               asset: item.asset,
+                              isHorizontal: true,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(30),
+                                topRight: Radius.circular(12),
+                                bottomLeft: Radius.circular(12),
+                                bottomRight: Radius.circular(30),
+                              ),
                             );
                           },
                         )),
@@ -100,6 +107,13 @@ class HomeContentView extends GetView<HomeController> {
                           title: item.title,
                           artist: item.artist,
                           asset: item.asset,
+                          isHorizontal: false,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(40),
+                            topRight: Radius.circular(15),
+                            bottomLeft: Radius.circular(15),
+                            bottomRight: Radius.circular(40),
+                          ),
                         );
                       },
                       childCount: controller.topVideoItems.length,
@@ -134,128 +148,145 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _MediaAudioCard extends StatelessWidget {
+class _MediaCard extends StatefulWidget {
   final String title;
   final String artist;
   final String asset;
-
-  const _MediaAudioCard({
-    required this.title,
-    required this.artist,
-    required this.asset,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colors = Theme.of(context).colorScheme;
-
-    return Container(
-      width: 107,
-      margin: const EdgeInsets.only(right: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-           ClipRRect(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(12),
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(30),
-              ),
-              child: Image.asset(
-                asset,
-                fit: BoxFit.cover,
-                width: double.infinity,
-              ),
-            ),
-          const SizedBox(height: 5),
-          Text(
-            title,
-            style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 14
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            artist,
-            style: textTheme.bodySmall?.copyWith(
-                color: colors.onSurface.withOpacity(0.6),
-                fontWeight: FontWeight.w800,
-                fontSize: 10
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-class _MediaCard extends StatelessWidget {
-  final String title;
-  final String artist;
-  final String asset;
+  final bool isHorizontal;
+  final BorderRadius borderRadius;
 
   const _MediaCard({
     required this.title,
     required this.artist,
     required this.asset,
+    required this.isHorizontal,
+    required this.borderRadius,
   });
+
+  @override
+  State<_MediaCard> createState() => _MediaCardState();
+}
+
+class _MediaCardState extends State<_MediaCard> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+    _animationController.forward();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+    _animationController.reverse();
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+    _animationController.reverse();
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
 
-    return Column(
+    Widget cardContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-
-            child: ClipRRect(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(40),
-                topRight: Radius.circular(15),
-                bottomLeft: Radius.circular(15),
-                bottomRight: Radius.circular(40),
+        widget.isHorizontal
+            ? ClipRRect(
+                borderRadius: widget.borderRadius,
+                child: Image.asset(
+                  widget.asset,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 107,
+                ),
+              )
+            : Expanded(
+                child: ClipRRect(
+                  borderRadius: widget.borderRadius,
+                  child: Image.asset(
+                    widget.asset,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
               ),
-              child: Image.asset(
-                asset,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-            ),
-          ),
         const SizedBox(height: 5),
         Text(
-          title,
+          widget.title,
           style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 14
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 10),
         Text(
-          artist,
+          widget.artist,
           style: textTheme.bodySmall?.copyWith(
-              color: colors.onSurface.withOpacity(0.6),
-              fontWeight: FontWeight.w800,
-              fontSize: 10
+            color: colors.onSurface.withOpacity(0.6),
+            fontWeight: FontWeight.w800,
+            fontSize: 10,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+
+    Widget wrappedContent = widget.isHorizontal
+        ? Container(
+            width: 107,
+            margin: const EdgeInsets.only(right: 16),
+            child: cardContent,
+          )
+        : cardContent;
+
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      onTap: () {
+        // TODO: Handle card tap
+      },
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeInOut,
+              child: wrappedContent,
+            ),
+          );
+        },
+      ),
     );
   }
 }
