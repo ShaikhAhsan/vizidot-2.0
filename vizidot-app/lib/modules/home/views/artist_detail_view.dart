@@ -23,60 +23,30 @@ class ArtistDetailView extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final navBarHeight = 44.0;
+
     return CupertinoPageScaffold(
       child: CustomScrollView(
         slivers: [
-          CupertinoSliverNavigationBar(
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              onPressed: () => Get.back(),
-              child: Container(
-                width: 35,
-                height: 35,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  CupertinoIcons.arrow_left,
-                  color: colors.onSurface,
-                  size: 18,
-                ),
-              ),
+          // Custom Navigation Bar Sliver - Pinned at top
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _CustomNavBarDelegate(
+              statusBarHeight: statusBarHeight,
+              navBarHeight: navBarHeight,
+              onBack: () => Get.back(),
+              colors: colors,
             ),
-            trailing: CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              onPressed: () {
-                // TODO: Show options menu
-              },
-              child: Container(
-                width: 35,
-                height: 35,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  CupertinoIcons.ellipsis_vertical,
-                  color: colors.onSurface,
-                  size: 18,
-                ),
-              ),
-            ),
-            backgroundColor: Colors.transparent,
-            border: null,
-            automaticallyImplyTitle: false,
-            automaticallyImplyLeading: false,
-            largeTitle: const SizedBox.shrink(),
           ),
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
-              sliver: SliverToBoxAdapter(
-                child: Column(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: 10,
+                left: 10,
+                right: 10,
+              ),
+              child: Column(
                 children: [
                   // Statistics and Profile Picture Row
                   Row(
@@ -150,13 +120,12 @@ class ArtistDetailView extends StatelessWidget {
                 ],
               ),
             ),
-            ),
           ),
         ],
       ),
     );
   }
- 
+
   String _formatNumber(int number) {
     if (number >= 1000000) {
       return '${(number / 1000000).toStringAsFixed(1)}M';
@@ -164,6 +133,92 @@ class ArtistDetailView extends StatelessWidget {
       return '${(number / 1000).toStringAsFixed(0)}k';
     }
     return number.toString();
+  }
+}
+
+class _CustomNavBarDelegate extends SliverPersistentHeaderDelegate {
+  final double statusBarHeight;
+  final double navBarHeight;
+  final VoidCallback onBack;
+  final ColorScheme colors;
+
+  _CustomNavBarDelegate({
+    required this.statusBarHeight,
+    required this.navBarHeight,
+    required this.onBack,
+    required this.colors,
+  });
+
+  @override
+  double get minExtent => statusBarHeight + navBarHeight;
+
+  @override
+  double get maxExtent => statusBarHeight + navBarHeight;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      height: statusBarHeight + navBarHeight,
+      padding: EdgeInsets.only(top: statusBarHeight),
+      color: Colors.transparent,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              onPressed: onBack,
+              child: Container(
+                width: 35,
+                height: 35,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  CupertinoIcons.arrow_left,
+                  color: colors.onSurface,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              onPressed: () {
+                // TODO: Show options menu
+              },
+              child: Container(
+                width: 35,
+                height: 35,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  CupertinoIcons.ellipsis_vertical,
+                  color: colors.onSurface,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_CustomNavBarDelegate oldDelegate) {
+    return statusBarHeight != oldDelegate.statusBarHeight ||
+        navBarHeight != oldDelegate.navBarHeight;
   }
 }
 
