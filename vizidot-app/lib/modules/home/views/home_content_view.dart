@@ -156,12 +156,7 @@ class _MediaAudioCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 107,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: ClipRRect(
+           ClipRRect(
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
                 topRight: Radius.circular(12),
@@ -174,7 +169,6 @@ class _MediaAudioCard extends StatelessWidget {
                 width: double.infinity,
               ),
             ),
-          ),
           const SizedBox(height: 5),
           Text(
             title,
@@ -224,16 +218,7 @@ class _MediaCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Expanded(
-          child: Container(
-            width: double.infinity,
-            // decoration: BoxDecoration(
-            //   borderRadius: BorderRadius.only(
-            //     topLeft: Radius.circular(20),
-            //     topRight: Radius.circular(10),
-            //     bottomLeft: Radius.circular(10),
-            //     bottomRight: Radius.circular(20),
-            //   ),
-            // ),
+
             child: ClipRRect(
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(40),
@@ -249,7 +234,6 @@ class _MediaCard extends StatelessWidget {
               ),
             ),
           ),
-        ),
         const SizedBox(height: 5),
         Text(
           title,
