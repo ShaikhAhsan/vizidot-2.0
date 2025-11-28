@@ -68,17 +68,16 @@ class ArtistDetailView extends StatelessWidget {
             backgroundColor: Colors.transparent,
             border: null,
             automaticallyImplyTitle: false,
-            automaticallyImplyLeading: true,
-            largeTitle: const Text("Artist", style: TextStyle(fontSize: 0)),
-            stretch: true,
+            automaticallyImplyLeading: false,
+            largeTitle: const SizedBox.shrink(),
           ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Column(
+          SliverSafeArea(
+            top: false,
+            sliver: SliverPadding(
+              padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
+              sliver: SliverToBoxAdapter(
+                child: Column(
                 children: [
-                  const SizedBox(height: 40),
                   // Statistics and Profile Picture Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -151,12 +150,13 @@ class ArtistDetailView extends StatelessWidget {
                 ],
               ),
             ),
+            ),
           ),
         ],
       ),
     );
   }
-
+ 
   String _formatNumber(int number) {
     if (number >= 1000000) {
       return '${(number / 1000000).toStringAsFixed(1)}M';
