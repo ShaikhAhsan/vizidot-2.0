@@ -11,99 +11,94 @@ class HomeContentView extends GetView<HomeController> {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          title: const Text('Best of the week'),
-          centerTitle: false,
-          titleSpacing: 0,
-          floating: true,
-          pinned: true,
-          toolbarHeight: 44,
-          expandedHeight: 96,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
+    return CupertinoPageScaffold(
+      child: CustomScrollView(
+        slivers: <Widget>[
+          CupertinoSliverNavigationBar(
+            // largeTitle: const Text(
+            //   'Best of the week'
+            // ),
+            largeTitle: Text('Best of the week'),
+
+            // middle:  const Text(
+            // 'Best of the week'
+            // ),
+            // leading: Icon(CupertinoIcons.person_2),
+            trailing: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white, // background
+                borderRadius: BorderRadius.circular(12), // rounded corners
+              ),
               child: CupertinoButton(
                 padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
+                minSize: 32,
                 onPressed: () {
                   // TODO: Show options menu
                 },
-                child: Icon(
+                child: const Icon(
                   CupertinoIcons.ellipsis_vertical,
-                  color: colors.onSurface,
+                  color: Colors.black, // dot color
                   size: 20,
                 ),
               ),
             ),
-          ],
-          elevation: 0,
-          backgroundColor: colors.surface,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
-          flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-            title: const Text(
-              'Best of the week',
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.37,
+            // backgroundColor: Colors.transparent,
+            // border: null,
+            // automaticBackgroundVisibility: false,
+          ),
+          SliverSafeArea(
+            top: false,
+            sliver: SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const SizedBox(height: 12),
+                  // TOP AUDIO Section
+                  _SectionHeader(title: 'TOP AUDIO'),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 177,
+                    child: Obx(() => ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: controller.topAudioItems.length,
+                          itemBuilder: (context, index) {
+                            final item = controller.topAudioItems[index];
+                            return _MediaCard(
+                              title: item.title,
+                              artist: item.artist,
+                              asset: item.asset,
+                            );
+                          },
+                        )),
+                  ),
+                  const SizedBox(height: 20),
+                  // TOP VIDEO Section
+                  _SectionHeader(title: 'TOP VIDEO'),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 220,
+                    child: Obx(() => ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: controller.topVideoItems.length,
+                          itemBuilder: (context, index) {
+                            final item = controller.topVideoItems[index];
+                            return _MediaCard(
+                              title: item.title,
+                              artist: item.artist,
+                              asset: item.asset,
+                            );
+                          },
+                        )),
+                  ),
+                  const SizedBox(height: 24),
+                ]),
               ),
             ),
           ),
-        ),
-        SliverSafeArea(
-          top: false,
-          sliver: SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                const SizedBox(height: 24),
-                // TOP AUDIO Section
-                _SectionHeader(title: 'TOP AUDIO'),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 220,
-                  child: Obx(() => ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: controller.topAudioItems.length,
-                        itemBuilder: (context, index) {
-                          final item = controller.topAudioItems[index];
-                          return _MediaCard(
-                            title: item.title,
-                            artist: item.artist,
-                            asset: item.asset,
-                          );
-                        },
-                      )),
-                ),
-                const SizedBox(height: 32),
-                // TOP VIDEO Section
-                _SectionHeader(title: 'TOP VIDEO'),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 220,
-                  child: Obx(() => ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: controller.topVideoItems.length,
-                        itemBuilder: (context, index) {
-                          final item = controller.topVideoItems[index];
-                          return _MediaCard(
-                            title: item.title,
-                            artist: item.artist,
-                            asset: item.asset,
-                          );
-                        },
-                      )),
-                ),
-                const SizedBox(height: 24),
-              ]),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -118,8 +113,9 @@ class _SectionHeader extends StatelessWidget {
     return Text(
       title,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            letterSpacing: 0,
           ),
     );
   }
@@ -142,13 +138,13 @@ class _MediaCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Container(
-      width: 160,
+      width: 107,
       margin: const EdgeInsets.only(right: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 160,
+            height: 107,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -161,21 +157,23 @@ class _MediaCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 5),
           Text(
             title,
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
+              fontSize: 14
             ),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
             artist,
             style: textTheme.bodySmall?.copyWith(
               color: colors.onSurface.withOpacity(0.6),
-              fontWeight: FontWeight.w400,
+                fontWeight: FontWeight.w800,
+                fontSize: 10
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
