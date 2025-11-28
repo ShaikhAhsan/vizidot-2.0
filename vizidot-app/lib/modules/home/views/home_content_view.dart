@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import '../controllers/home_controller.dart';
+import '../../../routes/app_pages.dart';
 
 class HomeContentView extends GetView<HomeController> {
   const HomeContentView({super.key});
@@ -15,38 +16,31 @@ class HomeContentView extends GetView<HomeController> {
       child: CustomScrollView(
         slivers: <Widget>[
           CupertinoSliverNavigationBar(
-            // largeTitle: const Text(
-            //   'Best of the week'
-            // ),
-            largeTitle: Text('Best of the week'),
-
-            // middle:  const Text(
-            // 'Best of the week'
-            // ),
-            // leading: Icon(CupertinoIcons.person_2),
+            largeTitle: const Text('Best of the week'),
             trailing: Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: Colors.white, // background
-                borderRadius: BorderRadius.circular(12), // rounded corners
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: CupertinoButton(
                 padding: EdgeInsets.zero,
-                minSize: 32,
+                minimumSize: const Size(32, 32),
                 onPressed: () {
                   // TODO: Show options menu
                 },
                 child: const Icon(
                   CupertinoIcons.ellipsis_vertical,
-                  color: Colors.black, // dot color
+                  color: Colors.black,
                   size: 20,
                 ),
               ),
             ),
-            // backgroundColor: Colors.transparent,
-            // border: null,
-            // automaticBackgroundVisibility: false,
+            backgroundColor: Colors.transparent,
+            border: null,
+            automaticallyImplyTitle: false,
+            automaticallyImplyLeading: false,
           ),
           SliverSafeArea(
             top: false,
@@ -59,7 +53,7 @@ class HomeContentView extends GetView<HomeController> {
                   _SectionHeader(title: 'TOP AUDIO'),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 177,
+                    height: 174,
                     child: Obx(() => ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount: controller.topAudioItems.length,
@@ -98,7 +92,7 @@ class HomeContentView extends GetView<HomeController> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 0.78, // Portrait aspect ratio accounting for text below
+                      childAspectRatio: 0.6, // Portrait aspect ratio accounting for text below
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -210,43 +204,43 @@ class _MediaCardState extends State<_MediaCard> with SingleTickerProviderStateMi
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
 
-    Widget cardContent = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        widget.isHorizontal
-            ? ClipRRect(
-                borderRadius: widget.borderRadius,
-                child: Image.asset(
-                  widget.asset,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: 107,
-                ),
-              )
-            : Expanded(
-                child: ClipRRect(
-                  borderRadius: widget.borderRadius,
-                  child: Image.asset(
-                    widget.asset,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                ),
-              ),
-        const SizedBox(height: 5),
-        Text(
-          widget.title,
-          style: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 10),
-        Text(
+    Widget imageWidget = ClipRRect(
+      borderRadius: widget.borderRadius,
+      child: Image.asset(
+        widget.asset,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: widget.isHorizontal ? 100 : double.infinity,
+      ),
+    );
+
+    Widget titleWidget = Text(
+      widget.title,
+      style: textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    Widget artistNameWidget = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Get.toNamed(
+          AppRoutes.artistDetail,
+          arguments: {
+            'artistName': widget.artist,
+            'artistImage': widget.asset,
+            'description': 'Artist / Musician / Writer',
+            'followers': 321000,
+            'following': 125,
+          },
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Text(
           widget.artist,
           style: textTheme.bodySmall?.copyWith(
             color: colors.onSurface.withOpacity(0.6),
@@ -256,6 +250,70 @@ class _MediaCardState extends State<_MediaCard> with SingleTickerProviderStateMi
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+      ),
+    );
+
+    Widget animatedImage = GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      behavior: HitTestBehavior.deferToChild,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: imageWidget,
+          );
+        },
+      ),
+    );
+
+    Widget animatedTitle = GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      behavior: HitTestBehavior.deferToChild,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: titleWidget,
+          );
+        },
+      ),
+    );
+
+    Widget imageAndTitle = widget.isHorizontal
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              animatedImage,
+              const SizedBox(height: 5),
+              animatedTitle,
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: 0.75,
+                child: animatedImage,
+              ),
+              const SizedBox(height: 5),
+              animatedTitle,
+            ],
+          );
+
+    Widget cardContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: widget.isHorizontal ? MainAxisSize.min : MainAxisSize.max,
+      children: [
+        imageAndTitle,
+        const SizedBox(height: 10),
+        artistNameWidget,
       ],
     );
 
@@ -267,27 +325,7 @@ class _MediaCardState extends State<_MediaCard> with SingleTickerProviderStateMi
           )
         : cardContent;
 
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      onTap: () {
-        // TODO: Handle card tap
-      },
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeInOut,
-              child: wrappedContent,
-            ),
-          );
-        },
-      ),
-    );
+    return wrappedContent;
   }
 }
 

@@ -13,6 +13,7 @@ import '../modules/onboarding/views/categories_view.dart';
 import '../modules/onboarding/bindings/categories_binding.dart';
 import '../modules/onboarding/views/artists_view.dart';
 import '../modules/onboarding/bindings/artists_binding.dart';
+import '../modules/home/views/artist_detail_view.dart';
 
 part 'app_routes.dart';
 
@@ -70,6 +71,20 @@ class AppPages {
       name: AppRoutes.artists,
       page: () => const ArtistsView(),
       binding: ArtistsBinding(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.artistDetail,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>;
+        return ArtistDetailView(
+          artistName: args['artistName'] ?? '',
+          artistImage: args['artistImage'] ?? '',
+          description: args['description'],
+          followers: args['followers'],
+          following: args['following'],
+        );
+      },
       transition: Transition.cupertino,
     ),
   ];

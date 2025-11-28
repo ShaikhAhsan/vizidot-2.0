@@ -11,6 +11,7 @@ abstract class AppRoutes {
   static const String newPassword = '/new-password';
   static const String categories = '/categories';
   static const String artists = '/artists';
+  static const String artistDetail = '/artist-detail';
 }
 
 
