@@ -65,6 +65,7 @@ class HomeContentView extends GetView<HomeController> {
                               artist: item.artist,
                               asset: item.asset,
                               isHorizontal: true,
+                              audioUrl: item.audioUrl,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(30),
                                 topRight: Radius.circular(12),

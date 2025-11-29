@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import '../../music_player/utils/play_track_helper.dart';
+import '../../music_player/models/track_model.dart';
 import 'section_header.dart';
 
 class TracksSection extends StatelessWidget {
@@ -33,7 +35,23 @@ class TracksSection extends StatelessWidget {
           itemBuilder: (context, index) {
             final track = tracks[index];
             return GestureDetector(
-              onTap: () => onTrackTap?.call(),
+              onTap: () {
+                onTrackTap?.call();
+                // Play the track
+                final trackModel = TrackModel(
+                  id: '${track.title}_${track.artist}',
+                  title: track.title,
+                  artist: track.artist,
+                  albumArt: track.albumArt,
+                  duration: _parseDuration(track.duration),
+                );
+                playTrack(
+                  title: track.title,
+                  artist: track.artist,
+                  albumArt: track.albumArt,
+                  duration: _parseDuration(track.duration),
+                );
+              },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Row(
@@ -128,5 +146,19 @@ class TrackItem {
     required this.albumArt,
     required this.duration,
   });
+}
+
+Duration _parseDuration(String duration) {
+  try {
+    final parts = duration.split(':');
+    if (parts.length == 2) {
+      final minutes = int.parse(parts[0]);
+      final seconds = int.parse(parts[1]);
+      return Duration(minutes: minutes, seconds: seconds);
+    }
+  } catch (e) {
+    // If parsing fails, return default duration
+  }
+  return const Duration(minutes: 3, seconds: 30);
 }
 

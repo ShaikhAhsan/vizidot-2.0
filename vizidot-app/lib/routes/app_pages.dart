@@ -23,6 +23,8 @@ import '../modules/home/views/upload_view.dart';
 import '../modules/home/views/notifications_view.dart';
 import '../modules/home/views/search_view.dart';
 import '../modules/home/views/filters_view.dart';
+import '../modules/music_player/views/music_player_view.dart';
+import '../modules/music_player/bindings/music_player_binding.dart';
 import '../modules/home/widgets/tracks_section.dart';
 
 part 'app_routes.dart';
@@ -189,6 +191,12 @@ class AppPages {
     GetPage(
       name: AppRoutes.filters,
       page: () => const FiltersView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.musicPlayer,
+      page: () => const MusicPlayerView(),
+      binding: MusicPlayerBinding(),
       transition: Transition.cupertino,
     ),
   ];

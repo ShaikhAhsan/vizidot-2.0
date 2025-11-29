@@ -6,12 +6,14 @@ class MediaItem {
   final String artist;
   final String asset;
   final double? imageHeight; // For dynamic heights in masonry grid
+  final String? audioUrl; // Audio URL for playback
 
   MediaItem({
     required this.title,
     required this.artist,
     required this.asset,
     this.imageHeight,
+    this.audioUrl,
   });
 }
 
@@ -26,21 +28,25 @@ class HomeController extends GetxController {
       title: 'Beating on my heart',
       artist: 'Choc B',
       asset: 'assets/artists/Choc B.png',
+      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
     ),
     MediaItem(
       title: 'Fear of the water',
       artist: 'Doja cat',
       asset: 'assets/artists/Halsey.png',
+      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
     ),
     MediaItem(
       title: 'Girls just wanna have...',
       artist: 'Tigerclub',
       asset: 'assets/artists/Blair.png',
+      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
     ),
     MediaItem(
       title: 'Stop beating on my heart',
       artist: 'Cindi lauper',
       asset: 'assets/artists/Aalyah.png',
+      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
     ),
   ].obs;
 

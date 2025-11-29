@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../modules/home/controllers/home_controller.dart';
+import '../../modules/music_player/controllers/music_player_controller.dart';
 import '../utils/theme_controller.dart';
 import '../utils/app_config.dart';
 import '../utils/auth_service.dart';
@@ -12,6 +13,7 @@ class InitialBindings extends Bindings {
     Get.put<AppConfig>(AppConfig.fromEnv(), permanent: true);
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
     Get.putAsync<AuthService>(() async => AuthService().init(), permanent: true);
+    Get.put<MusicPlayerController>(MusicPlayerController(), permanent: true);
   }
 }
 

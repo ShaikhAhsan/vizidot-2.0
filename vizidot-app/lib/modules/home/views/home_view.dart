@@ -9,6 +9,7 @@ import 'elocker_view.dart';
 import 'shop_view.dart';
 import 'home_content_view.dart';
 import 'streaming_view.dart';
+import '../../music_player/widgets/mini_player.dart';
 import '../bindings/elocker_binding.dart';
 import '../controllers/elocker_controller.dart';
 
@@ -37,16 +38,22 @@ class HomeView extends GetView<HomeController> {
       //     ? null
       //     : const HomeAppBar(title: 'Vizidot'),
       body: pages[controller.selectedIndex.value],
-      bottomNavigationBar: CustomNavBar(
-        selectedIndex: controller.selectedIndex,
-        onItemTapped: controller.onNavTap,
-        assetNames: const [
-          // Order: Home, eLocker, Shop, Streaming, Profile
-          'tab-home-ic.png',
-          'tab-elocker-ic.png',
-          'tab-shop-ic.png',
-          'tab-streaming-ic.png',
-          'tab-profile-ic.png',
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const MiniPlayer(),
+          CustomNavBar(
+            selectedIndex: controller.selectedIndex,
+            onItemTapped: controller.onNavTap,
+            assetNames: const [
+              // Order: Home, eLocker, Shop, Streaming, Profile
+              'tab-home-ic.png',
+              'tab-elocker-ic.png',
+              'tab-shop-ic.png',
+              'tab-streaming-ic.png',
+              'tab-profile-ic.png',
+            ],
+          ),
         ],
       ),
     ));

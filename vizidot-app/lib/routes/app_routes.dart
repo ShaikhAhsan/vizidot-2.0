@@ -21,6 +21,7 @@ abstract class AppRoutes {
   static const String notifications = '/notifications';
   static const String search = '/search';
   static const String filters = '/filters';
+  static const String musicPlayer = '/music-player';
 }
 
 
