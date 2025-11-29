@@ -84,6 +84,10 @@ class _CdAlbumArtState extends State<CdAlbumArt>
                   height: widget.size,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.black,
+                      width: 1,
+                    ),
                     gradient: RadialGradient(
                       colors: [
                         Colors.grey.shade300,
@@ -95,8 +99,8 @@ class _CdAlbumArtState extends State<CdAlbumArt>
                 ),
                 // Inner image area
                 Container(
-                  width: widget.size - 20,
-                  height: widget.size - 20,
+                  width: widget.size - 1,
+                  height: widget.size - 1,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white,
@@ -120,11 +124,15 @@ class _CdAlbumArtState extends State<CdAlbumArt>
                 ),
                 // Center hole
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 45,
+                  height: 45,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Theme.of(context).scaffoldBackgroundColor,
+                    border: Border.all(
+                      color: Colors.black,
+                      width: 1,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),

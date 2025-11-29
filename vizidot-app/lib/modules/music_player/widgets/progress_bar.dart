@@ -45,7 +45,7 @@ class MusicProgressBar extends StatelessWidget {
               height: height,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey.shade600,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(borderRadius),
               ),
               child: Stack(
