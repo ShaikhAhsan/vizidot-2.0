@@ -9,6 +9,7 @@ class MediaCard extends StatefulWidget {
   final bool isHorizontal;
   final BorderRadius borderRadius;
   final VoidCallback? onTap;
+  final double? imageHeight; // For dynamic heights in masonry grid
 
   const MediaCard({
     super.key,
@@ -18,6 +19,7 @@ class MediaCard extends StatefulWidget {
     this.isHorizontal = false,
     this.borderRadius = const BorderRadius.all(Radius.circular(16)),
     this.onTap,
+    this.imageHeight,
   });
 
   @override
@@ -65,12 +67,23 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
 
     Widget imageWidget = ClipRRect(
       borderRadius: widget.borderRadius,
-      child: Image.asset(
-        widget.asset,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: widget.isHorizontal ? 100 : double.infinity,
-      ),
+      child: widget.isHorizontal
+          ? Image.asset(
+              widget.asset,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 100,
+            )
+          : SizedBox(
+              width: double.infinity,
+              height: widget.imageHeight ?? 200,
+              child: Image.asset(
+                widget.asset,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: widget.imageHeight ?? 200,
+              ),
+            ),
     );
 
     Widget titleWidget = Text(
@@ -159,10 +172,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 0.75,
-                child: animatedImage,
-              ),
+              animatedImage,
               const SizedBox(height: 5),
               animatedTitle,
             ],

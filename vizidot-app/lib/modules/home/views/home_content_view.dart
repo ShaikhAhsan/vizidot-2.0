@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/section_header.dart';
 import '../widgets/media_card.dart';
@@ -82,51 +83,47 @@ class HomeContentView extends GetView<HomeController> {
               ),
             ),
           ),
-          // TOP VIDEO Grid Section
+          // TOP VIDEO Grid Section - using SliverMasonryGrid
           SliverSafeArea(
             top: false,
             sliver: SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: Obx(() => SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.6, // Portrait aspect ratio accounting for text below
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = controller.topVideoItems[index];
-                        return MediaCard(
-                          title: item.title,
-                          artist: item.artist,
-                          asset: item.asset,
-                          isHorizontal: false,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(40),
-                            topRight: Radius.circular(15),
-                            bottomLeft: Radius.circular(15),
-                            bottomRight: Radius.circular(40),
-                          ),
-                          onTap: () {
-                            // Generate dummy playlist tracks based on the video item
-                            final playlistTracks = _generatePlaylistTracks(item);
-                            Get.toNamed(
-                              AppRoutes.playlistDetail,
-                              arguments: {
-                                'playlistName': item.title,
-                                'playlistImage': item.asset,
-                                'artistName': item.artist,
-                                'likes': 1235,
-                                'duration': '1h25min',
-                                'tracks': playlistTracks,
-                              },
-                            );
-                          },
-                        );
-                      },
-                      childCount: controller.topVideoItems.length,
-                    ),
+              sliver: Obx(() => SliverMasonryGrid.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    itemBuilder: (context, index) {
+                      final item = controller.topVideoItems[index];
+                      return MediaCard(
+                        title: item.title,
+                        artist: item.artist,
+                        asset: item.asset,
+                        isHorizontal: false,
+                        imageHeight: item.imageHeight,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(40),
+                          topRight: Radius.circular(15),
+                          bottomLeft: Radius.circular(15),
+                          bottomRight: Radius.circular(40),
+                        ),
+                        onTap: () {
+                          // Generate dummy playlist tracks based on the video item
+                          final playlistTracks = _generatePlaylistTracks(item);
+                          Get.toNamed(
+                            AppRoutes.playlistDetail,
+                            arguments: {
+                              'playlistName': item.title,
+                              'playlistImage': item.asset,
+                              'artistName': item.artist,
+                              'likes': 1235,
+                              'duration': '1h25min',
+                              'tracks': playlistTracks,
+                            },
+                          );
+                        },
+                      );
+                    },
+                    childCount: controller.topVideoItems.length,
                   )),
             ),
           ),

@@ -5,11 +5,13 @@ class MediaItem {
   final String title;
   final String artist;
   final String asset;
+  final double? imageHeight; // For dynamic heights in masonry grid
 
   MediaItem({
     required this.title,
     required this.artist,
     required this.asset,
+    this.imageHeight,
   });
 }
 
@@ -42,27 +44,43 @@ class HomeController extends GetxController {
     ),
   ].obs;
 
-  // TOP VIDEO items
+  // TOP VIDEO items with dynamic heights
   final topVideoItems = <MediaItem>[
     MediaItem(
       title: 'Stop beating on my heart',
       artist: 'Cindi lauper',
       asset: 'assets/artists/Aalyah.png',
+      imageHeight: 200.0,
     ),
     MediaItem(
       title: 'Girls just wanna have fun',
       artist: 'Cindi lauper',
       asset: 'assets/artists/Julia Styles.png',
+      imageHeight: 280.0,
     ),
     MediaItem(
       title: 'Beating on my heart',
       artist: 'Choc B',
       asset: 'assets/artists/Choc B.png',
+      imageHeight: 240.0,
     ),
     MediaItem(
       title: 'Fear of the water',
       artist: 'Doja cat',
       asset: 'assets/artists/Halsey.png',
+      imageHeight: 220.0,
+    ),
+    MediaItem(
+      title: 'Best friend',
+      artist: 'Luna bay',
+      asset: 'assets/artists/Blair.png',
+      imageHeight: 260.0,
+    ),
+    MediaItem(
+      title: 'Desert Rose',
+      artist: 'TVORHI',
+      asset: 'assets/artists/Betty Daniels.png',
+      imageHeight: 230.0,
     ),
   ].obs;
 
