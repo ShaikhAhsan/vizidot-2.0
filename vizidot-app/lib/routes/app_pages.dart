@@ -15,6 +15,14 @@ import '../modules/onboarding/views/artists_view.dart';
 import '../modules/onboarding/bindings/artists_binding.dart';
 import '../modules/home/views/artist_detail_view.dart';
 import '../modules/home/views/album_detail_view.dart';
+import '../modules/home/views/playlist_detail_view.dart';
+import '../modules/home/views/settings_view.dart';
+import '../modules/home/views/personal_data_view.dart';
+import '../modules/home/views/change_password_view.dart';
+import '../modules/home/views/upload_view.dart';
+import '../modules/home/views/notifications_view.dart';
+import '../modules/home/views/search_view.dart';
+import '../modules/home/views/filters_view.dart';
 import '../modules/home/widgets/tracks_section.dart';
 
 part 'app_routes.dart';
@@ -117,6 +125,70 @@ class AppPages {
           tracks: tracks,
         );
       },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.playlistDetail,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>;
+        final tracksList = args['tracks'] as List?;
+        final tracks = tracksList?.map((t) {
+          if (t is PlaylistTrackItem) {
+            return t;
+          } else if (t is Map) {
+            return PlaylistTrackItem(
+              title: t['title'] ?? '',
+              artist: t['artist'] ?? '',
+              albumArt: t['albumArt'] ?? '',
+            );
+          }
+          throw ArgumentError('Invalid track item type');
+        }).toList().cast<PlaylistTrackItem>() ?? [];
+        
+        return PlaylistDetailView(
+          playlistName: args['playlistName'] ?? '',
+          playlistImage: args['playlistImage'] ?? '',
+          artistName: args['artistName'] ?? '',
+          likes: args['likes'],
+          duration: args['duration'],
+          tracks: tracks,
+        );
+      },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.settings,
+      page: () => const SettingsView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.personalData,
+      page: () => const PersonalDataView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.changePassword,
+      page: () => const ChangePasswordView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.upload,
+      page: () => const UploadView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.notifications,
+      page: () => const NotificationsView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.search,
+      page: () => const SearchView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.filters,
+      page: () => const FiltersView(),
       transition: Transition.cupertino,
     ),
   ];

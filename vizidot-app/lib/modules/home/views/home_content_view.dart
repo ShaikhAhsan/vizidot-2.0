@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/section_header.dart';
 import '../widgets/media_card.dart';
+import '../../../routes/app_pages.dart';
+import 'playlist_detail_view.dart';
 
 class HomeContentView extends GetView<HomeController> {
   const HomeContentView({super.key});
@@ -106,6 +108,21 @@ class HomeContentView extends GetView<HomeController> {
                             bottomLeft: Radius.circular(15),
                             bottomRight: Radius.circular(40),
                           ),
+                          onTap: () {
+                            // Generate dummy playlist tracks based on the video item
+                            final playlistTracks = _generatePlaylistTracks(item);
+                            Get.toNamed(
+                              AppRoutes.playlistDetail,
+                              arguments: {
+                                'playlistName': item.title,
+                                'playlistImage': item.asset,
+                                'artistName': item.artist,
+                                'likes': 1235,
+                                'duration': '1h25min',
+                                'tracks': playlistTracks,
+                              },
+                            );
+                          },
                         );
                       },
                       childCount: controller.topVideoItems.length,
@@ -119,6 +136,58 @@ class HomeContentView extends GetView<HomeController> {
         ],
       ),
     );
+  }
+
+  // Generate dummy playlist tracks for the video item
+  List<PlaylistTrackItem> _generatePlaylistTracks(MediaItem videoItem) {
+    // Available placeholder images
+    final placeholderImages = [
+      'assets/artists/Choc B.png',
+      'assets/artists/Halsey.png',
+      'assets/artists/Blair.png',
+      'assets/artists/Aalyah.png',
+      'assets/artists/Betty Daniels.png',
+      'assets/artists/Jason Derulo.png',
+      'assets/artists/Julia Styles.png',
+      'assets/artists/Martina.png',
+      'assets/artists/Travis.png',
+    ];
+
+    // Dummy track titles and artists
+    final dummyTracks = [
+      {'title': 'Need you now', 'artist': 'Joji'},
+      {'title': 'Desert Rose', 'artist': 'TVORHI'},
+      {'title': 'Best friend', 'artist': 'Luna bay'},
+      {'title': 'Kalush Orcestra', 'artist': 'Kalush'},
+      {'title': 'When the rain ends', 'artist': 'The Hardkiss'},
+      {'title': 'Welcome to Ukraine', 'artist': 'Plumb'},
+      {'title': 'Hail to the Victor', 'artist': '30 Seconds to Mars'},
+      {'title': 'Midnight City', 'artist': 'M83'},
+      {'title': 'Electric Feel', 'artist': 'MGMT'},
+      {'title': 'Time to Dance', 'artist': 'The Sounds'},
+    ];
+
+    // Create playlist tracks with the video item as the first track
+    final tracks = <PlaylistTrackItem>[
+      PlaylistTrackItem(
+        title: videoItem.title,
+        artist: videoItem.artist,
+        albumArt: videoItem.asset,
+      ),
+    ];
+
+    // Add other dummy tracks
+    for (int i = 0; i < dummyTracks.length && i < placeholderImages.length - 1; i++) {
+      tracks.add(
+        PlaylistTrackItem(
+          title: dummyTracks[i]['title']!,
+          artist: dummyTracks[i]['artist']!,
+          albumArt: placeholderImages[(i + 1) % placeholderImages.length],
+        ),
+      );
+    }
+
+    return tracks;
   }
 }
 
