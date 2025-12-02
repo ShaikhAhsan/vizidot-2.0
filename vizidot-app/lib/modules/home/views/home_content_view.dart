@@ -54,7 +54,7 @@ class HomeContentView extends GetView<HomeController> {
                   const SectionHeader(title: 'TOP AUDIO'),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 174,
+                    height: 178,
                     child: Obx(() => ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount: controller.topAudioItems.length,
