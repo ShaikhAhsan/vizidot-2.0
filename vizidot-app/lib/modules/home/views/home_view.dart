@@ -10,6 +10,7 @@ import 'shop_view.dart';
 import 'home_content_view.dart';
 import 'streaming_view.dart';
 import '../../music_player/widgets/mini_player.dart';
+import '../../live_stream/widgets/live_stream_fab.dart';
 import '../bindings/elocker_binding.dart';
 import '../controllers/elocker_controller.dart';
 
@@ -38,6 +39,8 @@ class HomeView extends GetView<HomeController> {
       //     ? null
       //     : const HomeAppBar(title: 'Vizidot'),
       body: pages[controller.selectedIndex.value],
+      floatingActionButton: const LiveStreamFAB(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -79,5 +79,9 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera Usage require for Live Streaming</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone Usage require for Live Streaming</string>
 </dict>
 </plist>
