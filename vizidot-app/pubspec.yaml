@@ -57,6 +57,10 @@ dependencies:
   sign_in_with_apple: ^6.1.2
   flutter_facebook_auth: ^7.1.0
   webview_flutter: ^4.9.0
+  arkit_plugin: ^1.1.0
+  encrypt: ^5.0.3
+  path: ^1.9.0
+  fluttertoast: ^8.2.6
 
 dev_dependencies:
   flutter_test:
