@@ -5,6 +5,7 @@ import '../widgets/follow_message_buttons.dart';
 import '../widgets/content_tabs.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
+import 'shop_view.dart';
 
 class ArtistDetailView extends StatefulWidget {
   final String artistName;
@@ -180,7 +181,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                       ),
                     ],
                   ),
-                  // Follow and Message Buttons
+                  // Follow, Message, and Shop Buttons
                   FollowMessageButtons(
                     isFollowing: _isFollowing,
                     onFollowTap: () {
@@ -190,6 +191,9 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                     },
                     onMessageTap: () {
                       // TODO: Navigate to message screen
+                    },
+                    onShopTap: () {
+                      Get.to(() => const ShopView());
                     },
                   ),
                   // Content Tabs

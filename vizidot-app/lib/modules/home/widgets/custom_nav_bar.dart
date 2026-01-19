@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,8 +8,15 @@ class CustomNavBar extends StatefulWidget {
   final RxInt selectedIndex;
   final Function(int) onItemTapped;
   final List<String>? assetNames; // Allow overriding filenames to match user's assets
+  final Map<int, IconData>? iconOverrides; // Map of index to IconData for items that should use Cupertino icons
 
-  const CustomNavBar({super.key, required this.selectedIndex, required this.onItemTapped, this.assetNames});
+  const CustomNavBar({
+    super.key, 
+    required this.selectedIndex, 
+    required this.onItemTapped, 
+    this.assetNames,
+    this.iconOverrides,
+  });
 
   @override
   State<CustomNavBar> createState() => _CustomNavBarState();
@@ -50,8 +58,11 @@ class _CustomNavBarState extends State<CustomNavBar> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(icons.length, (int index) {
                 final bool isSelected = current == index;
+                final IconData? iconOverride = widget.iconOverrides?[index];
+                
                 return _NavItem(
-                  assetPath: '$_assetsBase/${icons[index]}',
+                  assetPath: iconOverride == null ? '$_assetsBase/${icons[index]}' : null,
+                  iconData: iconOverride,
                   isSelected: isSelected,
                   iconColor: iconColor,
                   onTap: () => widget.onItemTapped(index),
@@ -66,12 +77,19 @@ class _CustomNavBarState extends State<CustomNavBar> {
 }
 
 class _NavItem extends StatefulWidget {
-  final String assetPath;
+  final String? assetPath;
+  final IconData? iconData;
   final bool isSelected;
   final Color iconColor;
   final VoidCallback onTap;
 
-  const _NavItem({required this.assetPath, required this.isSelected, required this.iconColor, required this.onTap});
+  const _NavItem({
+    this.assetPath,
+    this.iconData,
+    required this.isSelected,
+    required this.iconColor,
+    required this.onTap,
+  });
 
   @override
   State<_NavItem> createState() => _NavItemState();
@@ -113,11 +131,19 @@ class _NavItemState extends State<_NavItem> {
                   child: SizedBox(
                     width: 24,
                     height: 24,
-                    child: ThemedAssetIcon(
-                      assetPath: widget.assetPath,
-                      iconColor: widget.iconColor,
-                      size: 24,
-                    ),
+                    child: widget.iconData != null
+                        ? Icon(
+                            widget.iconData,
+                            color: widget.isSelected 
+                                ? const Color(0xFFFF7110) 
+                                : widget.iconColor,
+                            size: 24,
+                          )
+                        : ThemedAssetIcon(
+                            assetPath: widget.assetPath!,
+                            iconColor: widget.iconColor,
+                            size: 24,
+                          ),
                   ),
                 ),
                 const SizedBox(height: 10),

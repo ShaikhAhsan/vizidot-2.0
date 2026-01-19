@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "538542923941",
+    "project_id": "vizidot-4b492",
+    "storage_bucket": "vizidot-4b492.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:538542923941:android:e4383fc2f7b539e6caad4c",
+        "android_client_info": {
+          "package_name": "com.app.vizidot"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "538542923941-ibmirg3qsplisq7rli09ejn6dr80jml9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD29T2zaBv2OsGjDZv8JPTXGLz8Wu-2C8I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "538542923941-ibmirg3qsplisq7rli09ejn6dr80jml9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "538542923941-33708tg0b8ffcnqf7sjvit100hnv4qq1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.vizidot.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

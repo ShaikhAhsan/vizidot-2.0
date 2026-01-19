@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -9,6 +10,7 @@ import 'elocker_view.dart';
 import 'shop_view.dart';
 import 'home_content_view.dart';
 import 'streaming_view.dart';
+import 'camera_scanning_view.dart';
 import '../../music_player/widgets/mini_player.dart';
 import '../../live_stream/widgets/live_stream_fab.dart';
 import '../bindings/elocker_binding.dart';
@@ -27,7 +29,7 @@ class HomeView extends GetView<HomeController> {
     final pages = <Widget>[
       const HomeContentView(),
       const ELockerView(),
-      const ShopView(),
+      const CameraScanningView(), // Changed from ShopView to CameraScanningView
       const StreamingView(),
       const ProfileView(),
     ];
@@ -49,13 +51,18 @@ class HomeView extends GetView<HomeController> {
             selectedIndex: controller.selectedIndex,
             onItemTapped: controller.onNavTap,
             assetNames: const [
-              // Order: Home, eLocker, Shop, Streaming, Profile
+              // Order: Home, eLocker, Camera (was Shop), Streaming, Profile
               'tab-home-ic.png',
               'tab-elocker-ic.png',
               'tab-shop-ic.png',
               'tab-streaming-ic.png',
               'tab-profile-ic.png',
             ],
+            iconOverrides: const {
+              2: CupertinoIcons.camera_fill, // Center item (index 2) uses camera icon
+              4: CupertinoIcons.person, // Center item (index 2) uses camera icon
+
+            },
           ),
         ],
       ),

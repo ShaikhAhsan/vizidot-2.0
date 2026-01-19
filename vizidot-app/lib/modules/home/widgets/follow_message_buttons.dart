@@ -5,12 +5,14 @@ class FollowMessageButtons extends StatelessWidget {
   final bool isFollowing;
   final VoidCallback? onFollowTap;
   final VoidCallback? onMessageTap;
+  final VoidCallback? onShopTap;
 
   const FollowMessageButtons({
     super.key,
     this.isFollowing = false,
     this.onFollowTap,
     this.onMessageTap,
+    this.onShopTap,
   });
 
   @override
@@ -66,6 +68,33 @@ class FollowMessageButtons extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Message',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(12),
+              onPressed: onShopTap,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    CupertinoIcons.shopping_cart,
+                    color: colors.onSurface,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Shop',
                     style: textTheme.labelLarge?.copyWith(
                       color: colors.onSurface,
                       fontWeight: FontWeight.w600,
