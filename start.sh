@@ -11,7 +11,7 @@ echo ""
 
 # Start backend in background
 echo "Starting backend server..."
-cd backend
+cd vizidot-api
 npm run dev &
 BACKEND_PID=$!
 cd ..
@@ -21,7 +21,7 @@ sleep 2
 
 # Start admin panel in background
 echo "Starting admin panel..."
-cd admin-panel
+cd vizidot-admin-panel
 npm start &
 ADMIN_PID=$!
 cd ..
