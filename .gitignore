@@ -110,6 +110,13 @@ coverage/
 # Symbols
 app.*.symbols
 
+# Node / vizidot-api / vizidot-admin-panel (each has its own .gitignore for local ignores)
+# Only ignore at repo root; do not ignore the project folders or their source.
+node_modules/
+.env
+.env.*
+!.env.example
+
 # Exceptions to above rules.
 !**/ios/**/default.mode1v3
 !**/ios/**/default.mode2v3
