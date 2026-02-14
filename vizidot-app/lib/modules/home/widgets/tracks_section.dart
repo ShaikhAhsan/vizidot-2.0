@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
 import '../../music_player/utils/play_track_helper.dart';
 import '../../music_player/models/track_model.dart';
 import 'section_header.dart';
@@ -56,16 +57,17 @@ class TracksSection extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Row(
                   children: [
-                    // Album Art with Play Button
+                    // Album Art with Play Button (asset path or network URL)
                     Stack(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            track.albumArt,
+                          child: assetOrNetworkImage(
+                            src: track.albumArt,
                             width: 56,
                             height: 56,
                             fit: BoxFit.cover,
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                         Positioned.fill(

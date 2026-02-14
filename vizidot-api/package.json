@@ -9,6 +9,7 @@
     "seed": "node scripts/runSeeder.js",
     "sync": "node scripts/syncSchema.js",
     "create-tables": "node scripts/createTablesDirect.js",
+    "get-create-tables": "node scripts/getCreateTables.js",
     "test": "jest"
   },
   "dependencies": {

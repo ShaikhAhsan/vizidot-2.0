@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
 import '../../../routes/app_pages.dart';
 import 'section_header.dart';
 import 'tracks_section.dart';
@@ -104,19 +105,17 @@ class AlbumsSection extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Image - 90x90
-                      ClipRRect(
+                      // Image - 90x90 (asset path or network URL)
+                      assetOrNetworkImage(
+                        src: album.coverImage,
+                        width: 90,
+                        height: 90,
+                        fit: BoxFit.cover,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(30),
                           topRight: Radius.circular(12),
                           bottomLeft: Radius.circular(12),
                           bottomRight: Radius.circular(30),
-                        ),
-                        child: Image.asset(
-                          album.coverImage,
-                          fit: BoxFit.cover,
-                          width: 90,
-                          height: 90,
                         ),
                       ),
                       const SizedBox(height: 5),

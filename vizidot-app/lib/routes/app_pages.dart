@@ -13,6 +13,7 @@ import '../modules/onboarding/views/categories_view.dart';
 import '../modules/onboarding/bindings/categories_binding.dart';
 import '../modules/onboarding/views/artists_view.dart';
 import '../modules/onboarding/bindings/artists_binding.dart';
+import '../modules/home/controllers/artist_detail_controller.dart';
 import '../modules/home/views/artist_detail_view.dart';
 import '../modules/home/views/album_detail_view.dart';
 import '../modules/home/views/playlist_detail_view.dart';
@@ -88,13 +89,18 @@ class AppPages {
     GetPage(
       name: AppRoutes.artistDetail,
       page: () {
-        final args = Get.arguments as Map<String, dynamic>;
+        final args = Get.arguments as Map<String, dynamic>? ?? {};
+        final artistId = args['artistId'] as int?;
+        if (artistId != null) {
+          Get.put(ArtistDetailController(artistId: artistId));
+        }
         return ArtistDetailView(
+          artistId: artistId,
           artistName: args['artistName'] ?? '',
           artistImage: args['artistImage'] ?? '',
           description: args['description'],
-          followers: args['followers'],
-          following: args['following'],
+          followers: args['followers'] as int?,
+          following: args['following'] as int?,
         );
       },
       transition: Transition.cupertino,

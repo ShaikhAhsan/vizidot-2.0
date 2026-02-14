@@ -15,7 +15,105 @@ const {
   ShopArtist
 } = require('../models');
 
-// Apply authentication and admin role to all routes
+// ============================================================
+// PUBLIC API: Artist profile for app (no auth required)
+// ============================================================
+/**
+ * @route GET /api/v1/music/artists/profile/:id
+ * @desc Get artist profile with albums and tracks for app detail view
+ * @access Public
+ */
+router.get('/artists/profile/:id', async (req, res) => {
+  try {
+    const artistId = req.params.id;
+    const artist = await Artist.findByPk(artistId, {
+      include: [
+        { model: ArtistShop, as: 'shop', required: false },
+        {
+          model: Album,
+          as: 'albums',
+          required: false,
+          where: { is_active: true },
+          include: [
+            { model: AudioTrack, as: 'audioTracks', required: false }
+          ]
+        }
+      ]
+    });
+
+    if (!artist || !artist.is_active) {
+      return res.status(404).json({ success: false, error: 'Artist not found' });
+    }
+
+    const artistJson = artist.toJSON();
+    const albums = artistJson.albums || [];
+    const artistName = artist.name;
+
+    // Build album list for app (id, title, coverImageUrl, artistName)
+    const albumsForApp = albums.map((a) => ({
+      id: a.album_id,
+      title: a.title,
+      coverImageUrl: a.cover_image_url || a.default_track_thumbnail || null,
+      artistName
+    }));
+
+    // Build flat track list from all albums (id, title, durationFormatted, albumArt, artistName, audioUrl)
+    const formatDuration = (seconds) => {
+      if (seconds == null) return '0:00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+    const tracksForApp = [];
+    for (const album of albums) {
+      const audioTracks = album.audioTracks || [];
+      const coverUrl = album.cover_image_url || album.default_track_thumbnail || null;
+      for (const t of audioTracks) {
+        tracksForApp.push({
+          id: t.audio_id,
+          title: t.title,
+          durationFormatted: formatDuration(t.duration),
+          durationSeconds: t.duration,
+          albumArt: t.thumbnail_url || coverUrl,
+          artistName,
+          audioUrl: t.audio_url,
+          albumId: album.album_id
+        });
+      }
+    }
+
+    // Followers/following: return 0 until artist_followers table exists (see DATABASE_SCHEMA_MUSIC.md)
+    const followersCount = 0;
+    const followingCount = 0;
+
+    res.json({
+      success: true,
+      data: {
+        artist: {
+          id: artistJson.artist_id,
+          name: artistJson.name,
+          bio: artistJson.bio,
+          imageUrl: artistJson.image_url,
+          followersCount,
+          followingCount,
+          shopId: artistJson.shop_id,
+          shop: artistJson.shop ? {
+            id: artistJson.shop.shop_id,
+            shopName: artistJson.shop.shop_name,
+            shopUrl: artistJson.shop.shop_url
+          } : null
+        },
+        albums: albumsForApp,
+        tracks: tracksForApp
+      }
+    });
+  } catch (error) {
+    console.error('Artist profile error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Apply authentication and admin role to all routes below
 router.use(authenticateToken);
 router.use(requireSystemAdmin);
 
