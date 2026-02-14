@@ -32,6 +32,7 @@ const TrackArtist = require('./TrackArtist');
 const BrandingArtist = require('./BrandingArtist');
 const ShopArtist = require('./ShopArtist');
 const UserArtist = require('./UserArtist');
+const ArtistFollower = require('./ArtistFollower');
 
 // Define associations
 const defineAssociations = () => {
@@ -54,6 +55,12 @@ const defineAssociations = () => {
     otherKey: 'user_id',
     as: 'users'
   });
+
+  // Artist followers (user follows artist)
+  User.hasMany(ArtistFollower, { foreignKey: 'user_id', as: 'artistFollows' });
+  Artist.hasMany(ArtistFollower, { foreignKey: 'artist_id', as: 'followers' });
+  ArtistFollower.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  ArtistFollower.belongsTo(Artist, { foreignKey: 'artist_id', as: 'artist' });
   
   // RBAC associations
   User.belongsToMany(Role, { 
@@ -305,6 +312,7 @@ module.exports = {
   TrackArtist,
   BrandingArtist,
   ShopArtist,
-  UserArtist
+  UserArtist,
+  ArtistFollower
 };
 

@@ -16,6 +16,15 @@ const Artist = sequelize.define('Artist', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  country: {
+    type: DataTypes.STRING(120),
+    allowNull: true
+  },
+  dob: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    field: 'dob'
+  },
   image_url: {
     type: DataTypes.STRING(500),
     allowNull: true

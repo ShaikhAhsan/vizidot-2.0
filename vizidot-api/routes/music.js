@@ -12,7 +12,8 @@ const {
   AlbumArtist,
   TrackArtist,
   BrandingArtist,
-  ShopArtist
+  ShopArtist,
+  ArtistFollower
 } = require('../models');
 
 // ============================================================
@@ -82,8 +83,11 @@ router.get('/artists/profile/:id', async (req, res) => {
       }
     }
 
-    // Followers/following: return 0 until artist_followers table exists (see DATABASE_SCHEMA_MUSIC.md)
-    const followersCount = 0;
+    // Followers count from artist_followers (optional table; run scripts/createArtistFollowersTable.js)
+    let followersCount = 0;
+    try {
+      followersCount = await ArtistFollower.count({ where: { artist_id: artistId } });
+    } catch (_) { /* table may not exist yet */ }
     const followingCount = 0;
 
     res.json({
@@ -93,6 +97,8 @@ router.get('/artists/profile/:id', async (req, res) => {
           id: artistJson.artist_id,
           name: artistJson.name,
           bio: artistJson.bio,
+          country: artistJson.country,
+          dob: artistJson.dob,
           imageUrl: artistJson.image_url,
           followersCount,
           followingCount,
@@ -113,8 +119,228 @@ router.get('/artists/profile/:id', async (req, res) => {
   }
 });
 
-// Apply authentication and admin role to all routes below
+/**
+ * @route GET /api/v1/music/artists/public
+ * @desc List active artists (for app home/search). Public, no auth.
+ * @access Public
+ */
+router.get('/artists/public', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = '' } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const where = { is_active: true };
+    if (search && String(search).trim()) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${String(search).trim()}%` } },
+        { bio: { [Op.like]: `%${String(search).trim()}%` } }
+      ];
+    }
+    const { count, rows } = await Artist.findAndCountAll({
+      where,
+      limit: Math.min(parseInt(limit) || 20, 100),
+      offset,
+      order: [['name', 'ASC']],
+      attributes: ['artist_id', 'name', 'bio', 'country', 'image_url', 'shop_id']
+    });
+    res.json({
+      success: true,
+      data: rows.map((a) => ({
+        id: a.artist_id,
+        name: a.name,
+        bio: a.bio,
+        country: a.country,
+        imageUrl: a.image_url,
+        shopId: a.shop_id
+      })),
+      pagination: {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 20,
+        total: count,
+        totalPages: Math.ceil(count / (parseInt(limit) || 20))
+      }
+    });
+  } catch (error) {
+    console.error('Artists public list error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * @route GET /api/v1/music/albums/public
+ * @desc List active albums (for app browse). Public, no auth.
+ * @access Public
+ */
+router.get('/albums/public', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = '', albumType = '' } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const where = { is_active: true };
+    if (search && String(search).trim()) {
+      where[Op.or] = [
+        { title: { [Op.like]: `%${String(search).trim()}%` } },
+        { description: { [Op.like]: `%${String(search).trim()}%` } }
+      ];
+    }
+    if (albumType && ['audio', 'video'].includes(String(albumType))) {
+      where.album_type = albumType;
+    }
+    const { count, rows } = await Album.findAndCountAll({
+      where,
+      limit: Math.min(parseInt(limit) || 20, 100),
+      offset,
+      order: [['release_date', 'DESC'], ['created_at', 'DESC']],
+      include: [{ model: Artist, as: 'artist', required: false, attributes: ['artist_id', 'name', 'image_url'] }]
+    });
+    res.json({
+      success: true,
+      data: rows.map((a) => {
+        const j = a.toJSON();
+        return {
+          id: j.album_id,
+          title: j.title,
+          description: j.description,
+          albumType: j.album_type,
+          releaseDate: j.release_date,
+          coverImageUrl: j.cover_image_url || j.default_track_thumbnail,
+          artistId: j.artist_id,
+          artistName: j.artist ? j.artist.name : null,
+          artistImageUrl: j.artist ? j.artist.image_url : null
+        };
+      }),
+      pagination: {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 20,
+        total: count,
+        totalPages: Math.ceil(count / (parseInt(limit) || 20))
+      }
+    });
+  } catch (error) {
+    console.error('Albums public list error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * @route GET /api/v1/music/albums/profile/:id
+ * @desc Get album by id with tracks for app album detail. Public, no auth.
+ * @access Public
+ */
+router.get('/albums/profile/:id', async (req, res) => {
+  try {
+    const albumId = req.params.id;
+    const album = await Album.findByPk(albumId, {
+      include: [
+        { model: Artist, as: 'artist', required: false, attributes: ['artist_id', 'name', 'image_url'] },
+        { model: AudioTrack, as: 'audioTracks', required: false },
+        { model: VideoTrack, as: 'videoTracks', required: false }
+      ]
+    });
+    if (!album || !album.is_active) {
+      return res.status(404).json({ success: false, error: 'Album not found' });
+    }
+    const a = album.toJSON();
+    const formatDuration = (s) => {
+      if (s == null) return '0:00';
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return `${m}:${sec.toString().padStart(2, '0')}`;
+    };
+    const coverUrl = a.cover_image_url || a.default_track_thumbnail || null;
+    const artistName = a.artist ? a.artist.name : '';
+    const audioTracks = (a.audioTracks || []).map((t) => ({
+      id: t.audio_id,
+      title: t.title,
+      durationFormatted: formatDuration(t.duration),
+      durationSeconds: t.duration,
+      albumArt: t.thumbnail_url || coverUrl,
+      artistName,
+      audioUrl: t.audio_url,
+      trackNumber: t.track_number
+    }));
+    const videoTracks = (a.videoTracks || []).map((t) => ({
+      id: t.video_id,
+      title: t.title,
+      durationFormatted: formatDuration(t.duration),
+      durationSeconds: t.duration,
+      thumbnailUrl: t.thumbnail_url || coverUrl,
+      artistName,
+      videoUrl: t.video_url,
+      trackNumber: t.track_number
+    }));
+    res.json({
+      success: true,
+      data: {
+        album: {
+          id: a.album_id,
+          title: a.title,
+          description: a.description,
+          albumType: a.album_type,
+          releaseDate: a.release_date,
+          coverImageUrl: a.cover_image_url || a.default_track_thumbnail,
+          artistId: a.artist_id,
+          artistName
+        },
+        audioTracks,
+        videoTracks
+      }
+    });
+  } catch (error) {
+    console.error('Album profile error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Authenticated routes (any logged-in user) — follow artist
 router.use(authenticateToken);
+
+router.post('/artists/:id/follow', async (req, res) => {
+  try {
+    const artistId = parseInt(req.params.id, 10);
+    const userId = req.userId;
+    if (!artistId) {
+      return res.status(400).json({ success: false, error: 'Invalid artist id' });
+    }
+    const artist = await Artist.findByPk(artistId);
+    if (!artist || !artist.is_active) {
+      return res.status(404).json({ success: false, error: 'Artist not found' });
+    }
+    const [row, created] = await ArtistFollower.findOrCreate({
+      where: { user_id: userId, artist_id: artistId },
+      defaults: { user_id: userId, artist_id: artistId }
+    });
+    res.status(created ? 201 : 200).json({
+      success: true,
+      data: { following: true, created },
+      message: created ? 'Following artist' : 'Already following'
+    });
+  } catch (error) {
+    console.error('Follow artist error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/artists/:id/follow', async (req, res) => {
+  try {
+    const artistId = parseInt(req.params.id, 10);
+    const userId = req.userId;
+    if (!artistId) {
+      return res.status(400).json({ success: false, error: 'Invalid artist id' });
+    }
+    const deleted = await ArtistFollower.destroy({
+      where: { user_id: userId, artist_id: artistId }
+    });
+    res.json({
+      success: true,
+      data: { following: false },
+      message: deleted ? 'Unfollowed' : 'Was not following'
+    });
+  } catch (error) {
+    console.error('Unfollow artist error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Admin-only routes below
 router.use(requireSystemAdmin);
 
 // ============================================================
@@ -719,6 +945,73 @@ router.delete('/audio-tracks/:id', async (req, res) => {
   }
 });
 
+// Audio track artists (featuring / collaborators)
+router.get('/audio-tracks/:id/artists', async (req, res) => {
+  try {
+    const track = await AudioTrack.findByPk(req.params.id);
+    if (!track) {
+      return res.status(404).json({ success: false, error: 'Audio track not found' });
+    }
+    const rows = await TrackArtist.findAll({
+      where: { track_type: 'audio', track_id: req.params.id },
+      include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name', 'image_url'] }]
+    });
+    res.json({
+      success: true,
+      data: rows.map((r) => ({
+        id: r.id,
+        artistId: r.artist_id,
+        role: r.role,
+        artist: r.artist ? { id: r.artist.artist_id, name: r.artist.name, imageUrl: r.artist.image_url } : null
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/audio-tracks/:id/artists', async (req, res) => {
+  try {
+    const track = await AudioTrack.findByPk(req.params.id);
+    if (!track) {
+      return res.status(404).json({ success: false, error: 'Audio track not found' });
+    }
+    const { artist_id, role } = req.body || {};
+    if (!artist_id) {
+      return res.status(400).json({ success: false, error: 'artist_id required' });
+    }
+    const artist = await Artist.findByPk(artist_id);
+    if (!artist) {
+      return res.status(404).json({ success: false, error: 'Artist not found' });
+    }
+    const [row, created] = await TrackArtist.findOrCreate({
+      where: { track_type: 'audio', track_id: req.params.id, artist_id },
+      defaults: { track_type: 'audio', track_id: req.params.id, artist_id, role: role || null }
+    });
+    if (!created) {
+      if (role != null) await row.update({ role });
+    }
+    res.status(created ? 201 : 200).json({ success: true, data: row });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/audio-tracks/:id/artists/:artistId', async (req, res) => {
+  try {
+    const track = await AudioTrack.findByPk(req.params.id);
+    if (!track) {
+      return res.status(404).json({ success: false, error: 'Audio track not found' });
+    }
+    const deleted = await TrackArtist.destroy({
+      where: { track_type: 'audio', track_id: req.params.id, artist_id: req.params.artistId }
+    });
+    res.json({ success: true, message: deleted ? 'Artist removed from track' : 'Association not found' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ============================================================
 // VIDEO TRACKS CRUD
 // ============================================================
@@ -786,6 +1079,73 @@ router.delete('/video-tracks/:id', async (req, res) => {
       deleted_at: new Date()
     });
     res.json({ success: true, message: 'Video track soft deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Video track artists (featuring / collaborators)
+router.get('/video-tracks/:id/artists', async (req, res) => {
+  try {
+    const track = await VideoTrack.findByPk(req.params.id);
+    if (!track) {
+      return res.status(404).json({ success: false, error: 'Video track not found' });
+    }
+    const rows = await TrackArtist.findAll({
+      where: { track_type: 'video', track_id: req.params.id },
+      include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name', 'image_url'] }]
+    });
+    res.json({
+      success: true,
+      data: rows.map((r) => ({
+        id: r.id,
+        artistId: r.artist_id,
+        role: r.role,
+        artist: r.artist ? { id: r.artist.artist_id, name: r.artist.name, imageUrl: r.artist.image_url } : null
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/video-tracks/:id/artists', async (req, res) => {
+  try {
+    const track = await VideoTrack.findByPk(req.params.id);
+    if (!track) {
+      return res.status(404).json({ success: false, error: 'Video track not found' });
+    }
+    const { artist_id, role } = req.body || {};
+    if (!artist_id) {
+      return res.status(400).json({ success: false, error: 'artist_id required' });
+    }
+    const artist = await Artist.findByPk(artist_id);
+    if (!artist) {
+      return res.status(404).json({ success: false, error: 'Artist not found' });
+    }
+    const [row, created] = await TrackArtist.findOrCreate({
+      where: { track_type: 'video', track_id: req.params.id, artist_id },
+      defaults: { track_type: 'video', track_id: req.params.id, artist_id, role: role || null }
+    });
+    if (!created) {
+      if (role != null) await row.update({ role });
+    }
+    res.status(created ? 201 : 200).json({ success: true, data: row });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/video-tracks/:id/artists/:artistId', async (req, res) => {
+  try {
+    const track = await VideoTrack.findByPk(req.params.id);
+    if (!track) {
+      return res.status(404).json({ success: false, error: 'Video track not found' });
+    }
+    const deleted = await TrackArtist.destroy({
+      where: { track_type: 'video', track_id: req.params.id, artist_id: req.params.artistId }
+    });
+    res.json({ success: true, message: deleted ? 'Artist removed from track' : 'Association not found' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

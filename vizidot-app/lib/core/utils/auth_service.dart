@@ -67,6 +67,18 @@ class AuthService extends GetxService {
     final fbCred = FacebookAuthProvider.credential(result.accessToken!.tokenString);
     return await _auth.signInWithCredential(fbCred);
   }
+
+  /// Returns the current Firebase ID token for API auth, or null if not logged in.
+  /// Use this for Bearer token on backend (if backend accepts Firebase idToken or after exchanging via /auth/login).
+  Future<String?> getIdToken() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    try {
+      return await user.getIdToken();
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 

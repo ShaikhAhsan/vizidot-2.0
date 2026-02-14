@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 
 class FollowMessageButtons extends StatelessWidget {
   final bool isFollowing;
+  final bool isFollowLoading;
   final VoidCallback? onFollowTap;
   final VoidCallback? onMessageTap;
   final VoidCallback? onShopTap;
@@ -10,6 +11,7 @@ class FollowMessageButtons extends StatelessWidget {
   const FollowMessageButtons({
     super.key,
     this.isFollowing = false,
+    this.isFollowLoading = false,
     this.onFollowTap,
     this.onMessageTap,
     this.onShopTap,
@@ -29,18 +31,25 @@ class FollowMessageButtons extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               color: colors.onSurface,
               borderRadius: BorderRadius.circular(12),
-              onPressed: onFollowTap,
+              onPressed: isFollowLoading ? null : onFollowTap,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    isFollowing ? CupertinoIcons.check_mark_circled : CupertinoIcons.add_circled,
-                    color: colors.surface,
-                    size: 18,
-                  ),
+                  if (isFollowLoading)
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CupertinoActivityIndicator(color: colors.surface),
+                    )
+                  else
+                    Icon(
+                      isFollowing ? CupertinoIcons.check_mark_circled : CupertinoIcons.add_circled,
+                      color: colors.surface,
+                      size: 18,
+                    ),
                   const SizedBox(width: 8),
                   Text(
-                    isFollowing ? 'Following' : 'Follow',
+                    isFollowLoading ? '...' : (isFollowing ? 'Following' : 'Follow'),
                     style: textTheme.labelLarge?.copyWith(
                       color: colors.surface,
                       fontWeight: FontWeight.w600,

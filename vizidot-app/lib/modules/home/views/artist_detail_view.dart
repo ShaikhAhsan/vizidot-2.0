@@ -137,6 +137,9 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 albums: controller.albums,
                 tracks: controller.tracks,
                 hasShop: controller.hasShop,
+                isFollowing: controller.isFollowing.value,
+                isFollowLoading: controller.isFollowLoading.value,
+                onFollowTap: controller.toggleFollow,
               );
             })
           : _buildContent(
@@ -151,6 +154,9 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               albums: _dummyAlbums,
               tracks: _dummyTracks,
               hasShop: true,
+              isFollowing: _isFollowing,
+              isFollowLoading: false,
+              onFollowTap: () => setState(() => _isFollowing = !_isFollowing),
             ),
     );
   }
@@ -167,6 +173,9 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     required List<AlbumItem> albums,
     required List<TrackItem> tracks,
     required bool hasShop,
+    required bool isFollowing,
+    required bool isFollowLoading,
+    required VoidCallback onFollowTap,
   }) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -254,10 +263,9 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                   ],
                 ),
                 FollowMessageButtons(
-                  isFollowing: _isFollowing,
-                  onFollowTap: () {
-                    setState(() => _isFollowing = !_isFollowing);
-                  },
+                  isFollowing: isFollowing,
+                  isFollowLoading: isFollowLoading,
+                  onFollowTap: onFollowTap,
                   onMessageTap: () {},
                   onShopTap: () {
                     Get.to(() => const ShopView());

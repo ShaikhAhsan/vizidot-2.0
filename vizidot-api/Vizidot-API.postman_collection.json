@@ -105,13 +105,16 @@
       "name": "Music - Artists",
       "item": [
         { "name": "Get Artist Profile (Public)", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/artists/profile/1" } },
+        { "name": "List Artists (Public)", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/artists/public?page=1&limit=20&search=" } },
         { "name": "List Artists", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/artists" } },
         { "name": "List Deleted Artists", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/artists/deleted" } },
         { "name": "Get Artist", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/artists/1" } },
         { "name": "Create Artist", "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/api/v1/music/artists" } },
         { "name": "Update Artist", "request": { "method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/api/v1/music/artists/1" } },
         { "name": "Delete Artist", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/api/v1/music/artists/1" } },
-        { "name": "Restore Artist", "request": { "method": "POST", "header": [], "url": "{{baseUrl}}/api/v1/music/artists/1/restore" } }
+        { "name": "Restore Artist", "request": { "method": "POST", "header": [], "url": "{{baseUrl}}/api/v1/music/artists/1/restore" } },
+        { "name": "Follow Artist (Auth)", "request": { "method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/v1/music/artists/1/follow" } },
+        { "name": "Unfollow Artist (Auth)", "request": { "method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/v1/music/artists/1/follow" } }
       ]
     },
     {
@@ -137,6 +140,8 @@
     {
       "name": "Music - Albums",
       "item": [
+        { "name": "List Albums (Public)", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/albums/public?page=1&limit=20" } },
+        { "name": "Get Album Profile (Public)", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/albums/profile/1" } },
         { "name": "List Albums", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/albums" } },
         { "name": "Get Album", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/albums/1" } },
         { "name": "Create Album", "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/api/v1/music/albums" } },
@@ -152,7 +157,13 @@
         { "name": "Delete Video Track", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/api/v1/music/video-tracks/1" } },
         { "name": "Get Collaborators", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/albums/1/collaborators" } },
         { "name": "Add Collaborator", "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/api/v1/music/albums/1/collaborators" } },
-        { "name": "Remove Collaborator", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/api/v1/music/albums/1/collaborators/1" } }
+        { "name": "Remove Collaborator", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/api/v1/music/albums/1/collaborators/1" } },
+        { "name": "Get Audio Track Artists", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/audio-tracks/1/artists" } },
+        { "name": "Add Audio Track Artist", "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{\n  \"artist_id\": 1,\n  \"role\": \"Featured\"\n}" }, "url": "{{baseUrl}}/api/v1/music/audio-tracks/1/artists" } },
+        { "name": "Remove Audio Track Artist", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/api/v1/music/audio-tracks/1/artists/1" } },
+        { "name": "Get Video Track Artists", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/music/video-tracks/1/artists" } },
+        { "name": "Add Video Track Artist", "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{\n  \"artist_id\": 1,\n  \"role\": \"Featured\"\n}" }, "url": "{{baseUrl}}/api/v1/music/video-tracks/1/artists" } },
+        { "name": "Remove Video Track Artist", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/api/v1/music/video-tracks/1/artists/1" } }
       ]
     },
     {

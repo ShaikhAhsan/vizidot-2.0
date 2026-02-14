@@ -20,6 +20,14 @@ class ApiConstants {
   /// List artists (private).
   static const String artistsPath = '$musicSegment/artists';
 
+  /// Follow artist (auth required). Replace :id with artist id.
+  static String artistFollowPath(int artistId) =>
+      '$musicSegment/artists/$artistId/follow';
+
+  /// Unfollow artist (auth required). Replace :id with artist id.
+  static String artistUnfollowPath(int artistId) =>
+      '$musicSegment/artists/$artistId/follow';
+
   /// Health check (no version prefix on backend).
   static const String healthPath = 'health';
 }
