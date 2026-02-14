@@ -1,10 +1,9 @@
 import 'package:get/get.dart';
 
-import '../../../core/network/api_client.dart';
+import '../../../core/network/apis/music_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
 import '../../../data/models/artist_profile_response.dart';
-import '../../../data/services/artist_api_service.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
 
@@ -76,9 +75,8 @@ class ArtistDetailController extends GetxController {
     errorMessage.value = '';
     try {
       final config = AppConfig.fromEnv();
-      final client = ApiClient(baseUrl: config.baseUrl);
-      final service = ArtistApiService(client);
-      final result = await service.getArtistProfile(artistId!);
+      final api = MusicApi(baseUrl: config.baseUrl);
+      final result = await api.getArtistProfile(artistId!);
       if (result != null) {
         profile.value = result;
       } else {
@@ -104,12 +102,11 @@ class ArtistDetailController extends GetxController {
     isFollowLoading.value = true;
     try {
       final config = AppConfig.fromEnv();
-      final client = ApiClient(baseUrl: config.baseUrl, authToken: token);
-      final service = ArtistApiService(client);
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
       final currentlyFollowing = isFollowing.value;
       final success = currentlyFollowing
-          ? await service.unfollowArtist(artistId!)
-          : await service.followArtist(artistId!);
+          ? await api.unfollowArtist(artistId!)
+          : await api.followArtist(artistId!);
       if (success) {
         isFollowing.value = !currentlyFollowing;
         await fetchProfile();
