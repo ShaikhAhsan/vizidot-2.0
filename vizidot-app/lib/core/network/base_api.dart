@@ -96,39 +96,40 @@ class BaseApi {
   }
 
   void _printCurl(String method, String url, Map<String, String> headers, String? bodyStr) {
-    final buffer = StringBuffer();
-    buffer.writeln('┌─────────────── cURL ───────────────');
-    buffer.write("curl -X $method '$url'");
-    for (final e in headers.entries) {
-      buffer.write(" \\\n  -H '${e.key}: ${e.value}'");
-    }
+    // Print one line at a time so the full curl is visible (debugPrint truncates).
+    final parts = <String>[
+      "curl -X $method '$url'",
+      ...headers.entries.map((e) => "-H '${e.key}: ${e.value}'"),
+    ];
     if (bodyStr != null && bodyStr.isNotEmpty) {
       final escaped = bodyStr.replaceAll("'", r"'\''");
-      buffer.write(" \\\n  -d '$escaped'");
+      parts.add("-d '$escaped'");
     }
-    buffer.writeln();
-    buffer.writeln('└────────────────────────────────────');
-    // ignore: avoid_print
-    print(buffer.toString());
+    for (var i = 0; i < parts.length; i++) {
+      final line = parts[i] + (i < parts.length - 1 ? ' \\' : '');
+      // ignore: avoid_print
+      print('flutter: $line');
+    }
   }
 
   void _printResponse(http.Response response) {
-    final buffer = StringBuffer();
-    buffer.writeln('┌─────────────── Response ───────────────');
-    buffer.writeln('Status: ${response.statusCode}');
-    final body = response.body;
-    if (body.isEmpty) {
-      buffer.writeln('Body: (empty)');
-    } else {
-      try {
-        final decoded = jsonDecode(body);
-        buffer.writeln('Body:\n${const JsonEncoder.withIndent('  ').convert(decoded)}');
-      } catch (_) {
-        buffer.writeln('Body: $body');
-      }
-    }
-    buffer.writeln('└────────────────────────────────────────');
     // ignore: avoid_print
-    print(buffer.toString());
+    print('flutter: Response: ${response.statusCode}');
+    final bodyStr = response.body.isEmpty
+        ? '(empty)'
+        : _formatBody(response.body);
+    for (final line in bodyStr.split('\n')) {
+      // ignore: avoid_print
+      print('flutter: $line');
+    }
+  }
+
+  String _formatBody(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      return const JsonEncoder.withIndent('  ').convert(decoded);
+    } catch (_) {
+      return body;
+    }
   }
 }

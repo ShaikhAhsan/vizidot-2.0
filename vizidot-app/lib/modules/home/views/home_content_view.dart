@@ -66,6 +66,7 @@ class HomeContentView extends GetView<HomeController> {
                               asset: item.asset,
                               isHorizontal: true,
                               audioUrl: item.audioUrl,
+                              artistId: item.artistId,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(30),
                                 topRight: Radius.circular(12),
@@ -101,6 +102,7 @@ class HomeContentView extends GetView<HomeController> {
                         asset: item.asset,
                         isHorizontal: false,
                         imageHeight: item.imageHeight,
+                        artistId: item.artistId,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(40),
                           topRight: Radius.circular(15),

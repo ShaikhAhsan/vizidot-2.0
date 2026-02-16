@@ -29,7 +29,7 @@ class FollowMessageButtons extends StatelessWidget {
           Expanded(
             child: CupertinoButton(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              color: colors.onSurface,
+              color: isFollowing ? Colors.black : Colors.white,
               borderRadius: BorderRadius.circular(12),
               onPressed: isFollowLoading ? null : onFollowTap,
               child: Row(
@@ -39,19 +39,21 @@ class FollowMessageButtons extends StatelessWidget {
                     SizedBox(
                       width: 18,
                       height: 18,
-                      child: CupertinoActivityIndicator(color: colors.surface),
+                      child: CupertinoActivityIndicator(
+                        color: isFollowing ? Colors.white : Colors.black,
+                      ),
                     )
                   else
                     Icon(
                       isFollowing ? CupertinoIcons.check_mark_circled : CupertinoIcons.add_circled,
-                      color: colors.surface,
+                      color: isFollowing ? Colors.white : Colors.black,
                       size: 18,
                     ),
                   const SizedBox(width: 8),
                   Text(
                     isFollowLoading ? '...' : (isFollowing ? 'Following' : 'Follow'),
                     style: textTheme.labelLarge?.copyWith(
-                      color: colors.surface,
+                      color: isFollowing ? Colors.white : Colors.black,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

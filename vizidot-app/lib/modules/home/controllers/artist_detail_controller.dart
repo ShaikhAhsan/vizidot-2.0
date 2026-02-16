@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../../core/network/apis/music_api.dart';
@@ -7,6 +8,8 @@ import '../../../data/models/artist_profile_response.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
 
+/// Controller for artist detail screen. Uses [MusicApi] for profile and
+/// follow/unfollow; [AppConfig] for base URL; [AuthService] for token when needed.
 class ArtistDetailController extends GetxController {
   ArtistDetailController({required this.artistId});
 
@@ -66,6 +69,7 @@ class ArtistDetailController extends GetxController {
     super.onReady();
   }
 
+  /// Fetches artist profile via [MusicApi].getArtistProfile (public API).
   Future<void> fetchProfile() async {
     if (artistId == null) {
       isLoading.value = false;
@@ -89,8 +93,8 @@ class ArtistDetailController extends GetxController {
     }
   }
 
-  /// Toggle follow state: call API (auth required) and refresh profile on success.
-  /// If not logged in, shows snackbar and returns.
+  /// Toggle follow state via [MusicApi] (auth required). Refreshes profile on success.
+  /// If not logged in, shows snackbar and returns without calling the API.
   Future<void> toggleFollow() async {
     if (artistId == null) return;
     final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;

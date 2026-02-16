@@ -1,10 +1,19 @@
+const path = require('path');
+const fs = require('fs');
+
+// Load .env; if missing, use env.example so app works without copying the file
+require('dotenv').config();
+if (!fs.existsSync(path.join(__dirname, '.env')) && fs.existsSync(path.join(__dirname, 'env.example'))) {
+  require('dotenv').config({ path: path.join(__dirname, 'env.example') });
+  console.log('📄 Loaded env.example (no .env found)');
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
 
 const { sequelize } = require('./config/database');
 const { initializeFirebase } = require('./config/firebase');
@@ -90,14 +99,24 @@ if (process.env.NODE_ENV === 'development') {
 // Static files
 app.use('/uploads', express.static('uploads'));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Health check endpoint (and /health.php for hosts that probe that path)
+const healthPayload = (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV
   });
+};
+app.get('/health', healthPayload);
+app.get('/health.php', healthPayload);
+
+// Root and favicon to avoid 404 noise in logs
+app.get('/', (req, res) => {
+  res.redirect(302, '/health');
+});
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
 });
 
 // API routes
@@ -128,27 +147,43 @@ app.use(errorHandler);
 // Initialize database and Firebase
 const initializeApp = async () => {
   try {
-    // Initialize Firebase
-    await initializeFirebase();
-    console.log('🔥 Firebase initialized successfully');
+    // Initialize Firebase (optional in development when FIREBASE_SERVICE_ACCOUNT_JSON is empty)
+    const hasFirebaseCreds = (process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim().length > 0;
+    if (hasFirebaseCreds) {
+      await initializeFirebase();
+      console.log('🔥 Firebase initialized successfully');
+    } else {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('❌ FIREBASE_SERVICE_ACCOUNT_JSON is required in production.');
+        process.exit(1);
+      }
+      console.warn('🟡 Firebase skipped (no FIREBASE_SERVICE_ACCOUNT_JSON). Auth/Firestore routes will fail.');
+    }
 
-    // Test database connection
-    await sequelize.authenticate();
-    console.log('✅ Database connection established successfully');
-
-    // Sync database models
-    if (process.env.NODE_ENV === 'development') {
-      // Temporarily disable sync due to MySQL key limit
-      // await sequelize.sync({ alter: true });
-      console.log('🔄 Database models synchronized (disabled due to key limit)');
+    // Test database connection (in development, allow server to start even if DB fails)
+    let dbOk = false;
+    try {
+      await sequelize.authenticate();
+      console.log('✅ Database connection established successfully');
+      dbOk = true;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Database models synchronized (disabled due to key limit)');
+      }
+    } catch (dbError) {
+      console.error('⚠️ Database connection failed:', dbError.message);
+      if (process.env.NODE_ENV === 'production') {
+        console.error('❌ Exiting in production when DB is unavailable.');
+        process.exit(1);
+      }
+      console.warn('🟡 Starting server anyway (development). Set DB_HOST etc. in .env for full API.');
     }
 
     // Start server with custom configuration
-    // Listen on 0.0.0.0 to make it accessible from outside the container
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
-      console.log(`🔗 API Base URL: http://0.0.0.0:${PORT}/api/v1`);
+      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔗 API Base URL: http://localhost:${PORT}/api/v1`);
+      if (!dbOk) console.warn('🟡 DB not connected – some API routes will fail until .env is set.');
     });
   } catch (error) {
     console.error('❌ Failed to initialize application:', error);

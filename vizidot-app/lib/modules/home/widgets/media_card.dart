@@ -12,6 +12,7 @@ class MediaCard extends StatefulWidget {
   final VoidCallback? onTap;
   final double? imageHeight; // For dynamic heights in masonry grid
   final String? audioUrl; // Audio URL for playback
+  final int? artistId; // When set, artist detail loads from API and follow works
 
   const MediaCard({
     super.key,
@@ -23,6 +24,7 @@ class MediaCard extends StatefulWidget {
     this.onTap,
     this.imageHeight,
     this.audioUrl,
+    this.artistId,
   });
 
   @override
@@ -105,6 +107,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
         Get.toNamed(
           AppRoutes.artistDetail,
           arguments: {
+            if (widget.artistId != null) 'artistId': widget.artistId,
             'artistName': widget.artist,
             'artistImage': widget.asset,
             'description': 'Artist / Musician / Writer',

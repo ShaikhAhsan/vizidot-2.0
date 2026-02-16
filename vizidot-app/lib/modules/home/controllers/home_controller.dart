@@ -7,6 +7,7 @@ class MediaItem {
   final String asset;
   final double? imageHeight; // For dynamic heights in masonry grid
   final String? audioUrl; // Audio URL for playback
+  final int? artistId; // Optional: when set, artist detail uses API and follow works
 
   MediaItem({
     required this.title,
@@ -14,6 +15,7 @@ class MediaItem {
     required this.asset,
     this.imageHeight,
     this.audioUrl,
+    this.artistId,
   });
 }
 
@@ -22,31 +24,35 @@ class HomeController extends GetxController {
   final RxInt selectedIndex = 0.obs;
   final List<String> _prefetchUrls = <String>[];
 
-  // TOP AUDIO items
+  // TOP AUDIO items (artistId so follow button uses API on artist detail)
   final topAudioItems = <MediaItem>[
     MediaItem(
       title: 'Beating on my heart',
       artist: 'Choc B',
       asset: 'assets/artists/Choc B.png',
       audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
+      artistId: 1,
     ),
     MediaItem(
       title: 'Fear of the water',
       artist: 'Doja cat',
       asset: 'assets/artists/Halsey.png',
       audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
+      artistId: 2,
     ),
     MediaItem(
       title: 'Girls just wanna have...',
       artist: 'Tigerclub',
       asset: 'assets/artists/Blair.png',
       audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
+      artistId: 3,
     ),
     MediaItem(
       title: 'Stop beating on my heart',
       artist: 'Cindi lauper',
       asset: 'assets/artists/Aalyah.png',
       audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
+      artistId: 4,
     ),
   ].obs;
 
@@ -57,36 +63,42 @@ class HomeController extends GetxController {
       artist: 'Cindi lauper',
       asset: 'assets/artists/Aalyah.png',
       imageHeight: 200.0,
+      artistId: 4,
     ),
     MediaItem(
       title: 'Girls just wanna have fun',
       artist: 'Cindi lauper',
       asset: 'assets/artists/Julia Styles.png',
       imageHeight: 280.0,
+      artistId: 4,
     ),
     MediaItem(
       title: 'Beating on my heart',
       artist: 'Choc B',
       asset: 'assets/artists/Choc B.png',
       imageHeight: 240.0,
+      artistId: 1,
     ),
     MediaItem(
       title: 'Fear of the water',
       artist: 'Doja cat',
       asset: 'assets/artists/Halsey.png',
       imageHeight: 220.0,
+      artistId: 2,
     ),
     MediaItem(
       title: 'Best friend',
       artist: 'Luna bay',
       asset: 'assets/artists/Blair.png',
       imageHeight: 260.0,
+      artistId: 3,
     ),
     MediaItem(
       title: 'Desert Rose',
       artist: 'TVORHI',
       asset: 'assets/artists/Betty Daniels.png',
       imageHeight: 230.0,
+      artistId: 5,
     ),
   ].obs;
 

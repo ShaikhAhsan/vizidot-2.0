@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
 import '../api_client.dart';
 import '../base_api.dart';
 import '../../constants/api_constants.dart';
@@ -14,6 +18,7 @@ class MusicApi extends BaseApi {
   });
 
   /// GET artist profile. **Public** — no token.
+  /// Accepts both wrapped { success, data: { artist, albums, tracks } } and raw { artist, albums, tracks }.
   Future<ArtistProfileResponse?> getArtistProfile(int artistId) async {
     try {
       final path = ApiConstants.artistProfilePath(artistId);
@@ -23,11 +28,26 @@ class MusicApi extends BaseApi {
         visibility: ApiVisibility.public,
       );
       if (response.statusCode != 200) return null;
-      final parsed = ApiClient.parseResponse(response);
-      if (!parsed.$1) return null;
-      final data = parsed.$2;
-      if (data == null || data is! Map<String, dynamic>) return null;
+      final Map<String, dynamic>? data = _profileDataFromResponse(response);
+      if (data == null) return null;
       return ArtistProfileResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Extracts profile map from response: either response.data or raw body if it has artist/albums/tracks.
+  static Map<String, dynamic>? _profileDataFromResponse(http.Response response) {
+    final body = response.body;
+    if (body.isEmpty) return null;
+    try {
+      final map = jsonDecode(body) as Map<String, dynamic>?;
+      if (map == null) return null;
+      final wrapped = ApiClient.parseResponse(response);
+      if (wrapped.$2 != null && wrapped.$2 is Map<String, dynamic>) return wrapped.$2!;
+      // Backend may return raw { artist, albums, tracks } without success/data wrapper
+      if (map.containsKey('artist')) return map;
+      return null;
     } catch (_) {
       return null;
     }

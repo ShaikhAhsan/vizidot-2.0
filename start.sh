@@ -9,6 +9,22 @@ echo "📡 Backend will run on: http://localhost:8000"
 echo "🎨 Admin Panel will run on: http://localhost:3000"
 echo ""
 
+# Ensure dependencies are installed
+echo "Checking dependencies..."
+if [ ! -d "vizidot-api/node_modules" ]; then
+  echo "Installing backend dependencies..."
+  (cd vizidot-api && npm install)
+fi
+if [ ! -d "vizidot-admin-panel/node_modules" ]; then
+  echo "Installing admin panel dependencies..."
+  (cd vizidot-admin-panel && npm install)
+fi
+if [ ! -f "vizidot-admin-panel/.env" ] && [ -f "vizidot-admin-panel/.env.example" ]; then
+  echo "Creating vizidot-admin-panel/.env from .env.example (so http://localhost:3000 can load)"
+  cp vizidot-admin-panel/.env.example vizidot-admin-panel/.env
+fi
+echo ""
+
 # Start backend in background
 echo "Starting backend server..."
 cd vizidot-api

@@ -8,10 +8,11 @@ class AppConfig {
 
   AppConfig({required this.baseUrl, required this.environment});
 
+  /// Default base URL. For Android emulator set BASE_URL=http://10.0.2.2:8000 in .env
+  /// so the app reaches the host machine. For physical device use your machine's IP (e.g. http://192.168.1.x:8000).
   factory AppConfig.fromEnv() {
     String env = 'development';
-    String baseUrl = 'https://api.example.com';
-    // Guard against DotEnv not being initialized or missing keys
+    String baseUrl = 'http://localhost:8000';
     try {
       env = (dotenv.env['ENV'] ?? env).toLowerCase();
       baseUrl = dotenv.env['BASE_URL'] ?? baseUrl;
