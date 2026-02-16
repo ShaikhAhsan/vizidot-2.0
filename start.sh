@@ -5,7 +5,7 @@
 # Admin panel runs on port 3000 (hardcoded)
 
 echo "🚀 Starting Vizidot 2.0 Services..."
-echo "📡 Backend will run on: http://localhost:8000"
+echo "📡 App API will run on: http://localhost:8000"
 echo "🎨 Admin Panel will run on: http://localhost:3000"
 echo ""
 
@@ -25,8 +25,8 @@ if [ ! -f "vizidot-admin-panel/.env" ] && [ -f "vizidot-admin-panel/.env.example
 fi
 echo ""
 
-# Start backend in background
-echo "Starting backend server..."
+# Start App API in background
+echo "Starting App API server..."
 cd vizidot-api
 npm run dev &
 BACKEND_PID=$!
