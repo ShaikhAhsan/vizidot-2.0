@@ -21,15 +21,6 @@ const errorHandler = require('./middleware/errorHandler');
 
 // App API routes (Admin Panel uses a separate API)
 const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const businessRoutes = require('./routes/businesses');
-const productRoutes = require('./routes/products');
-const orderRoutes = require('./routes/orders');
-const adminRoutes = require('./routes/admin');
-const uploadRoutes = require('./routes/upload');
-const unitRoutes = require('./routes/units');
-const musicRoutes = require('./routes/music');
-const mediaRoutes = require('./routes/media');
 
 const app = express();
 // Hardcoded port - always use 8000
@@ -119,17 +110,8 @@ app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
 });
 
-// App API routes – add new endpoints in the respective route files
+// App API routes – add new endpoints in routes/auth.js and new route files as needed
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/businesses', businessRoutes);
-app.use('/api/v1/products', productRoutes);
-app.use('/api/v1/orders', orderRoutes);
-app.use('/api/v1/admin', adminRoutes);
-app.use('/api/v1/upload', uploadRoutes);
-app.use('/api/v1/units', unitRoutes);
-app.use('/api/v1/music', musicRoutes);
-app.use('/api/v1/media', mediaRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
