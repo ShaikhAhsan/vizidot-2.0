@@ -21,10 +21,11 @@ const errorHandler = require('./middleware/errorHandler');
 
 // App API routes (Admin Panel uses a separate API)
 const authRoutes = require('./routes/auth');
+const musicRoutes = require('./routes/music');
 
 const app = express();
-// Hardcoded port - always use 8000
-const PORT = 8000;
+// Port: default 8000, override with PORT env (e.g. PORT=8001 when 8000 is in use)
+const PORT = parseInt(process.env.PORT || '8000', 10);
 
 // Security middleware
 app.use(helmet());
@@ -112,6 +113,7 @@ app.get('/favicon.ico', (req, res) => {
 
 // App API routes – add new endpoints in routes/auth.js and new route files as needed
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/music', musicRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

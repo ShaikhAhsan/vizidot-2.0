@@ -11,9 +11,9 @@ echo ""
 
 # Ensure dependencies are installed
 echo "Checking dependencies..."
-if [ ! -d "vizidot-api/node_modules" ]; then
-  echo "Installing backend dependencies..."
-  (cd vizidot-api && npm install)
+if [ ! -d "app-api/node_modules" ]; then
+  echo "Installing App API dependencies..."
+  (cd app-api && npm install)
 fi
 if [ ! -d "vizidot-admin-panel/node_modules" ]; then
   echo "Installing admin panel dependencies..."
@@ -27,7 +27,7 @@ echo ""
 
 # Start App API in background
 echo "Starting App API server..."
-cd vizidot-api
+cd app-api
 npm run dev &
 BACKEND_PID=$!
 cd ..

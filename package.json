@@ -5,6 +5,7 @@
   "scripts": {
     "start:backend": "cd backend && npm run dev",
     "start:admin": "cd admin-panel && npm start",
+    "start:api": "cd app-api && npm run dev",
     "start": "concurrently \"npm run start:backend\" \"npm run start:admin\"",
     "install:all": "cd backend && npm install && cd ../admin-panel && npm install"
   },

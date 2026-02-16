@@ -2,6 +2,43 @@ const FirebaseAuthService = require('../services/firebaseAuth');
 const RBACService = require('../services/rbacService');
 const { User } = require('../models');
 
+// Non-expiring test token for API testing. Set TEST_ACCESS_TOKEN in .env to override.
+const TEST_ACCESS_TOKEN = (process.env.TEST_ACCESS_TOKEN || 'test-token-no-expire').trim();
+const isProduction = process.env.NODE_ENV === 'production';
+
+async function attachDemoUser(req, res, next) {
+  try {
+    let user = await User.findOne({ where: { email: 'admin@demo.com' } });
+    if (!user) {
+      user = await User.create({
+        email: 'admin@demo.com',
+        first_name: 'Demo',
+        last_name: 'Admin',
+        firebase_uid: 'demo-admin-uid',
+        primary_role: 'admin',
+        is_active: true,
+        is_verified: true
+      });
+    }
+    let userRoles = []; let highestRole = null; let userBusinesses = [];
+    try {
+      userRoles = await RBACService.getUserRoles(user.id);
+      highestRole = await RBACService.getUserHighestRole(user.id);
+      userBusinesses = await RBACService.getUserBusinesses(user.id);
+    } catch (_) { /* RBAC optional */ }
+    req.user = user;
+    req.userId = user.id;
+    req.firebaseUid = user.firebase_uid;
+    req.userRoles = userRoles;
+    req.highestRole = highestRole;
+    req.userBusinesses = userBusinesses || [];
+    return next();
+  } catch (e) {
+    console.error('Demo user attach error:', e);
+    return res.status(500).json({ success: false, error: 'Auth setup failed' });
+  }
+}
+
 /**
  * Middleware to authenticate Firebase token and attach user to request
  */
@@ -17,40 +54,9 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Development mode: bypass Firebase authentication for demo token
-    if (process.env.NODE_ENV === 'development' && token === 'demo-token-123') {
-      // Create or find a demo admin user
-      let user = await User.findOne({
-        where: { email: 'admin@demo.com' }
-      });
-
-      if (!user) {
-        // Create demo admin user
-        user = await User.create({
-          email: 'admin@demo.com',
-          first_name: 'Demo',
-          last_name: 'Admin',
-          firebase_uid: 'demo-admin-uid',
-          primary_role: 'admin',
-          is_active: true,
-          is_verified: true
-        });
-      }
-
-      // Get user roles and permissions
-      const userRoles = await RBACService.getUserRoles(user.id);
-      const highestRole = await RBACService.getUserHighestRole(user.id);
-      const userBusinesses = await RBACService.getUserBusinesses(user.id);
-      
-      // Attach user and RBAC data to request
-      req.user = user;
-      req.userId = user.id;
-      req.firebaseUid = user.firebase_uid;
-      req.userRoles = userRoles;
-      req.highestRole = highestRole;
-      req.userBusinesses = userBusinesses;
-      
-      return next();
+    // Non-expiring test token for testing all APIs (ignored in production)
+    if (!isProduction && (token === TEST_ACCESS_TOKEN || token === 'demo-token-123')) {
+      return attachDemoUser(req, res, next);
     }
 
     // Verify Firebase token and get user
