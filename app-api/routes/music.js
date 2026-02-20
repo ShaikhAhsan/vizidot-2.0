@@ -295,6 +295,32 @@ async function getFavouritesForUser(userId, type, limit = 10) {
 }
 
 /**
+ * Fetch user's followed artists (top N). Returns [] when not logged in or on error.
+ */
+async function getFollowedArtistsForUser(userId, limit = 10) {
+  if (!userId) return [];
+  try {
+    const rows = await ArtistFollower.findAll({
+      where: { user_id: userId },
+      order: [['created_at', 'DESC']],
+      attributes: ['artist_id', 'created_at'],
+      limit: Math.min(limit, 50),
+      include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name', 'image_url'], required: true }]
+    });
+    return rows
+      .filter((r) => r.artist)
+      .map((r) => ({
+        artistId: r.artist.artist_id,
+        name: r.artist.name ?? '',
+        imageUrl: r.artist.image_url ?? null
+      }));
+  } catch (err) {
+    console.error('getFollowedArtistsForUser error:', err.message);
+    return [];
+  }
+}
+
+/**
  * GET /api/v1/music/home
  * Home API: one top song per album (most played); same for videos. Fallback to latest when no albums.
  * When user is logged in (optionalAuth), includes favouriteAudios, favouriteVideos, favouriteAlbums (top 10 each).
@@ -308,6 +334,7 @@ router.get('/home', optionalAuth, async (req, res) => {
     let favouriteAudios = [];
     let favouriteVideos = [];
     let favouriteAlbums = [];
+    let favouriteArtists = [];
 
     const [audioAlbumIds, videoAlbumIds] = await Promise.all([
       getTopAudioAlbumIds(limit),
@@ -334,10 +361,11 @@ router.get('/home', optionalAuth, async (req, res) => {
     }
 
     if (userId) {
-      [favouriteAudios, favouriteVideos, favouriteAlbums] = await Promise.all([
+      [favouriteAudios, favouriteVideos, favouriteAlbums, favouriteArtists] = await Promise.all([
         getFavouritesForUser(userId, 'track', 10),
         getFavouritesForUser(userId, 'video', 10),
-        getFavouritesForUser(userId, 'album', 10)
+        getFavouritesForUser(userId, 'album', 10),
+        getFollowedArtistsForUser(userId, 10)
       ]);
     }
 
@@ -348,7 +376,8 @@ router.get('/home', optionalAuth, async (req, res) => {
         topVideos,
         favouriteAudios,
         favouriteVideos,
-        favouriteAlbums
+        favouriteAlbums,
+        favouriteArtists
       }
     };
     if (topAudios.length === 0 && topVideos.length === 0) {
@@ -966,6 +995,48 @@ router.get('/favourites', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('List favourites error:', err);
     return res.status(500).json({ success: false, error: 'Could not list favourites' });
+  }
+});
+
+/**
+ * GET /api/v1/music/followed-artists
+ * List artists the user follows. Query: ?limit=, ?offset=. Requires auth.
+ */
+router.get('/followed-artists', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id || req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 20), 100);
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const { rows, count } = await ArtistFollower.findAndCountAll({
+      where: { user_id: userId },
+      order: [['created_at', 'DESC']],
+      attributes: ['artist_id', 'created_at'],
+      limit,
+      offset,
+      include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name', 'image_url'], required: true }]
+    });
+    const artists = rows
+      .filter((r) => r.artist)
+      .map((r) => ({
+        artistId: r.artist.artist_id,
+        name: r.artist.name ?? '',
+        imageUrl: r.artist.image_url ?? null
+      }));
+    return res.json({
+      success: true,
+      data: {
+        artists,
+        total: count,
+        limit,
+        offset
+      }
+    });
+  } catch (err) {
+    console.error('List followed artists error:', err);
+    return res.status(500).json({ success: false, error: 'Could not list followed artists' });
   }
 });
 

@@ -59,151 +59,165 @@ class HomeContentView extends GetView<HomeController> {
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     const SizedBox(height: 12),
-                    // Favourites section (when logged in)
+                    // Favourites Albums section (when logged in)
                     Obx(() {
                       final isLoggedIn = Get.isRegistered<AuthService>() &&
                           Get.find<AuthService>().isLoggedIn.value;
-                      if (!isLoggedIn) return const SizedBox.shrink();
-                      final hasAudio = controller.favouriteAudioItems.isNotEmpty;
-                      final hasVideo = controller.favouriteVideoItems.isNotEmpty;
                       final hasAlbums = controller.favouriteAlbumItems.isNotEmpty;
-                      if (!hasAudio && !hasVideo && !hasAlbums) return const SizedBox.shrink();
+                      if (!isLoggedIn || !hasAlbums) return const SizedBox.shrink();
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SectionHeader(
-                            title: 'FAVOURITES',
+                            title: 'Favourites Albums',
                             onViewAllTap: () => Get.toNamed(
                               AppRoutes.favourites,
-                              arguments: <String, int>{
+                              arguments: <String, dynamic>{
                                 'totalTracks': controller.favouriteAudioItems.length,
                                 'totalVideos': controller.favouriteVideoItems.length,
                                 'totalAlbums': controller.favouriteAlbumItems.length,
+                                'totalArtists': controller.favouriteArtistItems.length,
+                                'initialTab': 'album',
                               },
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          if (hasAudio) ...[
-                            SizedBox(
-                              height: 178,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: controller.favouriteAudioItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = controller.favouriteAudioItems[index];
-                                  return MediaCard(
-                                    title: item.title,
-                                    artist: item.artist,
-                                    asset: item.asset,
-                                    isHorizontal: true,
-                                    audioUrl: item.audioUrl,
-                                    artistId: item.artistId,
-                                    imageUrl: item.imageUrl,
-                                    trackId: item.trackId,
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(30),
-                                      topRight: Radius.circular(12),
-                                      bottomLeft: Radius.circular(12),
-                                      bottomRight: Radius.circular(30),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            if (hasVideo || hasAlbums) const SizedBox(height: 20),
-                          ],
-                          if (hasVideo) ...[
-                            SizedBox(
-                              height: 178,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: controller.favouriteVideoItems.length,
-                                itemBuilder: (context, index) {
-                                  final item = controller.favouriteVideoItems[index];
-                                  final heights = [200.0, 280.0, 240.0, 220.0, 260.0, 230.0];
-                                  return MediaCard(
-                                    title: item.title,
-                                    artist: item.artist,
-                                    asset: item.asset,
-                                    isHorizontal: true,
-                                    imageHeight: heights[index % heights.length],
-                                    artistId: item.artistId,
-                                    imageUrl: item.imageUrl,
-                                    videoUrl: item.videoUrl,
-                                    videoId: item.videoId,
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(30),
-                                      topRight: Radius.circular(12),
-                                      bottomLeft: Radius.circular(12),
-                                      bottomRight: Radius.circular(30),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            if (hasAlbums) const SizedBox(height: 20),
-                          ],
-                          if (hasAlbums)
-                            SizedBox(
-                              height: 140,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: controller.favouriteAlbumItems.length,
-                                itemBuilder: (context, index) {
-                                  final album = controller.favouriteAlbumItems[index];
-                                  return GestureDetector(
-                                    onTap: album.albumId != null
-                                        ? () => Get.toNamed(
-                                              AppRoutes.albumDetail,
-                                              arguments: {'albumId': album.albumId},
-                                            )
-                                        : null,
-                                    child: Container(
-                                      width: 107,
-                                      margin: const EdgeInsets.only(right: 16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(30),
-                                              topRight: Radius.circular(12),
-                                              bottomLeft: Radius.circular(12),
-                                              bottomRight: Radius.circular(30),
-                                            ),
-                                            child: assetOrNetworkImage(
-                                              src: album.imageUrl ?? '',
-                                              width: 90,
-                                              height: 90,
-                                              fit: BoxFit.cover,
-                                            ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 140,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: controller.favouriteAlbumItems.length,
+                              itemBuilder: (context, index) {
+                                final album = controller.favouriteAlbumItems[index];
+                                return GestureDetector(
+                                  onTap: album.albumId != null
+                                      ? () => Get.toNamed(
+                                            AppRoutes.albumDetail,
+                                            arguments: {'albumId': album.albumId},
+                                          )
+                                      : null,
+                                  child: Container(
+                                    width: 107,
+                                    margin: const EdgeInsets.only(right: 16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            topRight: Radius.circular(12),
+                                            bottomLeft: Radius.circular(12),
+                                            bottomRight: Radius.circular(30),
                                           ),
-                                          const SizedBox(height: 5),
-                                          Text(
-                                            album.title,
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
-                                                ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
+                                          child: assetOrNetworkImage(
+                                            src: album.imageUrl ?? '',
+                                            width: 90,
+                                            height: 90,
+                                            fit: BoxFit.cover,
                                           ),
-                                          Text(
-                                            album.artist,
-                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                  fontSize: 11,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          album.title,
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          album.artist,
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                fontSize: 11,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
-                                  );
-                                },
-                              ),
+                                  ),
+                                );
+                              },
                             ),
-                            const SizedBox(height: 10),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    }),
+                    // Favourites Artists section (when logged in)
+                    Obx(() {
+                      final isLoggedIn = Get.isRegistered<AuthService>() &&
+                          Get.find<AuthService>().isLoggedIn.value;
+                      final hasArtists = controller.favouriteArtistItems.isNotEmpty;
+                      if (!isLoggedIn || !hasArtists) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SectionHeader(
+                            title: 'Favourites Artists',
+                            onViewAllTap: () => Get.toNamed(
+                              AppRoutes.favourites,
+                              arguments: <String, dynamic>{
+                                'totalTracks': controller.favouriteAudioItems.length,
+                                'totalVideos': controller.favouriteVideoItems.length,
+                                'totalAlbums': controller.favouriteAlbumItems.length,
+                                'totalArtists': controller.favouriteArtistItems.length,
+                                'initialTab': 'artist',
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 140,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: controller.favouriteArtistItems.length,
+                              itemBuilder: (context, index) {
+                                final artist = controller.favouriteArtistItems[index];
+                                return GestureDetector(
+                                  onTap: () => Get.toNamed(
+                                    AppRoutes.artistDetail,
+                                    arguments: {'artistId': artist.artistId},
+                                  ),
+                                  child: Container(
+                                    width: 107,
+                                    margin: const EdgeInsets.only(right: 16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            topRight: Radius.circular(12),
+                                            bottomLeft: Radius.circular(12),
+                                            bottomRight: Radius.circular(30),
+                                          ),
+                                          child: assetOrNetworkImage(
+                                            src: artist.imageUrl ?? '',
+                                            width: 90,
+                                            height: 90,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          artist.name,
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                         ],
                       );
                     }),

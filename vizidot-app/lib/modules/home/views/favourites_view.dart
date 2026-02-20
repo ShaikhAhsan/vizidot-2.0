@@ -59,7 +59,8 @@ class FavouritesView extends GetView<FavouritesController> {
                     final hasAudio = controller.totalTracks.value > 0;
                     final hasVideo = controller.totalVideos.value > 0;
                     final hasAlbums = controller.totalAlbums.value > 0;
-                    if (!hasAudio && !hasVideo && !hasAlbums) {
+                    final hasArtists = controller.totalArtists.value > 0;
+                    if (!hasAudio && !hasVideo && !hasAlbums && !hasArtists) {
                       return const SizedBox.shrink();
                     }
                     return Padding(
@@ -72,7 +73,7 @@ class FavouritesView extends GetView<FavouritesController> {
                               isSelected: controller.selectedType.value == 'track',
                               onTap: () => controller.setType('track'),
                             ),
-                            if (hasVideo || hasAlbums) const SizedBox(width: 8),
+                            if (hasVideo || hasAlbums || hasArtists) const SizedBox(width: 8),
                           ],
                           if (hasVideo) ...[
                             _TabChip(
@@ -80,13 +81,21 @@ class FavouritesView extends GetView<FavouritesController> {
                               isSelected: controller.selectedType.value == 'video',
                               onTap: () => controller.setType('video'),
                             ),
-                            if (hasAlbums) const SizedBox(width: 8),
+                            if (hasAlbums || hasArtists) const SizedBox(width: 8),
                           ],
-                          if (hasAlbums)
+                          if (hasAlbums) ...[
                             _TabChip(
                               label: 'Album',
                               isSelected: controller.selectedType.value == 'album',
                               onTap: () => controller.setType('album'),
+                            ),
+                            if (hasArtists) const SizedBox(width: 8),
+                          ],
+                          if (hasArtists)
+                            _TabChip(
+                              label: 'Artist',
+                              isSelected: controller.selectedType.value == 'artist',
+                              onTap: () => controller.setType('artist'),
                             ),
                         ],
                       ),
@@ -104,7 +113,8 @@ class FavouritesView extends GetView<FavouritesController> {
             }
             if (controller.totalTracks.value == 0 &&
                 controller.totalVideos.value == 0 &&
-                controller.totalAlbums.value == 0) {
+                controller.totalAlbums.value == 0 &&
+                controller.totalArtists.value == 0) {
               return SliverFillRemaining(
                 child: Center(
                   child: Text(
@@ -147,6 +157,13 @@ class FavouritesView extends GetView<FavouritesController> {
                       );
                     }
                     final item = controller.items[index];
+                    if (type == 'artist') {
+                      return _ArtistTile(
+                        name: item['name'] as String? ?? '',
+                        imageUrl: item['imageUrl'] as String?,
+                        artistId: (item['artistId'] as num?)?.toInt(),
+                      );
+                    }
                     if (type == 'album') {
                       return _AlbumTile(
                         title: item['title'] as String? ?? '',
@@ -310,6 +327,58 @@ class _AlbumTile extends StatelessWidget {
                     style: textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtistTile extends StatelessWidget {
+  final String name;
+  final String? imageUrl;
+  final int? artistId;
+
+  const _ArtistTile({
+    required this.name,
+    this.imageUrl,
+    this.artistId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onTap: artistId != null
+            ? () => Get.toNamed(AppRoutes.artistDetail, arguments: {'artistId': artistId})
+            : null,
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: assetOrNetworkImage(
+                src: imageUrl ?? '',
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

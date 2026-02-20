@@ -36,6 +36,9 @@ class ApiConstants {
   static String favouriteCheckPath() => '$musicSegment/favourites/check';
   static String favouriteRemovePath(String type, int id) => '$musicSegment/favourites/$type/$id';
 
+  /// Followed artists (auth required). Query: limit, offset.
+  static const String followedArtistsPath = '$musicSegment/followed-artists';
+
   /// Home API: top audios + top videos (from play history). Public.
   static String homePath([int limit = 10]) => '$musicSegment/home?limit=$limit';
 

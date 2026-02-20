@@ -50,6 +50,18 @@ class FavouriteAlbumItem {
   });
 }
 
+class FavouriteArtistItem {
+  final int artistId;
+  final String name;
+  final String? imageUrl;
+
+  FavouriteArtistItem({
+    required this.artistId,
+    required this.name,
+    this.imageUrl,
+  });
+}
+
 class HomeController extends GetxController {
   final RxInt counter = 0.obs;
   final RxInt selectedIndex = 0.obs;
@@ -68,6 +80,7 @@ class HomeController extends GetxController {
   final favouriteAudioItems = <MediaItem>[].obs;
   final favouriteVideoItems = <MediaItem>[].obs;
   final favouriteAlbumItems = <FavouriteAlbumItem>[].obs;
+  final favouriteArtistItems = <FavouriteArtistItem>[].obs;
   final isLoadingFavourites = false.obs;
 
   @override
@@ -84,6 +97,7 @@ class HomeController extends GetxController {
     favouriteAudioItems.clear();
     favouriteVideoItems.clear();
     favouriteAlbumItems.clear();
+    favouriteArtistItems.clear();
     try {
       final config = AppConfig.fromEnv();
       final token = Get.isRegistered<AuthService>()
@@ -165,6 +179,16 @@ class HomeController extends GetxController {
             albumId: (m['entityId'] as num?)?.toInt(),
             artistId: (m['artistId'] as num?)?.toInt(),
           ));
+        }
+        for (final m in home.favouriteArtists) {
+          final id = (m['artistId'] as num?)?.toInt();
+          if (id != null) {
+            favouriteArtistItems.add(FavouriteArtistItem(
+              artistId: id,
+              name: m['name'] as String? ?? '',
+              imageUrl: m['imageUrl'] as String?,
+            ));
+          }
         }
       }
     } catch (_) {

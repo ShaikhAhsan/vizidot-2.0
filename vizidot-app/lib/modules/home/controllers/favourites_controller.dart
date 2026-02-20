@@ -7,12 +7,13 @@ import '../../../core/utils/auth_service.dart';
 class FavouritesController extends GetxController {
   static const int pageSize = 20;
 
-  final RxString selectedType = 'track'.obs; // track | video | album
+  final RxString selectedType = 'track'.obs; // track | video | album | artist
   final RxList<Map<String, dynamic>> items = <Map<String, dynamic>>[].obs;
   final RxInt total = 0.obs;
   final RxInt totalTracks = 0.obs;
   final RxInt totalVideos = 0.obs;
   final RxInt totalAlbums = 0.obs;
+  final RxInt totalArtists = 0.obs;
   final RxBool isLoading = false.obs;
   final RxBool hasMore = true.obs;
   final RxBool isLoadingTotals = true.obs;
@@ -40,6 +41,11 @@ class FavouritesController extends GetxController {
         totalTracks.value = (args['totalTracks'] as num?)?.toInt() ?? 0;
         totalVideos.value = (args['totalVideos'] as num?)?.toInt() ?? 0;
         totalAlbums.value = (args['totalAlbums'] as num?)?.toInt() ?? 0;
+        totalArtists.value = (args['totalArtists'] as num?)?.toInt() ?? 0;
+        final initialTab = args['initialTab'] as String?;
+        if (initialTab == 'artist' && totalArtists.value > 0) {
+          selectedType.value = 'artist';
+        }
       } else {
         final config = AppConfig.fromEnv();
         final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
@@ -47,17 +53,21 @@ class FavouritesController extends GetxController {
         totalTracks.value = home?.favouriteAudios.length ?? 0;
         totalVideos.value = home?.favouriteVideos.length ?? 0;
         totalAlbums.value = home?.favouriteAlbums.length ?? 0;
+        totalArtists.value = home?.favouriteArtists.length ?? 0;
       }
       final current = selectedType.value;
       if (current == 'track' && totalTracks.value == 0 ||
           current == 'video' && totalVideos.value == 0 ||
-          current == 'album' && totalAlbums.value == 0) {
+          current == 'album' && totalAlbums.value == 0 ||
+          current == 'artist' && totalArtists.value == 0) {
         if (totalTracks.value > 0) {
           selectedType.value = 'track';
         } else if (totalVideos.value > 0) {
           selectedType.value = 'video';
         } else if (totalAlbums.value > 0) {
           selectedType.value = 'album';
+        } else if (totalArtists.value > 0) {
+          selectedType.value = 'artist';
         }
       }
     } catch (_) {}
@@ -74,16 +84,29 @@ class FavouritesController extends GetxController {
     try {
       final config = AppConfig.fromEnv();
       final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
-      final res = await api.getFavourites(
-        type: selectedType.value,
-        limit: pageSize,
-        offset: _offset,
-        enrich: true,
-      );
-      items.addAll(res.favourites);
-      total.value = res.total;
-      hasMore.value = items.length < res.total;
-      _offset += res.favourites.length;
+      if (selectedType.value == 'artist') {
+        final res = await api.getFollowedArtists(limit: pageSize, offset: _offset);
+        final artistMaps = res.artists.map((a) => <String, dynamic>{
+          'artistId': a['artistId'],
+          'name': a['name'],
+          'imageUrl': a['imageUrl'],
+        }).toList();
+        items.addAll(artistMaps);
+        total.value = res.total;
+        hasMore.value = items.length < res.total;
+        _offset += res.artists.length;
+      } else {
+        final res = await api.getFavourites(
+          type: selectedType.value,
+          limit: pageSize,
+          offset: _offset,
+          enrich: true,
+        );
+        items.addAll(res.favourites);
+        total.value = res.total;
+        hasMore.value = items.length < res.total;
+        _offset += res.favourites.length;
+      }
     } catch (_) {
       hasMore.value = false;
     } finally {

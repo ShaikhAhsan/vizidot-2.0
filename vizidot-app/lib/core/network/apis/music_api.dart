@@ -202,6 +202,34 @@ class MusicApi extends BaseApi {
     }
   }
 
+  /// List artists the user follows. **Private.** Paginated.
+  Future<FollowedArtistsResponse> getFollowedArtists({int limit = 20, int offset = 0}) async {
+    try {
+      final path = '${ApiConstants.followedArtistsPath}?limit=$limit&offset=$offset';
+      final response = await execute(
+        'GET',
+        path,
+        visibility: ApiVisibility.private,
+      );
+      if (response.statusCode != 200) {
+        return FollowedArtistsResponse(artists: [], total: 0, limit: limit, offset: offset);
+      }
+      final map = _dataFromResponse(response);
+      final data = map;
+      if (data == null) {
+        return FollowedArtistsResponse(artists: [], total: 0, limit: limit, offset: offset);
+      }
+      final list = data['artists'] as List<dynamic>?;
+      final total = (data['total'] as num?)?.toInt() ?? 0;
+      final limitVal = (data['limit'] as num?)?.toInt() ?? limit;
+      final offsetVal = (data['offset'] as num?)?.toInt() ?? offset;
+      final artists = list?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
+      return FollowedArtistsResponse(artists: artists, total: total, limit: limitVal, offset: offsetVal);
+    } catch (_) {
+      return FollowedArtistsResponse(artists: [], total: 0, limit: limit, offset: offset);
+    }
+  }
+
   // ---------- Play history (record + top) ----------
 
   /// Record a play (audio or video). Auth optional; if token provided, user is associated.
@@ -252,12 +280,17 @@ class MusicApi extends BaseApi {
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [];
+      final favouriteArtists = (data['favouriteArtists'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [];
       return HomeTopResponse(
         topAudios: topAudios,
         topVideos: topVideos,
         favouriteAudios: favouriteAudios,
         favouriteVideos: favouriteVideos,
         favouriteAlbums: favouriteAlbums,
+        favouriteArtists: favouriteArtists,
       );
     } catch (_) {
       return null;
@@ -291,12 +324,14 @@ class HomeTopResponse {
     this.favouriteAudios = const [],
     this.favouriteVideos = const [],
     this.favouriteAlbums = const [],
+    this.favouriteArtists = const [],
   });
   final List<Map<String, dynamic>> topAudios;
   final List<Map<String, dynamic>> topVideos;
   final List<Map<String, dynamic>> favouriteAudios;
   final List<Map<String, dynamic>> favouriteVideos;
   final List<Map<String, dynamic>> favouriteAlbums;
+  final List<Map<String, dynamic>> favouriteArtists;
 }
 
 /// Response from GET /api/v1/music/favourites with limit/offset/enrich.
@@ -308,6 +343,20 @@ class FavouritesListResponse {
     required this.offset,
   });
   final List<Map<String, dynamic>> favourites;
+  final int total;
+  final int limit;
+  final int offset;
+}
+
+/// Response from GET /api/v1/music/followed-artists.
+class FollowedArtistsResponse {
+  FollowedArtistsResponse({
+    required this.artists,
+    required this.total,
+    required this.limit,
+    required this.offset,
+  });
+  final List<Map<String, dynamic>> artists;
   final int total;
   final int limit;
   final int offset;
