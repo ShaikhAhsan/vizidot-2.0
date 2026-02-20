@@ -309,6 +309,22 @@ CREATE TABLE IF NOT EXISTS `user_favourites` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------
+-- Table: play_history
+-- ------------------------------
+CREATE TABLE IF NOT EXISTS `play_history` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `entity_type` enum('audio','video') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entity_id` int NOT NULL,
+  `played_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_play_history_entity` (`entity_type`,`entity_id`),
+  KEY `idx_play_history_user` (`user_id`),
+  KEY `idx_play_history_played_at` (`played_at`),
+  CONSTRAINT `fk_play_history_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------
 -- Table: video_tracks
 -- ------------------------------
 CREATE TABLE `video_tracks` (

@@ -8,6 +8,7 @@ import '../widgets/content_tabs.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
 import '../widgets/videos_section.dart';
+import '../../music_player/utils/record_play_helper.dart';
 import 'shop_view.dart';
 import 'video_web_view.dart';
 
@@ -358,6 +359,9 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                       videos: videos,
                       onVideoTap: (video) {
                         if (video.videoUrl.isNotEmpty) {
+                          if (video.videoId != null) {
+                            recordPlayIfPossible('video', video.videoId!);
+                          }
                           Get.to(() => VideoWebView(url: video.videoUrl));
                         }
                       },

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
 import '../../music_player/utils/play_track_helper.dart';
+import '../../music_player/utils/record_play_helper.dart';
+import '../views/video_web_view.dart';
 
 class MediaCard extends StatefulWidget {
   final String title;
@@ -13,6 +16,10 @@ class MediaCard extends StatefulWidget {
   final double? imageHeight; // For dynamic heights in masonry grid
   final String? audioUrl; // Audio URL for playback
   final int? artistId; // When set, artist detail loads from API and follow works
+  final String? imageUrl; // Network image URL (overrides asset when set)
+  final int? trackId; // For play history (top audio)
+  final String? videoUrl; // For video cards (top video)
+  final int? videoId; // For play history (top video)
 
   const MediaCard({
     super.key,
@@ -25,6 +32,10 @@ class MediaCard extends StatefulWidget {
     this.imageHeight,
     this.audioUrl,
     this.artistId,
+    this.imageUrl,
+    this.trackId,
+    this.videoUrl,
+    this.videoId,
   });
 
   @override
@@ -70,24 +81,48 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
 
+    final useNetworkImage = widget.imageUrl != null && widget.imageUrl!.isNotEmpty;
+    final imageSrc = useNetworkImage ? widget.imageUrl! : widget.asset;
+    final imageHeight = widget.imageHeight ?? 200.0;
+
     Widget imageWidget = ClipRRect(
       borderRadius: widget.borderRadius,
       child: widget.isHorizontal
-          ? Image.asset(
-              widget.asset,
-              fit: BoxFit.cover,
+          ? SizedBox(
               width: double.infinity,
               height: 100,
+              child: useNetworkImage
+                  ? assetOrNetworkImage(
+                      src: imageSrc,
+                      width: double.infinity,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      borderRadius: widget.borderRadius,
+                    )
+                  : Image.asset(
+                      widget.asset,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 100,
+                    ),
             )
           : SizedBox(
               width: double.infinity,
-              height: widget.imageHeight ?? 200,
-              child: Image.asset(
-                widget.asset,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: widget.imageHeight ?? 200,
-              ),
+              height: imageHeight,
+              child: useNetworkImage
+                  ? assetOrNetworkImage(
+                      src: imageSrc,
+                      width: double.infinity,
+                      height: imageHeight,
+                      fit: BoxFit.cover,
+                      borderRadius: widget.borderRadius,
+                    )
+                  : Image.asset(
+                      widget.asset,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: imageHeight,
+                    ),
             ),
     );
 
@@ -109,7 +144,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
           arguments: {
             if (widget.artistId != null) 'artistId': widget.artistId,
             'artistName': widget.artist,
-            'artistImage': widget.asset,
+            'artistImage': widget.imageUrl ?? widget.asset,
             'description': 'Artist / Musician / Writer',
             'followers': 321000,
             'following': 125,
@@ -135,18 +170,28 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,
-      onTap: () {
-        widget.onTap?.call();
-        // If it's an audio card (horizontal), play the track
+      onTap: () async {
         if (widget.isHorizontal) {
-          playTrack(
+          final played = await playTrack(
             title: widget.title,
             artist: widget.artist,
-            albumArt: widget.asset,
+            albumArt: widget.imageUrl ?? widget.asset,
             audioUrl: widget.audioUrl,
             duration: const Duration(minutes: 3, seconds: 30),
           );
+          if (played && widget.trackId != null) {
+            recordPlayIfPossible('audio', widget.trackId!);
+          }
+          return;
         }
+        if (widget.videoUrl != null && widget.videoUrl!.isNotEmpty) {
+          if (widget.videoId != null) {
+            recordPlayIfPossible('video', widget.videoId!);
+          }
+          Get.to(() => VideoWebView(url: widget.videoUrl!));
+          return;
+        }
+        widget.onTap?.call();
       },
       behavior: HitTestBehavior.deferToChild,
       child: AnimatedBuilder(

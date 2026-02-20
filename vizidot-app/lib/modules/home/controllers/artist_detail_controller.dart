@@ -62,6 +62,7 @@ class ArtistDetailController extends GetxController {
               albumArt: t.albumArt ?? '',
               duration: t.durationFormatted ?? '0:00',
               audioUrl: t.audioUrl,
+              trackId: t.id,
             ))
         .toList();
   }
@@ -89,6 +90,7 @@ class ArtistDetailController extends GetxController {
               thumbnail: v.albumArt ?? '',
               duration: v.durationFormatted ?? '0:00',
               videoUrl: v.videoUrl ?? '',
+              videoId: v.id,
             ))
         .toList();
   }

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop, UserFavourite } = require('../models');
+const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop, UserFavourite, PlayHistory, sequelize } = require('../models');
 const { authenticateToken, optionalAuth } = require('../middleware/authWithRoles');
 
 function formatDuration(seconds) {
@@ -19,6 +19,7 @@ router.get('/', (req, res) => {
     api: 'app',
     module: 'music',
     endpoints: [
+      'GET /home',
       'GET /artists/profile/:id',
       'GET /albums/:id',
       'POST /artists/:id/follow',
@@ -26,10 +27,216 @@ router.get('/', (req, res) => {
       'POST /favourites',
       'DELETE /favourites/:type/:id',
       'GET /favourites',
-      'GET /favourites/check'
+      'GET /favourites/check',
+      'POST /play-history',
+      'GET /play-history/top'
     ]
   });
 });
+
+/**
+ * Helper: get top played entity ids from play_history by type. Returns [] if table missing or no data.
+ */
+async function getTopPlayedIds(entityType, limit = 10) {
+  try {
+    const [rows] = await sequelize.query(
+      `SELECT entity_id, COUNT(*) AS play_count
+       FROM play_history
+       WHERE entity_type = :type
+       GROUP BY entity_id
+       ORDER BY play_count DESC
+       LIMIT :limit`,
+      { replacements: { type: entityType, limit }, type: sequelize.QueryTypes.SELECT }
+    );
+    return (rows || []).map((r) => r.entity_id);
+  } catch (err) {
+    console.error('getTopPlayedIds error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Fallback: get latest audio tracks with full details via raw SQL (no Sequelize associations).
+ * Returns same shape as enrichAudioItems. Empty array on error or no rows.
+ */
+async function getLatestAudioItemsRaw(limit) {
+  try {
+    const safeLimit = Math.min(Math.max(1, parseInt(limit, 10) || 10), 50);
+    const [rows] = await sequelize.query(
+      `SELECT t.audio_id AS id, t.title, t.thumbnail_url AS albumArt, t.audio_url AS audioUrl, t.duration, t.album_id AS albumId,
+              a.cover_image_url AS albumCover,
+              ar.artist_id AS artistId, ar.name AS artistName
+       FROM audio_tracks t
+       LEFT JOIN albums a ON a.album_id = t.album_id
+       LEFT JOIN artists ar ON ar.artist_id = a.artist_id
+       ORDER BY t.audio_id DESC
+       LIMIT ${safeLimit}`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    const items = (rows || []).map((r) => ({
+      id: r.id,
+      title: r.title || '',
+      artistName: r.artistName || '',
+      albumArt: r.albumArt || r.albumCover || null,
+      audioUrl: r.audioUrl || null,
+      durationFormatted: formatDuration(r.duration),
+      artistId: r.artistId ?? null,
+      albumId: r.albumId ?? null
+    }));
+    console.log('[Home API] getLatestAudioItemsRaw returned', items.length, 'audio items');
+    return items;
+  } catch (err) {
+    console.error('getLatestAudioItemsRaw error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Fallback: get latest video tracks with full details via raw SQL.
+ */
+async function getLatestVideoItemsRaw(limit) {
+  try {
+    const safeLimit = Math.min(Math.max(1, parseInt(limit, 10) || 10), 50);
+    const [rows] = await sequelize.query(
+      `SELECT t.video_id AS id, t.title, t.thumbnail_url AS albumArt, t.video_url AS videoUrl, t.duration, t.album_id AS albumId,
+              a.cover_image_url AS albumCover,
+              ar.artist_id AS artistId, ar.name AS artistName
+       FROM video_tracks t
+       LEFT JOIN albums a ON a.album_id = t.album_id
+       LEFT JOIN artists ar ON ar.artist_id = a.artist_id
+       ORDER BY t.video_id DESC
+       LIMIT ${safeLimit}`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    const items = (rows || []).map((r) => ({
+      id: r.id,
+      title: r.title || '',
+      artistName: r.artistName || '',
+      albumArt: r.albumArt || r.albumCover || null,
+      videoUrl: r.videoUrl || null,
+      durationFormatted: formatDuration(r.duration),
+      artistId: r.artistId ?? null,
+      albumId: r.albumId ?? null
+    }));
+    console.log('[Home API] getLatestVideoItemsRaw returned', items.length, 'video items');
+    return items;
+  } catch (err) {
+    console.error('getLatestVideoItemsRaw error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * GET /api/v1/music/home
+ * Home API: top audios and top videos. Uses play_history when available;
+ * otherwise falls back to latest via raw SQL so the home screen is never empty. Public.
+ */
+router.get('/home', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    let topAudios = [];
+    let topVideos = [];
+
+    const [audioIds, videoIds] = await Promise.all([
+      getTopPlayedIds('audio', limit),
+      getTopPlayedIds('video', limit)
+    ]);
+
+    if (audioIds.length > 0) {
+      topAudios = await enrichAudioItems(audioIds);
+    }
+    if (videoIds.length > 0) {
+      topVideos = await enrichVideoItems(videoIds);
+    }
+
+    if (topAudios.length === 0) {
+      topAudios = await getLatestAudioItemsRaw(limit);
+    }
+    if (topVideos.length === 0) {
+      topVideos = await getLatestVideoItemsRaw(limit);
+    }
+
+    const payload = {
+      success: true,
+      data: {
+        topAudios,
+        topVideos
+      }
+    };
+    if (topAudios.length === 0 && topVideos.length === 0) {
+      try {
+        const [audioRows] = await sequelize.query('SELECT COUNT(*) AS c FROM audio_tracks', { type: sequelize.QueryTypes.SELECT });
+        const [videoRows] = await sequelize.query('SELECT COUNT(*) AS c FROM video_tracks', { type: sequelize.QueryTypes.SELECT });
+        const ac = (audioRows && audioRows[0] && audioRows[0].c) ? Number(audioRows[0].c) : 0;
+        const vc = (videoRows && videoRows[0] && videoRows[0].c) ? Number(videoRows[0].c) : 0;
+        payload.data._debug = {
+          audio_tracks_count: ac,
+          video_tracks_count: vc,
+          app_connected_to: {
+            host: sequelize.config.host,
+            database: sequelize.config.database,
+            user: sequelize.config.username
+          },
+          hint: ac === 0 && vc === 0
+            ? 'Tables are empty — add tracks via admin or seed. Confirm your manual client uses the same host + database as app_connected_to.'
+            : 'Rows exist but fallback returned nothing — check server logs for SQL errors.'
+        };
+      } catch (e) {
+        payload.data._debug = { error: e.message, hint: 'Check if audio_tracks/video_tracks tables exist.' };
+      }
+    }
+    return res.json(payload);
+  } catch (err) {
+    console.error('Home API error:', err);
+    return res.status(500).json({ success: false, error: 'Could not fetch home data' });
+  }
+});
+
+async function enrichAudioItems(ids) {
+  if (!ids || ids.length === 0) return [];
+  const tracks = await AudioTrack.unscoped().findAll({
+    where: { audio_id: ids },
+    include: [{ model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url'], include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name'] }] }]
+  });
+  const byId = new Map(tracks.map((t) => [t.audio_id, t]));
+  return ids.map((id) => byId.get(id)).filter(Boolean).map((t) => {
+    const album = t.album;
+    const artistName = album?.artist?.name ?? '';
+    return {
+      id: t.audio_id,
+      title: t.title,
+      artistName,
+      albumArt: t.thumbnail_url || album?.cover_image_url || null,
+      audioUrl: t.audio_url || null,
+      durationFormatted: formatDuration(t.duration),
+      artistId: album?.artist?.artist_id ?? null,
+      albumId: t.album_id
+    };
+  });
+}
+
+async function enrichVideoItems(ids) {
+  if (!ids || ids.length === 0) return [];
+  const videos = await VideoTrack.unscoped().findAll({
+    where: { video_id: ids },
+    include: [{ model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url'], include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name'] }] }]
+  });
+  const byId = new Map(videos.map((v) => [v.video_id, v]));
+  return ids.map((id) => byId.get(id)).filter(Boolean).map((v) => {
+    const album = v.album;
+    const artistName = album?.artist?.name ?? '';
+    return {
+      id: v.video_id,
+      title: v.title,
+      artistName,
+      albumArt: v.thumbnail_url || album?.cover_image_url || null,
+      videoUrl: v.video_url || null,
+      durationFormatted: formatDuration(v.duration),
+      artistId: album?.artist?.artist_id ?? null,
+      albumId: v.album_id
+    };
+  });
+}
 
 /**
  * GET /api/v1/music/albums/:id
@@ -432,6 +639,55 @@ router.get('/favourites', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('List favourites error:', err);
     return res.status(500).json({ success: false, error: 'Could not list favourites' });
+  }
+});
+
+// ---------- Play history (record plays, top by count) ----------
+
+/**
+ * POST /api/v1/music/play-history
+ * Record a play (audio or video). Auth optional; if logged in, user_id is stored.
+ * Body: { entityType: 'audio'|'video', entityId: number }
+ */
+router.post('/play-history', optionalAuth, async (req, res) => {
+  try {
+    const userId = req.user?.id ?? req.userId ?? null;
+    const { entityType, entityId } = req.body || {};
+    const type = entityType === 'audio' || entityType === 'video' ? entityType : null;
+    const id = parseInt(entityId, 10);
+    if (!type || Number.isNaN(id) || id < 1) {
+      return res.status(400).json({ success: false, error: 'Invalid entityType (audio|video) or entityId' });
+    }
+    await PlayHistory.create({
+      user_id: userId,
+      entity_type: type,
+      entity_id: id,
+      played_at: new Date()
+    });
+    return res.status(201).json({ success: true, message: 'Play recorded' });
+  } catch (err) {
+    console.error('Record play error:', err.message);
+    return res.status(500).json({ success: false, error: 'Could not record play' });
+  }
+});
+
+/**
+ * GET /api/v1/music/play-history/top?type=audio|video&limit=10
+ * Returns top played tracks/videos by play count. Public. Prefer GET /home for app.
+ */
+router.get('/play-history/top', async (req, res) => {
+  try {
+    const type = (req.query.type || 'audio').toLowerCase();
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    if (type !== 'audio' && type !== 'video') {
+      return res.status(400).json({ success: false, error: 'type must be audio or video' });
+    }
+    const ids = await getTopPlayedIds(type, limit);
+    const items = type === 'audio' ? await enrichAudioItems(ids) : await enrichVideoItems(ids);
+    return res.json({ success: true, data: { items } });
+  } catch (err) {
+    console.error('Top play history error:', err);
+    return res.status(500).json({ success: false, error: 'Could not fetch top' });
   }
 });
 

@@ -1,16 +1,19 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
 
 async function createTables() {
-  // Direct connection values (remembered choice - using mysql2 directly)
+  const { DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD } = process.env;
+  if (!DB_HOST || !DB_NAME || !DB_USER || !DB_PASSWORD) {
+    throw new Error('Set DB_HOST, DB_NAME, DB_USER, DB_PASSWORD in .env (copy from env.example)');
+  }
   const dbConfig = {
-    host: 'c1109547.sgvps.net',
-    port: 3306,
-    user: 'u84b1oa3bdbvu',
-    password: 'oi_-DR!b1GCh2qsip4',
-    database: 'dbvwnuu5gdchot',
+    host: DB_HOST,
+    port: parseInt(DB_PORT || '3306', 10),
+    user: DB_USER,
+    password: DB_PASSWORD,
+    database: DB_NAME,
     multipleStatements: true
   };
 
@@ -35,7 +38,7 @@ async function createTables() {
       FROM information_schema.TABLES 
       WHERE TABLE_SCHEMA = ? 
       AND TABLE_NAME IN ('users', 'roles', 'user_roles')
-    `, [process.env.DB_NAME || 'dbvwnuu5gdchot']);
+    `, [process.env.DB_NAME]);
 
     console.log('\n📊 Created tables:');
     tables.forEach(table => {

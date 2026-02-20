@@ -184,4 +184,73 @@ class MusicApi extends BaseApi {
       return [];
     }
   }
+
+  // ---------- Play history (record + top) ----------
+
+  /// Record a play (audio or video). Auth optional; if token provided, user is associated.
+  Future<bool> recordPlay(String entityType, int entityId) async {
+    try {
+      final response = await execute(
+        'POST',
+        ApiConstants.playHistoryPath,
+        body: {'entityType': entityType, 'entityId': entityId},
+        visibility: ApiVisibility.optional,
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Home API: top audios and top videos (from play history). Public. Use this for the home screen.
+  Future<HomeTopResponse?> getHomeTop({int limit = 10}) async {
+    try {
+      final path = ApiConstants.homePath(limit);
+      final response = await execute(
+        'GET',
+        path,
+        visibility: ApiVisibility.public,
+      );
+      if (response.statusCode != 200) return null;
+      final map = _dataFromResponse(response);
+      final data = map ?? jsonDecode(response.body) as Map<String, dynamic>?;
+      if (data == null) return null;
+      final topAudios = (data['topAudios'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [];
+      final topVideos = (data['topVideos'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [];
+      return HomeTopResponse(topAudios: topAudios, topVideos: topVideos);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Get top played tracks or videos (single type). Prefer [getHomeTop] for home screen.
+  Future<List<Map<String, dynamic>>> getTopPlayed(String type, {int limit = 10}) async {
+    try {
+      final path = ApiConstants.playHistoryTopPath(type, limit);
+      final response = await execute(
+        'GET',
+        path,
+        visibility: ApiVisibility.public,
+      );
+      if (response.statusCode != 200) return [];
+      final map = _dataFromResponse(response);
+      final list = map?['items'] as List<dynamic>?;
+      return list?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+}
+
+/// Response from GET /api/v1/music/home.
+class HomeTopResponse {
+  HomeTopResponse({required this.topAudios, required this.topVideos});
+  final List<Map<String, dynamic>> topAudios;
+  final List<Map<String, dynamic>> topVideos;
 }

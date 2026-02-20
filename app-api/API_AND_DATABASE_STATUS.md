@@ -56,6 +56,13 @@ This document maps **database tables** (from `schema.sql`) to **APIs** and calls
 - **APIs** (auth required): `POST /api/v1/music/favourites`, `DELETE /api/v1/music/favourites/:type/:id`, `GET /api/v1/music/favourites`, `GET /api/v1/music/favourites/check?type=album&id=1`.
 - **If you get 404 on POST /api/v1/music/favourites:** restart the app-api server so it loads the routes from `routes/music.js`. Then run `node scripts/test-favourites-api.js` to verify.
 
+### 3.4 Home API & play history
+
+- **Home API (use this for the app)**: `GET /api/v1/music/home?limit=10` — returns `{ topAudios: [...], topVideos: [...] }` based on play count from `play_history`. Public. If the table is missing or empty, returns empty arrays. Test: `node scripts/test-home-api.js` (restart app-api first if you get 404).
+- **Table** `play_history`: create with `node scripts/createPlayHistoryTable.js` (or run the SQL in `schema.sql`). Records each play (audio/video) for computing top.
+- **Record play**: `POST /api/v1/music/play-history` (body: `{ entityType: 'audio'|'video', entityId: number }`, auth optional).
+- **If you get 404 on GET /home:** restart the app-api server so it loads the route from `routes/music.js`.
+
 ---
 
 ## 4. Quick check: artist profile response vs DB

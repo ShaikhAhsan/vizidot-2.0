@@ -1,7 +1,8 @@
 -- SQL Script to create tables required for Login functionality
--- Run this script directly on your MySQL database server
+-- Run this script directly on your MySQL database server.
+-- Replace the database name below with yours if different (must match DB_NAME in .env).
 
-USE dbvwnuu5gdchot;
+USE `u5gdchot-vizidot`;
 
 -- Create roles table
 CREATE TABLE IF NOT EXISTS `roles` (

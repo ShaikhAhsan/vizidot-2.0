@@ -36,6 +36,14 @@ class ApiConstants {
   static String favouriteCheckPath() => '$musicSegment/favourites/check';
   static String favouriteRemovePath(String type, int id) => '$musicSegment/favourites/$type/$id';
 
+  /// Home API: top audios + top videos (from play history). Public.
+  static String homePath([int limit = 10]) => '$musicSegment/home?limit=$limit';
+
+  /// Play history (record play = POST). Auth optional for record.
+  static const String playHistoryPath = '$musicSegment/play-history';
+  static String playHistoryTopPath(String type, [int limit = 10]) =>
+      '$musicSegment/play-history/top?type=$type&limit=$limit';
+
   /// Health check (no version prefix on backend).
   static const String healthPath = 'health';
 }

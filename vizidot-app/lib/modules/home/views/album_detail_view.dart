@@ -7,6 +7,7 @@ import '../controllers/album_detail_controller.dart';
 import '../widgets/section_header.dart';
 import '../widgets/tracks_section.dart';
 import '../widgets/videos_section.dart';
+import '../../music_player/utils/record_play_helper.dart';
 import 'video_web_view.dart';
 
 class AlbumDetailView extends StatefulWidget {
@@ -225,6 +226,9 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                       videos: controller.videoItems,
                       onVideoTap: (video) {
                         if (video.videoUrl.isNotEmpty) {
+                          if (video.videoId != null) {
+                            recordPlayIfPossible('video', video.videoId!);
+                          }
                           Get.to(() => VideoWebView(url: video.videoUrl));
                         }
                       },

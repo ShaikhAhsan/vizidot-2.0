@@ -32,12 +32,19 @@ loadEnv();
 
 const mysql = require('mysql2/promise');
 
+const required = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+const missing = required.filter((k) => !process.env[k] || !String(process.env[k]).trim());
+if (missing.length) {
+  console.error('❌ Set in .env (copy from env.example):', missing.join(', '));
+  process.exit(1);
+}
+
 const config = {
-  host: process.env.DB_HOST || process.env.DB_HOST_IP || 'localhost',
+  host: process.env.DB_HOST_IP || process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'vizidot',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
 };
 

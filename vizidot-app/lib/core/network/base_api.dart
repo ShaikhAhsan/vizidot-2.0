@@ -8,9 +8,11 @@ import 'api_client.dart';
 /// Flag for whether an API requires auth token.
 /// - [public]: no token (e.g. artist profile, health).
 /// - [private]: use token (e.g. follow artist, user profile).
+/// - [optional]: use token if available (e.g. record play history).
 enum ApiVisibility {
   public,
   private,
+  optional,
 }
 
 /// Base class for all API calls. Logs each request as cURL and response.
@@ -58,7 +60,8 @@ class BaseApi {
     Map<String, dynamic>? body,
     ApiVisibility visibility = ApiVisibility.public,
   }) async {
-    final useAuth = visibility == ApiVisibility.private;
+    final useAuth = visibility == ApiVisibility.private ||
+        (visibility == ApiVisibility.optional && authToken != null && authToken!.isNotEmpty);
     var uri = Uri.parse('$_apiBase/$path');
     if (queryParams != null && queryParams.isNotEmpty) {
       uri = uri.replace(queryParameters: queryParams);

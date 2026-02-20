@@ -9,6 +9,7 @@ class VideoItem {
   final String thumbnail;
   final String duration;
   final String videoUrl;
+  final int? videoId;
 
   VideoItem({
     required this.title,
@@ -16,6 +17,7 @@ class VideoItem {
     required this.thumbnail,
     required this.duration,
     required this.videoUrl,
+    this.videoId,
   });
 }
 

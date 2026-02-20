@@ -1,19 +1,22 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-// Debug: Log database configuration (without password)
+// Database configuration: use only env vars. Copy env.example to .env and set DB_* values.
+const required = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+const missing = required.filter((k) => !process.env[k] || !String(process.env[k]).trim());
+if (missing.length) {
+  console.error('❌ Missing required env:', missing.join(', '), '— copy env.example to .env and set these.');
+  throw new Error(`Missing env: ${missing.join(', ')}`);
+}
+
 console.log('📊 Database Configuration:');
-console.log('  DB_HOST:', process.env.DB_HOST || 'NOT SET (using default)');
-console.log('  DB_PORT:', process.env.DB_PORT || 'NOT SET (using default)');
-console.log('  DB_NAME:', process.env.DB_NAME || 'NOT SET (using default)');
-console.log('  DB_USER:', process.env.DB_USER || 'NOT SET (using default)');
-console.log('  DB_PASSWORD:', process.env.DB_PASSWORD ? '***SET***' : 'NOT SET (using default)');
+console.log('  DB_HOST:', process.env.DB_HOST);
+console.log('  DB_PORT:', process.env.DB_PORT || '3306');
+console.log('  DB_NAME:', process.env.DB_NAME);
+console.log('  DB_USER:', process.env.DB_USER);
+console.log('  DB_PASSWORD: ***SET***');
 
-// Database configuration
-// Resolve hostname to IP if it's resolving to localhost
-let dbHost = process.env.DB_HOST || 'c1109547.sgvps.net';
-
-// If DB_HOST_IP is set, use it directly (for Docker containers where hostname resolves incorrectly)
+let dbHost = process.env.DB_HOST;
 if (process.env.DB_HOST_IP) {
   dbHost = process.env.DB_HOST_IP;
   console.log('🌐 Using DB_HOST_IP:', dbHost);
@@ -54,9 +57,9 @@ if (process.env.DB_SOCKET) {
 }
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'dbvwnuu5gdchot',
-  process.env.DB_USER || 'u84b1oa3bdbvu',
-  process.env.DB_PASSWORD || 'oi_-DR!b1GCh2qsip4',
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
   {
     ...baseSequelizeConfig,
     // Force TCP connection instead of socket

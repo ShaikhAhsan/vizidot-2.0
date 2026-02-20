@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/widgets/asset_or_network_image.dart';
 import '../../../routes/app_pages.dart';
 import '../../music_player/utils/play_track_helper.dart';
+import '../../music_player/utils/record_play_helper.dart';
 import '../../music_player/models/track_model.dart';
 import 'section_header.dart';
 
@@ -47,7 +48,12 @@ class TracksSection extends StatelessWidget {
                   duration: _parseDuration(track.duration),
                   audioUrl: track.audioUrl,
                 );
-                if (played) Get.toNamed(AppRoutes.musicPlayer);
+                if (played) {
+                  if (track.trackId != null) {
+                    recordPlayIfPossible('audio', track.trackId!);
+                  }
+                  Get.toNamed(AppRoutes.musicPlayer);
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 16),
@@ -138,6 +144,7 @@ class TrackItem {
   final String albumArt;
   final String duration;
   final String? audioUrl;
+  final int? trackId;
 
   TrackItem({
     required this.title,
@@ -145,6 +152,7 @@ class TrackItem {
     required this.albumArt,
     required this.duration,
     this.audioUrl,
+    this.trackId,
   });
 }
 

@@ -67,6 +67,8 @@ class HomeContentView extends GetView<HomeController> {
                               isHorizontal: true,
                               audioUrl: item.audioUrl,
                               artistId: item.artistId,
+                              imageUrl: item.imageUrl,
+                              trackId: item.trackId,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(30),
                                 topRight: Radius.circular(12),
@@ -103,27 +105,31 @@ class HomeContentView extends GetView<HomeController> {
                         isHorizontal: false,
                         imageHeight: item.imageHeight,
                         artistId: item.artistId,
+                        imageUrl: item.imageUrl,
+                        videoUrl: item.videoUrl,
+                        videoId: item.videoId,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(40),
                           topRight: Radius.circular(15),
                           bottomLeft: Radius.circular(15),
                           bottomRight: Radius.circular(40),
                         ),
-                        onTap: () {
-                          // Generate dummy playlist tracks based on the video item
-                          final playlistTracks = _generatePlaylistTracks(item);
-                          Get.toNamed(
-                            AppRoutes.playlistDetail,
-                            arguments: {
-                              'playlistName': item.title,
-                              'playlistImage': item.asset,
-                              'artistName': item.artist,
-                              'likes': 1235,
-                              'duration': '1h25min',
-                              'tracks': playlistTracks,
-                            },
-                          );
-                        },
+                        onTap: item.videoUrl == null || item.videoUrl!.isEmpty
+                            ? () {
+                                final playlistTracks = _generatePlaylistTracks(item);
+                                Get.toNamed(
+                                  AppRoutes.playlistDetail,
+                                  arguments: {
+                                    'playlistName': item.title,
+                                    'playlistImage': item.imageUrl ?? item.asset,
+                                    'artistName': item.artist,
+                                    'likes': 1235,
+                                    'duration': '1h25min',
+                                    'tracks': playlistTracks,
+                                  },
+                                );
+                              }
+                            : null,
                       );
                     },
                     childCount: controller.topVideoItems.length,
