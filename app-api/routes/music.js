@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
 const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop } = require('../models');
-const { authenticateToken } = require('../middleware/authWithRoles');
+const { authenticateToken, optionalAuth } = require('../middleware/authWithRoles');
 
 function formatDuration(seconds) {
   if (seconds == null || isNaN(seconds)) return null;
@@ -26,9 +26,9 @@ router.get('/', (req, res) => {
 
 /**
  * GET /api/v1/music/artists/profile/:id
- * Public artist profile: artist, albums, tracks. No auth required.
+ * Public artist profile. If Authorization header is sent, response includes isFollowing (1/0) for current user.
  */
-router.get('/artists/profile/:id', async (req, res) => {
+router.get('/artists/profile/:id', optionalAuth, async (req, res) => {
   try {
     const artistId = parseInt(req.params.id, 10);
     if (Number.isNaN(artistId) || artistId < 1) {
@@ -40,6 +40,15 @@ router.get('/artists/profile/:id', async (req, res) => {
     });
     if (!artist || !artist.is_active) {
       return res.status(404).json({ success: false, error: 'Artist not found' });
+    }
+
+    const userId = req.user?.id || req.userId;
+    let isFollowing = 0;
+    if (userId) {
+      const followRow = await ArtistFollower.findOne({
+        where: { user_id: userId, artist_id: artistId }
+      });
+      isFollowing = followRow ? 1 : 0;
     }
 
     const followersCount = await ArtistFollower.count({ where: { artist_id: artistId } });
@@ -82,6 +91,7 @@ router.get('/artists/profile/:id', async (req, res) => {
           imageUrl: artist.image_url ?? null,
           followersCount,
           followingCount,
+          isFollowing,
           shopId: artist.shop_id ?? null,
           shop: artist.shop
             ? {

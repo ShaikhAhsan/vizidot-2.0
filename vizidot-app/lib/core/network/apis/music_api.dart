@@ -17,15 +17,15 @@ class MusicApi extends BaseApi {
     super.debugPrintRequest,
   });
 
-  /// GET artist profile. **Public** — no token.
+  /// GET artist profile. Pass [useAuth: true] when the user is logged in so the API returns [artist.isFollowing].
   /// Accepts both wrapped { success, data: { artist, albums, tracks } } and raw { artist, albums, tracks }.
-  Future<ArtistProfileResponse?> getArtistProfile(int artistId) async {
+  Future<ArtistProfileResponse?> getArtistProfile(int artistId, {bool useAuth = false}) async {
     try {
       final path = ApiConstants.artistProfilePath(artistId);
       final response = await execute(
         'GET',
         path,
-        visibility: ApiVisibility.public,
+        visibility: useAuth ? ApiVisibility.private : ApiVisibility.public,
       );
       if (response.statusCode != 200) return null;
       final Map<String, dynamic>? data = _profileDataFromResponse(response);

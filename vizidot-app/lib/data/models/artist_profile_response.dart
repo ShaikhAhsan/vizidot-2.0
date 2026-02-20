@@ -84,6 +84,7 @@ class ArtistProfileArtist {
     this.imageUrl,
     this.followersCount = 0,
     this.followingCount = 0,
+    this.isFollowing = false,
     this.shopId,
     this.shop,
   });
@@ -94,10 +95,16 @@ class ArtistProfileArtist {
   final String? imageUrl;
   final int followersCount;
   final int followingCount;
+  /// True when the current user follows this artist (from API when request is authenticated).
+  final bool isFollowing;
   final int? shopId;
   final ArtistProfileShop? shop;
 
   factory ArtistProfileArtist.fromJson(Map<String, dynamic> json) {
+    final isFollowingRaw = json['isFollowing'];
+    final isFollowing = isFollowingRaw == true ||
+        isFollowingRaw == 1 ||
+        (isFollowingRaw is num && isFollowingRaw != 0);
     return ArtistProfileArtist(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? '',
@@ -105,6 +112,7 @@ class ArtistProfileArtist {
       imageUrl: json['imageUrl'] as String?,
       followersCount: (json['followersCount'] as num?)?.toInt() ?? 0,
       followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
+      isFollowing: isFollowing,
       shopId: (json['shopId'] as num?)?.toInt(),
       shop: json['shop'] != null
           ? ArtistProfileShop.fromJson(

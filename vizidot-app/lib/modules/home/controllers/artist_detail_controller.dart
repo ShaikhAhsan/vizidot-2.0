@@ -100,7 +100,7 @@ class ArtistDetailController extends GetxController {
     super.onReady();
   }
 
-  /// Fetches artist profile via [MusicApi].getArtistProfile (public API).
+  /// Fetches artist profile via [MusicApi].getArtistProfile. Uses auth when available so API returns isFollowing.
   Future<void> fetchProfile() async {
     if (artistId == null) {
       isLoading.value = false;
@@ -110,10 +110,15 @@ class ArtistDetailController extends GetxController {
     errorMessage.value = '';
     try {
       final config = AppConfig.fromEnv();
-      final api = MusicApi(baseUrl: config.baseUrl);
-      final result = await api.getArtistProfile(artistId!);
+      final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+      final token = await auth?.getIdToken();
+      final effectiveToken = (token != null && token.isNotEmpty) ? token : config.testAccessToken;
+      final useAuth = effectiveToken != null && effectiveToken.isNotEmpty;
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: effectiveToken);
+      final result = await api.getArtistProfile(artistId!, useAuth: useAuth);
       if (result != null) {
         profile.value = result;
+        isFollowing.value = result.artist.isFollowing;
       } else {
         errorMessage.value = 'Could not load artist';
       }

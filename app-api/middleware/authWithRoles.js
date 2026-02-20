@@ -403,7 +403,8 @@ const requireBusinessOwnership = async (req, res, next) => {
 };
 
 /**
- * Optional authentication - doesn't fail if no token provided
+ * Optional authentication - doesn't fail if no token provided.
+ * Attaches user when token is valid (or test token in dev) so routes can return user-specific data (e.g. isFollowing).
  */
 const optionalAuth = async (req, res, next) => {
   try {
@@ -411,6 +412,10 @@ const optionalAuth = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
+      if (!isProduction && (token === TEST_ACCESS_TOKEN || token === 'demo-token-123')) {
+        await attachDemoUser(req, res, next);
+        return;
+      }
       const user = await FirebaseAuthService.getUserFromToken(token);
       if (user && user.is_active) {
         req.user = user;
@@ -421,7 +426,6 @@ const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // Continue without authentication for optional auth
     next();
   }
 };
