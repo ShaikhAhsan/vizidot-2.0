@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
 import '../controllers/music_player_controller.dart';
 import '../widgets/progress_bar.dart';
 import '../../../routes/app_pages.dart';
@@ -46,22 +47,12 @@ class MiniPlayer extends StatelessWidget {
                 // Album Art Thumbnail
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    track.albumArt,
+                  child: assetOrNetworkImage(
+                    src: track.albumArt,
                     width: 54,
                     height: 54,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 54,
-                        height: 54,
-                        color: colors.onSurface.withOpacity(0.1),
-                        child: Icon(
-                          CupertinoIcons.music_note,
-                          color: colors.onSurface.withOpacity(0.3),
-                        ),
-                      );
-                    },
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
 import '../controllers/music_player_controller.dart';
+import '../models/track_model.dart';
 import '../widgets/cd_album_art.dart';
 import '../widgets/progress_bar.dart';
 
@@ -243,16 +245,14 @@ class MusicPlayerView extends StatelessWidget {
                             size: 28,
                           ),
                         ),
-                        // Menu
+                        // Shuffle
                         CupertinoButton(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
-                          onPressed: () {
-                            // TODO: Show menu
-                          },
+                          onPressed: controller.queue.length > 1 ? () => controller.shuffleQueue() : null,
                           child: Icon(
-                            CupertinoIcons.ellipsis,
-                            color: colors.onSurface.withOpacity(0.6),
+                            CupertinoIcons.shuffle,
+                            color: controller.isShuffled.value ? colors.primary : colors.onSurface.withOpacity(0.6),
                             size: 24,
                           ),
                         ),
@@ -290,6 +290,42 @@ class MusicPlayerView extends StatelessWidget {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 32),
+                    // Queue / Playlist
+                    if (controller.queue.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Queue (${controller.queue.length})',
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colors.onSurface.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 320),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: controller.queue.length,
+                          itemBuilder: (context, index) {
+                            final t = controller.queue[index];
+                            final isCurrent = index == controller.currentIndex.value;
+                            return _QueueTile(
+                              track: t,
+                              isCurrent: isCurrent,
+                              onTap: () => controller.playTrackAtIndex(index),
+                              onRemove: () => controller.removeFromQueue(index),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -304,19 +340,34 @@ class MusicPlayerView extends StatelessWidget {
   void _showMusicPlayerMenu(BuildContext context, MusicPlayerController controller) {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (context) => CupertinoActionSheet(
+      builder: (ctx) => CupertinoActionSheet(
         actions: [
           CupertinoActionSheetAction(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(ctx);
+              controller.shuffleQueue();
+            },
+            child: const Text('Shuffle queue'),
+          ),
+          if (controller.queue.isNotEmpty)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                controller.removeFromQueue(controller.currentIndex.value);
+              },
+              child: const Text('Remove current from queue'),
+            ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(ctx);
               controller.clear();
               Get.back();
             },
-            child: const Text('Clear'),
+            child: const Text('Clear queue & close', style: TextStyle(color: CupertinoColors.destructiveRed)),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(ctx),
           isDefaultAction: true,
           child: const Text('Cancel'),
         ),
@@ -340,6 +391,87 @@ class MusicPlayerView extends StatelessWidget {
       default:
         return CupertinoIcons.repeat;
     }
+  }
+}
+
+class _QueueTile extends StatelessWidget {
+  final TrackModel track;
+  final bool isCurrent;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  const _QueueTile({
+    required this.track,
+    required this.isCurrent,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: assetOrNetworkImage(
+                src: track.albumArt,
+                width: 56,
+                height: 56,
+                fit: BoxFit.cover,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    track.title,
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                      color: isCurrent ? colors.primary : colors.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    track.artist,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colors.onSurface.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (isCurrent)
+              Icon(CupertinoIcons.play_fill, size: 16, color: colors.primary),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              onPressed: onRemove,
+              child: Icon(
+                CupertinoIcons.xmark_circle_fill,
+                size: 22,
+                color: colors.onSurface.withOpacity(0.4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

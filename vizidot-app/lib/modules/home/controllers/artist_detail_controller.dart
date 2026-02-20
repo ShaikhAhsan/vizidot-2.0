@@ -61,6 +61,7 @@ class ArtistDetailController extends GetxController {
               artist: name,
               albumArt: t.albumArt ?? '',
               duration: t.durationFormatted ?? '0:00',
+              audioUrl: t.audioUrl,
             ))
         .toList();
   }

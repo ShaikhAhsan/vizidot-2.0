@@ -38,15 +38,16 @@ class TracksSection extends StatelessWidget {
           itemBuilder: (context, index) {
             final track = tracks[index];
             return GestureDetector(
-              onTap: () {
+              onTap: () async {
                 onTrackTap?.call();
-                playTrack(
+                final played = await playTrack(
                   title: track.title,
                   artist: track.artist,
                   albumArt: track.albumArt,
                   duration: _parseDuration(track.duration),
+                  audioUrl: track.audioUrl,
                 );
-                Get.toNamed(AppRoutes.musicPlayer);
+                if (played) Get.toNamed(AppRoutes.musicPlayer);
               },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 16),
@@ -136,12 +137,14 @@ class TrackItem {
   final String artist;
   final String albumArt;
   final String duration;
+  final String? audioUrl;
 
   TrackItem({
     required this.title,
     required this.artist,
     required this.albumArt,
     required this.duration,
+    this.audioUrl,
   });
 }
 
