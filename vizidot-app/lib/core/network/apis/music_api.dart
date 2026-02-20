@@ -75,6 +75,22 @@ class MusicApi extends BaseApi {
     }
   }
 
+  /// POST save selected category ids for the logged-in user. **Private** — requires token.
+  /// Call when user taps Next on categories screen. Skip should not call this.
+  Future<bool> saveSelectedCategories(List<int> categoryIds) async {
+    try {
+      final response = await execute(
+        'POST',
+        ApiConstants.categoriesSelectedPath,
+        body: {'categoryIds': categoryIds},
+        visibility: ApiVisibility.private,
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// GET album detail (public). Returns album info + tracks (audio or video by album_type).
   Future<AlbumDetailResponse?> getAlbumDetail(int albumId) async {
     try {

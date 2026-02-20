@@ -78,25 +78,34 @@ class CategoriesView extends GetView<CategoriesController> {
                   TextButton(onPressed: () => Get.offAllNamed('/artists'), child: const Text('Skip')),
                   const SizedBox(width: 5),
                   Obx(() => InkWell(
-                        onTap: controller.canContinue
-                            ? () {
-                                Get.offAllNamed('/artists');
-                              }
+                        onTap: controller.canContinue && !controller.isSaving.value
+                            ? () => controller.onContinue()
                             : null,
                         borderRadius: BorderRadius.circular(28),
                         child: Container(
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: controller.canContinue
+                            color: controller.canContinue && !controller.isSaving.value
                                 ? (isDark ? Colors.white : Colors.black)
                                 : colors.onSurface.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(22),
                           ),
-                          child: Icon(
-                            Icons.arrow_forward,
-                            color: isDark ? Colors.black : Colors.white,
-                          ),
+                          child: controller.isSaving.value
+                              ? Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: isDark ? Colors.black : Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.arrow_forward,
+                                  color: isDark ? Colors.black : Colors.white,
+                                ),
                         ),
                       )),
                 ],

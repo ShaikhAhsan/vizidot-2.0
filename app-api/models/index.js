@@ -36,6 +36,7 @@ const ArtistFollower = require('./ArtistFollower');
 const UserFavourite = require('./UserFavourite');
 const PlayHistory = require('./PlayHistory');
 const MusicCategory = require('./MusicCategory');
+const UserMusicCategory = require('./UserMusicCategory');
 
 // Define associations
 const defineAssociations = () => {
@@ -50,6 +51,11 @@ const defineAssociations = () => {
   UserFavourite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   User.hasMany(PlayHistory, { foreignKey: 'user_id', as: 'playHistory' });
   PlayHistory.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+  User.hasMany(UserMusicCategory, { foreignKey: 'user_id', as: 'userMusicCategories' });
+  UserMusicCategory.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  UserMusicCategory.belongsTo(MusicCategory, { foreignKey: 'music_category_id', as: 'musicCategory' });
+  MusicCategory.hasMany(UserMusicCategory, { foreignKey: 'music_category_id', as: 'userSelections' });
 
   // User-Artist associations (many-to-many)
   User.belongsToMany(Artist, {
@@ -325,6 +331,7 @@ module.exports = {
   ArtistFollower,
   UserFavourite,
   PlayHistory,
-  MusicCategory
+  MusicCategory,
+  UserMusicCategory
 };
 

@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../../core/network/apis/music_api.dart';
 import '../../../core/utils/app_config.dart';
+import '../../../core/utils/auth_service.dart';
 
 class CategoryItem {
   final int id;
@@ -14,10 +15,31 @@ class CategoryItem {
 class CategoriesController extends GetxController {
   final items = <CategoryItem>[].obs;
   final isLoading = true.obs;
+  final isSaving = false.obs;
 
   final selected = <int>{}.obs;
 
   bool get canContinue => selected.length >= 3;
+
+  /// Called when user taps Next. If logged in, saves selected categories to the backend then navigates.
+  /// Skip does not call this — it only navigates (no save).
+  Future<void> onContinue() async {
+    if (!canContinue) return;
+    final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+    final loggedIn = auth?.isLoggedIn.value ?? false;
+    if (loggedIn) {
+      isSaving.value = true;
+      try {
+        final token = await auth?.getIdToken();
+        final config = AppConfig.fromEnv();
+        final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
+        await api.saveSelectedCategories(selected.toList());
+      } finally {
+        isSaving.value = false;
+      }
+    }
+    Get.offAllNamed('/artists');
+  }
 
   @override
   void onInit() {

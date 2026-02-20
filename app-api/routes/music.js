@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
-const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop, UserFavourite, PlayHistory, MusicCategory } = require('../models');
+const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop, UserFavourite, PlayHistory, MusicCategory, UserMusicCategory } = require('../models');
 const { authenticateToken, optionalAuth } = require('../middleware/authWithRoles');
 
 function formatDuration(seconds) {
@@ -22,6 +22,7 @@ router.get('/', (req, res) => {
     endpoints: [
       'GET /home',
       'GET /categories',
+      'POST /categories/selected',
       'GET /audio-tracks',
       'GET /artists/profile/:id',
       'GET /albums/:id',
@@ -66,6 +67,40 @@ router.get('/categories', async (req, res) => {
     }
     console.error('List categories error:', err);
     return res.status(500).json({ success: false, error: 'Could not list categories' });
+  }
+});
+
+/**
+ * POST /api/v1/music/categories/selected
+ * Save logged-in user's selected category ids. Body: { categoryIds: number[] }. Auth required.
+ * Replaces existing selections for the user.
+ */
+router.post('/categories/selected', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id ?? req.userId ?? null;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    const categoryIds = req.body?.categoryIds;
+    if (!Array.isArray(categoryIds)) {
+      return res.status(400).json({ success: false, error: 'categoryIds must be an array' });
+    }
+    const ids = [...new Set(categoryIds)].filter((id) => Number.isInteger(id) && id > 0);
+    await UserMusicCategory.destroy({ where: { user_id: userId } });
+    if (ids.length > 0) {
+      await UserMusicCategory.bulkCreate(
+        ids.map((music_category_id) => ({ user_id: userId, music_category_id }))
+      );
+    }
+    return res.json({ success: true, data: { categoryIds: ids } });
+  } catch (err) {
+    const noTable = err.name === 'SequelizeDatabaseError' &&
+      (err.original?.code === 'ER_NO_SUCH_TABLE' || /doesn't exist/i.test(err.message || ''));
+    if (noTable) {
+      return res.status(503).json({ success: false, error: 'User categories not available' });
+    }
+    console.error('Save user categories error:', err);
+    return res.status(500).json({ success: false, error: 'Could not save categories' });
   }
 });
 
