@@ -141,6 +141,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 videoAlbums: controller.videoAlbums,
                 videos: controller.videos,
                 hasShop: controller.hasShop,
+                shopUrl: controller.shopUrl,
                 isFollowing: controller.isFollowing.value,
                 isFollowLoading: controller.isFollowLoading.value,
                 onFollowTap: controller.toggleFollow,
@@ -159,7 +160,8 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               tracks: _dummyTracks,
               videoAlbums: [],
               videos: [],
-              hasShop: true,
+              hasShop: false,
+              shopUrl: null,
               isFollowing: _isFollowing,
               isFollowLoading: false,
               onFollowTap: () => setState(() => _isFollowing = !_isFollowing),
@@ -181,10 +183,12 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     required List<AlbumItem> videoAlbums,
     required List<VideoItem> videos,
     required bool hasShop,
+    String? shopUrl,
     required bool isFollowing,
     required bool isFollowLoading,
     required VoidCallback onFollowTap,
   }) {
+    final hasValidShop = shopUrl != null && shopUrl.trim().isNotEmpty;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -273,11 +277,14 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 FollowMessageButtons(
                   isFollowing: isFollowing,
                   isFollowLoading: isFollowLoading,
+                  showShop: hasValidShop,
                   onFollowTap: onFollowTap,
                   onMessageTap: () {},
-                  onShopTap: () {
-                    Get.to(() => const ShopView());
-                  },
+                  onShopTap: hasValidShop
+                      ? () {
+                          Get.to(() => ShopView(initialUrl: shopUrl!.trim()));
+                        }
+                      : null,
                 ),
                 ContentTabs(
                   selectedTab: _selectedTab,

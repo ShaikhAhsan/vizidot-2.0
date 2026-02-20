@@ -35,6 +35,10 @@ class ArtistDetailController extends GetxController {
   bool get hasShop =>
       profile.value?.artist.shop != null;
 
+  /// Artist shop URL from profile; null if no shop.
+  String? get shopUrl =>
+      profile.value?.artist.shop?.shopUrl;
+
   List<AlbumItem> get albums {
     final list = profile.value?.albums ?? [];
     final name = artistName;
