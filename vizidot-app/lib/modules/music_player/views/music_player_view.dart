@@ -170,14 +170,18 @@ class MusicPlayerView extends StatelessWidget {
                             size: 24,
                           ),
                         ),
-                        // Previous Track
+                        // Previous Track (disabled when no previous item)
                         CupertinoButton(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
-                          onPressed: () => controller.seekToPrevious(),
+                          onPressed: controller.currentIndex.value > 0
+                              ? () => controller.seekToPrevious()
+                              : null,
                           child: Icon(
                             CupertinoIcons.backward_end_fill,
-                            color: colors.onSurface,
+                            color: controller.currentIndex.value > 0
+                                ? colors.onSurface
+                                : colors.onSurface.withOpacity(0.35),
                             size: 28,
                           ),
                         ),
@@ -234,14 +238,18 @@ class MusicPlayerView extends StatelessWidget {
                             size: 28,
                           ),
                         ),
-                        // Next Track
+                        // Next Track (disabled when no next item)
                         CupertinoButton(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
-                          onPressed: () => controller.seekToNext(),
+                          onPressed: controller.currentIndex.value < controller.queue.length - 1
+                              ? () => controller.seekToNext()
+                              : null,
                           child: Icon(
                             CupertinoIcons.forward_end_fill,
-                            color: colors.onSurface,
+                            color: controller.currentIndex.value < controller.queue.length - 1
+                                ? colors.onSurface
+                                : colors.onSurface.withOpacity(0.35),
                             size: 28,
                           ),
                         ),

@@ -64,9 +64,9 @@ Future<bool> playTrack({
       return false;
     }
     final index = queueList.indexWhere((t) => t.id == track.id);
-    await controller.playTrack(track, queueList: queueList, index: index >= 0 ? index : 0);
+    controller.playTrack(track, queueList: queueList, index: index >= 0 ? index : 0);
   } else {
-    await controller.playTrack(track);
+    controller.playTrack(track);
   }
   return true;
 }
