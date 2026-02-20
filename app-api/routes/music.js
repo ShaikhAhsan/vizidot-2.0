@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
-const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop, UserFavourite, PlayHistory } = require('../models');
+const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop, UserFavourite, PlayHistory, MusicCategory } = require('../models');
 const { authenticateToken, optionalAuth } = require('../middleware/authWithRoles');
 
 function formatDuration(seconds) {
@@ -21,6 +21,7 @@ router.get('/', (req, res) => {
     module: 'music',
     endpoints: [
       'GET /home',
+      'GET /categories',
       'GET /audio-tracks',
       'GET /artists/profile/:id',
       'GET /albums/:id',
@@ -34,6 +35,38 @@ router.get('/', (req, res) => {
       'GET /play-history/top'
     ]
   });
+});
+
+/**
+ * GET /api/v1/music/categories
+ * List all active music categories (genres). Public. Returns id, name, slug, image_url, sort_order.
+ * If music_categories table does not exist, returns empty list (run scripts/createMusicCategoriesTable.js and seedMusicCategories.js).
+ */
+router.get('/categories', async (req, res) => {
+  try {
+    const rows = await MusicCategory.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: ['id', 'name', 'slug', 'image_url', 'sort_order']
+    });
+    const categories = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      imageUrl: r.image_url || null,
+      sortOrder: r.sort_order
+    }));
+    return res.json({ success: true, data: { categories } });
+  } catch (err) {
+    const noTable = err.name === 'SequelizeDatabaseError' &&
+      (err.original?.code === 'ER_NO_SUCH_TABLE' || /doesn't exist/i.test(err.message || ''));
+    if (noTable) {
+      console.warn('music_categories table missing. Run: node scripts/createMusicCategoriesTable.js && node scripts/seedMusicCategories.js');
+      return res.json({ success: true, data: { categories: [] } });
+    }
+    console.error('List categories error:', err);
+    return res.status(500).json({ success: false, error: 'Could not list categories' });
+  }
 });
 
 /**

@@ -54,6 +54,27 @@ class MusicApi extends BaseApi {
     }
   }
 
+  /// GET music categories (genres). Public.
+  Future<List<MusicCategoryItem>> getCategories() async {
+    try {
+      final response = await execute(
+        'GET',
+        ApiConstants.categoriesPath,
+        visibility: ApiVisibility.public,
+      );
+      if (response.statusCode != 200) return [];
+      final Map<String, dynamic>? data = _dataFromResponse(response);
+      if (data == null) return [];
+      final list = data['categories'] as List<dynamic>?;
+      if (list == null) return [];
+      return list
+          .map((e) => MusicCategoryItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// GET album detail (public). Returns album info + tracks (audio or video by album_type).
   Future<AlbumDetailResponse?> getAlbumDetail(int albumId) async {
     try {
@@ -360,4 +381,30 @@ class FollowedArtistsResponse {
   final int total;
   final int limit;
   final int offset;
+}
+
+/// Item from GET /api/v1/music/categories.
+class MusicCategoryItem {
+  MusicCategoryItem({
+    required this.id,
+    required this.name,
+    required this.slug,
+    this.imageUrl,
+    required this.sortOrder,
+  });
+  final int id;
+  final String name;
+  final String slug;
+  final String? imageUrl;
+  final int sortOrder;
+
+  factory MusicCategoryItem.fromJson(Map<String, dynamic> json) {
+    return MusicCategoryItem(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+  }
 }

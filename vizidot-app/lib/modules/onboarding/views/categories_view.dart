@@ -26,35 +26,50 @@ class CategoriesView extends GetView<CategoriesController> {
                   style: textTheme.bodyLarge, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               Expanded(
-                child: GridView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: controller.items.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 24,
-                    childAspectRatio: 0.86,
-                  ),
-                  itemBuilder: (context, index) {
-                    final item = controller.items[index];
-                    return Obx(() {
-                      final isSelected = controller.selected.contains(index);
-                      return isSelected
-                          ? _SelectedCategoryCard(
-                              key: ValueKey('cat_${index}_1'),
-                              name: item.name,
-                              asset: item.asset,
-                              onTap: () => controller.toggle(index),
-                            )
-                          : _UnselectedCategoryCard(
-                              key: ValueKey('cat_${index}_0'),
-                              name: item.name,
-                              asset: item.asset,
-                              onTap: () => controller.toggle(index),
-                            );
-                    });
-                  },
-                ),
+                child: Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (controller.items.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No categories available',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colors.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    );
+                  }
+                  return GridView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: controller.items.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 24,
+                      childAspectRatio: 0.86,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = controller.items[index];
+                      return Obx(() {
+                        final isSelected = controller.selected.contains(item.id);
+                        return isSelected
+                            ? _SelectedCategoryCard(
+                                key: ValueKey('cat_${item.id}_1'),
+                                name: item.name,
+                                imageUrl: item.imageUrl,
+                                onTap: () => controller.toggleByIndex(index),
+                              )
+                            : _UnselectedCategoryCard(
+                                key: ValueKey('cat_${item.id}_0'),
+                                name: item.name,
+                                imageUrl: item.imageUrl,
+                                onTap: () => controller.toggleByIndex(index),
+                              );
+                      });
+                    },
+                  );
+                }),
               ),
               const SizedBox(height: 8),
               Row(
@@ -104,13 +119,13 @@ const BorderRadius _tileRadius = BorderRadius.only(
 
 class _UnselectedCategoryCard extends StatelessWidget {
   final String name;
-  final String asset;
+  final String? imageUrl;
   final VoidCallback onTap;
 
   const _UnselectedCategoryCard({
     super.key,
     required this.name,
-    required this.asset,
+    this.imageUrl,
     required this.onTap,
   });
 
@@ -137,7 +152,10 @@ class _UnselectedCategoryCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(asset, fit: BoxFit.cover),
+                    if (imageUrl != null && imageUrl!.isNotEmpty)
+                      Image.network(imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder(colors))
+                    else
+                      _placeholder(colors),
                     BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
                       child: Container(color: Colors.white.withOpacity(0.50)),
@@ -159,17 +177,21 @@ class _UnselectedCategoryCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _placeholder(ColorScheme colors) {
+    return Container(color: colors.surfaceContainerHighest);
+  }
 }
 
 class _SelectedCategoryCard extends StatelessWidget {
   final String name;
-  final String asset;
+  final String? imageUrl;
   final VoidCallback onTap;
 
   const _SelectedCategoryCard({
     super.key,
     required this.name,
-    required this.asset,
+    this.imageUrl,
     required this.onTap,
   });
 
@@ -177,7 +199,6 @@ class _SelectedCategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    print("_SelectedCategoryCard");
     return InkWell(
       onTap: onTap,
       borderRadius: _tileRadius,
@@ -193,7 +214,6 @@ class _SelectedCategoryCard extends StatelessWidget {
                   width: 18,
                   height: 18,
                   child: Icon(Icons.check_rounded, color: isDark ? Colors.white : Colors.black, size: 18),
-
                 ),
               ],
             ),
@@ -208,7 +228,9 @@ class _SelectedCategoryCard extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: _tileRadius,
-                child: Image.asset(asset, fit: BoxFit.cover),
+                child: imageUrl != null && imageUrl!.isNotEmpty
+                    ? Image.network(imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder(colors))
+                    : _placeholder(colors),
               ),
             ),
             const SizedBox(height: 6),
@@ -223,6 +245,10 @@ class _SelectedCategoryCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _placeholder(ColorScheme colors) {
+    return Container(color: colors.surfaceContainerHighest);
   }
 }
 

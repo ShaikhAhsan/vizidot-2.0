@@ -35,6 +35,7 @@ const UserArtist = require('./UserArtist');
 const ArtistFollower = require('./ArtistFollower');
 const UserFavourite = require('./UserFavourite');
 const PlayHistory = require('./PlayHistory');
+const MusicCategory = require('./MusicCategory');
 
 // Define associations
 const defineAssociations = () => {
@@ -323,6 +324,7 @@ module.exports = {
   UserArtist,
   ArtistFollower,
   UserFavourite,
-  PlayHistory
+  PlayHistory,
+  MusicCategory
 };
 

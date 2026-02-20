@@ -39,6 +39,9 @@ class ApiConstants {
   /// Followed artists (auth required). Query: limit, offset.
   static const String followedArtistsPath = '$musicSegment/followed-artists';
 
+  /// Music categories (genres). Public.
+  static const String categoriesPath = '$musicSegment/categories';
+
   /// Home API: top audios + top videos (from play history). Public.
   static String homePath([int limit = 10]) => '$musicSegment/home?limit=$limit';
 
