@@ -1,6 +1,10 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+/**
+ * Single database connection for the entire app.
+ * All routes, services, and models must use this sequelize instance (via require('./config/database') or require('../config/database')) so every query runs on the same connection and database.
+ */
 // Database configuration: use only env vars. Copy env.example to .env and set DB_* values.
 const required = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
 const missing = required.filter((k) => !process.env[k] || !String(process.env[k]).trim());

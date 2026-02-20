@@ -194,6 +194,16 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final hasVideoContent = videoAlbums.isNotEmpty || videos.isNotEmpty;
+    final effectiveTab = (_selectedTab == ContentTab.video && !hasVideoContent)
+        ? ContentTab.music
+        : _selectedTab;
+    if (!hasVideoContent && _selectedTab == ContentTab.video) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedTab = ContentTab.music);
+      });
+    }
+
     return CustomScrollView(
       slivers: [
         SliverPersistentHeader(
@@ -334,27 +344,29 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 ContentTabs(
                   selectedTab: _selectedTab,
                   onTabChanged: (tab) => setState(() => _selectedTab = tab),
+                  showVideoTab: hasVideoContent,
                 ),
                 const SizedBox(height: 24),
-                if (_selectedTab == ContentTab.music) ...[
-                  AlbumsSection(albums: albums),
-                  TracksSection(
-                    tracks: tracks,
-                    onTrackTap: () {},
-                  ),
-                ] else if (_selectedTab == ContentTab.video) ...[
-                  AlbumsSection(albums: videoAlbums),
-                  if (videos.isEmpty)
+                if (effectiveTab == ContentTab.music) ...[
+                  if (albums.isNotEmpty) AlbumsSection(albums: albums),
+                  if (tracks.isNotEmpty)
+                    TracksSection(
+                      tracks: tracks,
+                      onTrackTap: () {},
+                    ),
+                  if (albums.isEmpty && tracks.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(20),
                       child: Text(
-                        'No videos yet',
+                        'No music yet',
                         style: textTheme.bodyMedium?.copyWith(
                           color: colors.onSurface.withOpacity(0.6),
                         ),
                       ),
-                    )
-                  else
+                    ),
+                ] else if (effectiveTab == ContentTab.video) ...[
+                  if (videoAlbums.isNotEmpty) AlbumsSection(albums: videoAlbums),
+                  if (videos.isNotEmpty)
                     VideosSection(
                       videos: videos,
                       onVideoTap: (video) {
@@ -366,7 +378,17 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                         }
                       },
                     ),
-                ] else if (_selectedTab == ContentTab.about) ...[
+                  if (videoAlbums.isEmpty && videos.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'No videos yet',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ),
+                ] else if (effectiveTab == ContentTab.about) ...[
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Text(

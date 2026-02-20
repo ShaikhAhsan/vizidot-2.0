@@ -1,3 +1,4 @@
+const { sequelize } = require('../config/database');
 const { User, Role, UserRole, Business } = require('../models');
 
 class RBACService {
@@ -241,7 +242,6 @@ class RBACService {
     try {
       // Check if Business table exists, if not return empty array
       try {
-        const { sequelize } = require('../config/database');
         await sequelize.query("SELECT 1 FROM businesses LIMIT 1", { type: sequelize.QueryTypes.SELECT });
       } catch (tableError) {
         if (tableError.message && tableError.message.includes("doesn't exist")) {

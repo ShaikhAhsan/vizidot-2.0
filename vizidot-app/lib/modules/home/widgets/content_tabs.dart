@@ -5,11 +5,14 @@ enum ContentTab { music, video, about }
 class ContentTabs extends StatelessWidget {
   final ContentTab selectedTab;
   final ValueChanged<ContentTab> onTabChanged;
+  /// When false, the Video tab is hidden (e.g. when artist has no video albums or videos).
+  final bool showVideoTab;
 
   const ContentTabs({
     super.key,
     required this.selectedTab,
     required this.onTabChanged,
+    this.showVideoTab = true,
   });
 
   @override
@@ -17,41 +20,44 @@ class ContentTabs extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final tabs = <Widget>[
+      Expanded(
+        child: _TabButton(
+          label: 'Music',
+          icon: Icons.music_note,
+          isSelected: selectedTab == ContentTab.music,
+          onTap: () => onTabChanged(ContentTab.music),
+          colors: colors,
+          textTheme: textTheme,
+        ),
+      ),
+      if (showVideoTab)
+        Expanded(
+          child: _TabButton(
+            label: 'Video',
+            icon: Icons.videocam,
+            isSelected: selectedTab == ContentTab.video,
+            onTap: () => onTabChanged(ContentTab.video),
+            colors: colors,
+            textTheme: textTheme,
+          ),
+        ),
+      Expanded(
+        child: _TabButton(
+          label: 'About',
+          icon: Icons.person,
+          isSelected: selectedTab == ContentTab.about,
+          onTap: () => onTabChanged(ContentTab.about),
+          colors: colors,
+          textTheme: textTheme,
+        ),
+      ),
+    ];
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
-        children: [
-          Expanded(
-            child: _TabButton(
-              label: 'Music',
-              icon: Icons.music_note,
-              isSelected: selectedTab == ContentTab.music,
-              onTap: () => onTabChanged(ContentTab.music),
-              colors: colors,
-              textTheme: textTheme,
-            ),
-          ),
-          Expanded(
-            child: _TabButton(
-              label: 'Video',
-              icon: Icons.videocam,
-              isSelected: selectedTab == ContentTab.video,
-              onTap: () => onTabChanged(ContentTab.video),
-              colors: colors,
-              textTheme: textTheme,
-            ),
-          ),
-          Expanded(
-            child: _TabButton(
-              label: 'About',
-              icon: Icons.person,
-              isSelected: selectedTab == ContentTab.about,
-              onTap: () => onTabChanged(ContentTab.about),
-              colors: colors,
-              textTheme: textTheme,
-            ),
-          ),
-        ],
+        children: tabs,
       ),
     );
   }

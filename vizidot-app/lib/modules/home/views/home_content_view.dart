@@ -43,99 +43,108 @@ class HomeContentView extends GetView<HomeController> {
             automaticallyImplyTitle: false,
             automaticallyImplyLeading: false,
           ),
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const SizedBox(height: 12),
-                  // TOP AUDIO Section
-                  const SectionHeader(title: 'TOP AUDIO'),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 178,
-                    child: Obx(() => ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: controller.topAudioItems.length,
-                          itemBuilder: (context, index) {
-                            final item = controller.topAudioItems[index];
-                            return MediaCard(
-                              title: item.title,
-                              artist: item.artist,
-                              asset: item.asset,
-                              isHorizontal: true,
-                              audioUrl: item.audioUrl,
-                              artistId: item.artistId,
-                              imageUrl: item.imageUrl,
-                              trackId: item.trackId,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(30),
-                                topRight: Radius.circular(12),
-                                bottomLeft: Radius.circular(12),
-                                bottomRight: Radius.circular(30),
-                              ),
-                            );
-                          },
-                        )),
-                  ),
-                  const SizedBox(height: 20),
-                  // TOP VIDEO Section
-                  const SectionHeader(title: 'TOP VIDEO'),
-                  const SizedBox(height: 16),
-                ]),
+          Obx(() {
+            if (controller.isLoadingTop.value) {
+              return const SliverFillRemaining(
+                child: Center(child: CupertinoActivityIndicator(radius: 14)),
+              );
+            }
+            return SliverSafeArea(
+              top: false,
+              sliver: SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 12),
+                    // TOP AUDIO Section (from Home API)
+                    const SectionHeader(title: 'TOP AUDIO'),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 178,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: controller.topAudioItems.length,
+                        itemBuilder: (context, index) {
+                          final item = controller.topAudioItems[index];
+                          return MediaCard(
+                            title: item.title,
+                            artist: item.artist,
+                            asset: item.asset,
+                            isHorizontal: true,
+                            audioUrl: item.audioUrl,
+                            artistId: item.artistId,
+                            imageUrl: item.imageUrl,
+                            trackId: item.trackId,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(30),
+                              topRight: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
+                              bottomRight: Radius.circular(30),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // TOP VIDEO Section (from Home API)
+                    const SectionHeader(title: 'TOP VIDEO'),
+                    const SizedBox(height: 16),
+                  ]),
+                ),
               ),
-            ),
-          ),
-          // TOP VIDEO Grid Section - using SliverMasonryGrid
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: Obx(() => SliverMasonryGrid.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    itemBuilder: (context, index) {
-                      final item = controller.topVideoItems[index];
-                      return MediaCard(
-                        title: item.title,
-                        artist: item.artist,
-                        asset: item.asset,
-                        isHorizontal: false,
-                        imageHeight: item.imageHeight,
-                        artistId: item.artistId,
-                        imageUrl: item.imageUrl,
-                        videoUrl: item.videoUrl,
-                        videoId: item.videoId,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(15),
-                          bottomLeft: Radius.circular(15),
-                          bottomRight: Radius.circular(40),
-                        ),
-                        onTap: item.videoUrl == null || item.videoUrl!.isEmpty
-                            ? () {
-                                final playlistTracks = _generatePlaylistTracks(item);
-                                Get.toNamed(
-                                  AppRoutes.playlistDetail,
-                                  arguments: {
-                                    'playlistName': item.title,
-                                    'playlistImage': item.imageUrl ?? item.asset,
-                                    'artistName': item.artist,
-                                    'likes': 1235,
-                                    'duration': '1h25min',
-                                    'tracks': playlistTracks,
-                                  },
-                                );
-                              }
-                            : null,
-                      );
-                    },
-                    childCount: controller.topVideoItems.length,
-                  )),
-            ),
-          ),
+            );
+          }),
+          Obx(() {
+            if (controller.isLoadingTop.value) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return SliverSafeArea(
+              top: false,
+              sliver: SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverMasonryGrid.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  itemBuilder: (context, index) {
+                    final item = controller.topVideoItems[index];
+                    return MediaCard(
+                      title: item.title,
+                      artist: item.artist,
+                      asset: item.asset,
+                      isHorizontal: false,
+                      imageHeight: item.imageHeight,
+                      artistId: item.artistId,
+                      imageUrl: item.imageUrl,
+                      videoUrl: item.videoUrl,
+                      videoId: item.videoId,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(15),
+                        bottomLeft: Radius.circular(15),
+                        bottomRight: Radius.circular(40),
+                      ),
+                      onTap: item.videoUrl == null || item.videoUrl!.isEmpty
+                          ? () {
+                              final playlistTracks = _generatePlaylistTracks(item);
+                              Get.toNamed(
+                                AppRoutes.playlistDetail,
+                                arguments: {
+                                  'playlistName': item.title,
+                                  'playlistImage': item.imageUrl ?? item.asset,
+                                  'artistName': item.artist,
+                                  'likes': 1235,
+                                  'duration': '1h25min',
+                                  'tracks': playlistTracks,
+                                },
+                              );
+                            }
+                          : null,
+                    );
+                  },
+                  childCount: controller.topVideoItems.length,
+                ),
+              ),
+            );
+          }),
           const SliverPadding(
             padding: EdgeInsets.only(bottom: 24),
           ),

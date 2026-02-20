@@ -21,6 +21,14 @@ class CachedImage extends StatelessWidget {
     this.errorWidget,
   });
 
+  /// Returns pixel size for cache only when [value] is finite (avoids Infinity/NaN.toInt()).
+  static int? _finiteCacheSize(double? value, BuildContext context) {
+    if (value == null || !value.isFinite) return null;
+    final scale = MediaQuery.of(context).devicePixelRatio;
+    if (!scale.isFinite) return null;
+    return (value * scale).round();
+  }
+
   @override
   Widget build(BuildContext context) {
     final Widget image = CachedNetworkImage(
@@ -32,8 +40,8 @@ class CachedImage extends StatelessWidget {
       fadeOutDuration: const Duration(milliseconds: 120),
       placeholder: (context, url) => placeholder ?? _defaultPlaceholder(context),
       errorWidget: (context, url, error) => errorWidget ?? _defaultError(context),
-      memCacheWidth: width != null ? width!.toInt() * MediaQuery.of(context).devicePixelRatio.toInt() : null,
-      memCacheHeight: height != null ? height!.toInt() * MediaQuery.of(context).devicePixelRatio.toInt() : null,
+      memCacheWidth: _finiteCacheSize(width, context),
+      memCacheHeight: _finiteCacheSize(height, context),
     );
 
     if (borderRadius != null) {

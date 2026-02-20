@@ -1,4 +1,5 @@
-const { db, firebaseUtils } = require('../config/firebase');
+const { firebaseUtils } = require('../config/firebase');
+const { sequelize } = require('../config/database');
 const { Order, OrderItem, Product, Business, User } = require('../models');
 const { Op } = require('sequelize');
 
@@ -64,7 +65,7 @@ class OrderController {
         // Update product stock
         for (const item of req.body.items) {
           await Product.update(
-            { stock_quantity: db.sequelize.literal(`stock_quantity - ${item.quantity}`) },
+            { stock_quantity: sequelize.literal(`stock_quantity - ${item.quantity}`) },
             { where: { id: item.product_id } }
           );
         }
@@ -233,7 +234,7 @@ class OrderController {
       
       for (const item of orderItems) {
         await Product.update(
-          { stock_quantity: db.sequelize.literal(`stock_quantity + ${item.quantity}`) },
+          { stock_quantity: sequelize.literal(`stock_quantity + ${item.quantity}`) },
           { where: { id: item.product_id } }
         );
       }
