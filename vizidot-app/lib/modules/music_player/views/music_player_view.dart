@@ -59,9 +59,7 @@ class MusicPlayerView extends StatelessWidget {
               trailing: CupertinoButton(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
-                onPressed: () {
-                  // TODO: Show menu
-                },
+                onPressed: () => _showMusicPlayerMenu(context, controller),
                 child: Container(
                   width: 32,
                   height: 32,
@@ -301,6 +299,29 @@ class MusicPlayerView extends StatelessWidget {
         ),
       );
     });
+  }
+
+  void _showMusicPlayerMenu(BuildContext context, MusicPlayerController controller) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              controller.clear();
+              Get.back();
+            },
+            child: const Text('Clear'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          isDefaultAction: true,
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
   }
 
   String _formatDuration(Duration duration) {

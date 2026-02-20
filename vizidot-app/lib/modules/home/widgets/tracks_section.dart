@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 import '../../../core/widgets/asset_or_network_image.dart';
+import '../../../routes/app_pages.dart';
 import '../../music_player/utils/play_track_helper.dart';
 import '../../music_player/models/track_model.dart';
 import 'section_header.dart';
@@ -38,20 +40,13 @@ class TracksSection extends StatelessWidget {
             return GestureDetector(
               onTap: () {
                 onTrackTap?.call();
-                // Play the track
-                final trackModel = TrackModel(
-                  id: '${track.title}_${track.artist}',
-                  title: track.title,
-                  artist: track.artist,
-                  albumArt: track.albumArt,
-                  duration: _parseDuration(track.duration),
-                );
                 playTrack(
                   title: track.title,
                   artist: track.artist,
                   albumArt: track.albumArt,
                   duration: _parseDuration(track.duration),
                 );
+                Get.toNamed(AppRoutes.musicPlayer);
               },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 16),

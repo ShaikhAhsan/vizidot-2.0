@@ -159,6 +159,16 @@ class MusicPlayerController extends GetxController {
     // TODO: Implement shuffle logic
   }
 
+  /// Stops playback and clears the queue. Call before dismissing the player.
+  Future<void> clear() async {
+    await _audioPlayer.stop();
+    queue.clear();
+    currentTrack.value = null;
+    currentIndex.value = 0;
+    position.value = Duration.zero;
+    duration.value = Duration.zero;
+  }
+
   void _handleTrackEnd() {
     if (loopMode.value == LoopMode.off && currentIndex.value < queue.length - 1) {
       seekToNext();
