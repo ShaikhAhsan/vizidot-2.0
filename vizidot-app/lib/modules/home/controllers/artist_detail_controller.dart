@@ -94,19 +94,20 @@ class ArtistDetailController extends GetxController {
   }
 
   /// Toggle follow state via [MusicApi] (auth required). Refreshes profile on success.
-  /// If not logged in, shows snackbar and returns without calling the API.
+  /// In development, uses [AppConfig.testAccessToken] when not logged in so APIs work for testing.
   Future<void> toggleFollow() async {
     if (artistId == null) return;
+    final config = AppConfig.fromEnv();
     final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
     final token = await auth?.getIdToken();
-    if (token == null || token.isEmpty) {
+    final effectiveToken = (token != null && token.isNotEmpty) ? token : config.testAccessToken;
+    if (effectiveToken == null || effectiveToken.isEmpty) {
       Get.snackbar('Sign in to follow', 'Sign in to follow artists');
       return;
     }
     isFollowLoading.value = true;
     try {
-      final config = AppConfig.fromEnv();
-      final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: effectiveToken);
       final currentlyFollowing = isFollowing.value;
       final success = currentlyFollowing
           ? await api.unfollowArtist(artistId!)

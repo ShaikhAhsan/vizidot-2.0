@@ -95,34 +95,42 @@ class BaseApi {
     return response;
   }
 
-  void _printCurl(String method, String url, Map<String, String> headers, String? bodyStr) {
-    // Print one line at a time so the full curl is visible (debugPrint truncates).
-    final parts = <String>[
-      "curl -X $method '$url'",
-      ...headers.entries.map((e) => "-H '${e.key}: ${e.value}'"),
-    ];
+  void _printCurl(
+      String method,
+      String url,
+      Map<String, String> headers,
+      String? bodyStr,
+      ) {
+    final buffer = StringBuffer();
+
+    buffer.write("curl -X $method '$url'");
+
+    for (final entry in headers.entries) {
+      buffer.write(" -H '${entry.key}: ${entry.value}'");
+    }
+
     if (bodyStr != null && bodyStr.isNotEmpty) {
       final escaped = bodyStr.replaceAll("'", r"'\''");
-      parts.add("-d '$escaped'");
+      buffer.write(" -d '$escaped'");
     }
-    for (var i = 0; i < parts.length; i++) {
-      final line = parts[i] + (i < parts.length - 1 ? ' \\' : '');
-      // ignore: avoid_print
-      print('flutter: $line');
-    }
+
+    // ignore: avoid_print
+    print('${buffer.toString()}');
   }
 
-  void _printResponse(http.Response response) {
-    // ignore: avoid_print
-    print('flutter: Response: ${response.statusCode}');
-    final bodyStr = response.body.isEmpty
-        ? '(empty)'
-        : _formatBody(response.body);
-    for (final line in bodyStr.split('\n')) {
+ void _printResponse(http.Response response) {
+      final bodyStr = response.body.isEmpty
+          ? '(empty)'
+          : _formatBody(response.body);
+
+      final fullLog = '''
+  flutter: Response: ${response.statusCode}
+  flutter: $bodyStr
+  ''';
+
       // ignore: avoid_print
-      print('flutter: $line');
+      print(fullLog);
     }
-  }
 
   String _formatBody(String body) {
     try {
