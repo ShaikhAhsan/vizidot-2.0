@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
 import '../modules/home/views/home_view.dart';
@@ -111,32 +112,12 @@ class AppPages {
       page: () {
         final args = Get.arguments as Map<String, dynamic>? ?? {};
         final albumId = args['albumId'] as int?;
-        if (albumId != null) {
-          Get.put(AlbumDetailController(albumId: albumId));
-          return const AlbumDetailView();
+        if (albumId == null) {
+          Get.back();
+          return const SizedBox.shrink();
         }
-        final tracksList = args['tracks'] as List?;
-        final tracks = tracksList?.map((t) {
-          if (t is TrackItem) {
-            return t;
-          } else if (t is Map) {
-            return TrackItem(
-              title: t['title'] ?? '',
-              artist: t['artist'] ?? '',
-              albumArt: t['albumArt'] ?? '',
-              duration: t['duration'] ?? '',
-            );
-          }
-          throw ArgumentError('Invalid track item type');
-        }).toList().cast<TrackItem>() ?? [];
-        return AlbumDetailView(
-          albumTitle: args['albumTitle'] ?? '',
-          albumImage: args['albumImage'] ?? '',
-          releaseYear: args['releaseYear'],
-          songCount: args['songCount'],
-          totalDuration: args['totalDuration'],
-          tracks: tracks,
-        );
+        Get.put(AlbumDetailController(albumId: albumId));
+        return const AlbumDetailView();
       },
       transition: Transition.cupertino,
     ),

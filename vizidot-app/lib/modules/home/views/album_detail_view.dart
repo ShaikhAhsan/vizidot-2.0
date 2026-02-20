@@ -10,22 +10,7 @@ import '../widgets/videos_section.dart';
 import 'video_web_view.dart';
 
 class AlbumDetailView extends StatefulWidget {
-  final String? albumTitle;
-  final String? albumImage;
-  final String? releaseYear;
-  final int? songCount;
-  final String? totalDuration;
-  final List<TrackItem>? tracks;
-
-  const AlbumDetailView({
-    super.key,
-    this.albumTitle,
-    this.albumImage,
-    this.releaseYear,
-    this.songCount,
-    this.totalDuration,
-    this.tracks,
-  });
+  const AlbumDetailView({super.key});
 
   @override
   State<AlbumDetailView> createState() => _AlbumDetailViewState();
@@ -55,10 +40,7 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    if (Get.isRegistered<AlbumDetailController>()) {
-      return _buildFromController(context);
-    }
-    return _buildLegacy(context);
+    return _buildFromController(context);
   }
 
   Widget _buildFromController(BuildContext context) {
@@ -142,25 +124,25 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            Positioned.fill(
-                              child: Center(
-                                child: Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.9),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    controller.isVideoAlbum
-                                        ? CupertinoIcons.play_fill
-                                        : CupertinoIcons.play_fill,
-                                    color: Colors.black,
-                                    size: 24,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            // Positioned.fill(
+                            //   child: Center(
+                            //     child: Container(
+                            //       width: 48,
+                            //       height: 48,
+                            //       decoration: BoxDecoration(
+                            //         color: Colors.white.withOpacity(0.9),
+                            //         shape: BoxShape.circle,
+                            //       ),
+                            //       child: Icon(
+                            //         controller.isVideoAlbum
+                            //             ? CupertinoIcons.play_fill
+                            //             : CupertinoIcons.play_fill,
+                            //         color: Colors.black,
+                            //         size: 24,
+                            //       ),
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
                         const SizedBox(width: 16),
@@ -295,210 +277,4 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
     );
   }
 
-  Widget _buildLegacy(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final tracks = widget.tracks ?? [];
-
-    return CupertinoPageScaffold(
-      child: CustomScrollView(
-        slivers: [
-          _navBar(context, title: 'Album'),
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const SizedBox(height: 20),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: assetOrNetworkImage(
-                              src: widget.albumImage ?? '',
-                              width: 86,
-                              height: 86,
-                              fit: BoxFit.cover,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          Positioned.fill(
-                            child: Center(
-                              child: Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  CupertinoIcons.play_fill,
-                                  color: Colors.black,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.albumTitle ?? '',
-                              style: textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Album / ${widget.releaseYear ?? "2021"}',
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: colors.onSurface.withOpacity(0.6),
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              '${widget.songCount ?? 0} Songs - ${widget.totalDuration ?? ""}',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colors.onSurface.withOpacity(0.6),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        children: [
-                          CupertinoButton(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            onPressed: _toggleFavorite,
-                            child: Icon(
-                              _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-                              color: _isFavorite ? Colors.red : colors.onSurface,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(height: 40),
-                          GestureDetector(
-                            onTap: () => _shareAlbum(widget.albumTitle ?? ''),
-                            child: Icon(
-                              CupertinoIcons.share,
-                              color: colors.onSurface,
-                              size: 20,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const SectionHeader(title: 'TRACK LIST'),
-                ]),
-              ),
-            ),
-          ),
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final track = tracks[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Row(
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: assetOrNetworkImage(
-                                  src: track.albumArt,
-                                  width: 56,
-                                  height: 56,
-                                  fit: BoxFit.cover,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              Positioned.fill(
-                                child: Center(
-                                  child: Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.9),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      CupertinoIcons.play_fill,
-                                      color: Colors.black,
-                                      size: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  track.title,
-                                  style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  track.artist,
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: colors.onSurface.withOpacity(0.6),
-                                    fontSize: 13,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            track.duration,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colors.onSurface.withOpacity(0.5),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  childCount: tracks.length,
-                ),
-              ),
-            ),
-          ),
-          const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
-        ],
-      ),
-    );
-  }
 }

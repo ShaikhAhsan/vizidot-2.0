@@ -46,18 +46,6 @@ class AlbumsSection extends StatelessWidget {
                       AppRoutes.albumDetail,
                       arguments: {'albumId': album.id},
                     );
-                  } else {
-                    Get.toNamed(
-                      AppRoutes.albumDetail,
-                      arguments: {
-                        'albumTitle': album.title,
-                        'albumImage': album.coverImage,
-                        'releaseYear': '2021',
-                        'songCount': 0,
-                        'totalDuration': '',
-                        'tracks': <TrackItem>[],
-                      },
-                    );
                   }
                 },
                 child: Container(
