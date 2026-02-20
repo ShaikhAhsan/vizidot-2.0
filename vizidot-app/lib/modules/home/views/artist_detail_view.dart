@@ -251,15 +251,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          description ?? 'Artist / Musician / Writer',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colors.onSurface.withOpacity(0.6),
-                            fontSize: 13,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+
                       ],
                     ),
                     const SizedBox(width: 40),
@@ -273,6 +265,22 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: EdgeInsets.fromLTRB(10, 0, 10, 0),
+                  width: double.infinity,
+                  child: Text(
+                    description ?? 'Artist / Musician / Writer',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurface.withOpacity(0.6),
+                      fontSize: 13,
+                    ),
+                    textAlign: TextAlign.center,
+                    softWrap: true,
+                    maxLines: 50,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 FollowMessageButtons(
                   isFollowing: isFollowing,
