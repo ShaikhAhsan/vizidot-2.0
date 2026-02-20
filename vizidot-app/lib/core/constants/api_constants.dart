@@ -28,6 +28,9 @@ class ApiConstants {
   static String artistUnfollowPath(int artistId) =>
       '$musicSegment/artists/$artistId/follow';
 
+  /// Album detail (public). Replace :id with album id.
+  static String albumDetailPath(int albumId) => '$musicSegment/albums/$albumId';
+
   /// Health check (no version prefix on backend).
   static const String healthPath = 'health';
 }

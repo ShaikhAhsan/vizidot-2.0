@@ -13,6 +13,7 @@ import '../modules/onboarding/views/categories_view.dart';
 import '../modules/onboarding/bindings/categories_binding.dart';
 import '../modules/onboarding/views/artists_view.dart';
 import '../modules/onboarding/bindings/artists_binding.dart';
+import '../modules/home/controllers/album_detail_controller.dart';
 import '../modules/home/controllers/artist_detail_controller.dart';
 import '../modules/home/views/artist_detail_view.dart';
 import '../modules/home/views/album_detail_view.dart';
@@ -108,7 +109,12 @@ class AppPages {
     GetPage(
       name: AppRoutes.albumDetail,
       page: () {
-        final args = Get.arguments as Map<String, dynamic>;
+        final args = Get.arguments as Map<String, dynamic>? ?? {};
+        final albumId = args['albumId'] as int?;
+        if (albumId != null) {
+          Get.put(AlbumDetailController(albumId: albumId));
+          return const AlbumDetailView();
+        }
         final tracksList = args['tracks'] as List?;
         final tracks = tracksList?.map((t) {
           if (t is TrackItem) {
@@ -123,7 +129,6 @@ class AppPages {
           }
           throw ArgumentError('Invalid track item type');
         }).toList().cast<TrackItem>() ?? [];
-        
         return AlbumDetailView(
           albumTitle: args['albumTitle'] ?? '',
           albumImage: args['albumImage'] ?? '',

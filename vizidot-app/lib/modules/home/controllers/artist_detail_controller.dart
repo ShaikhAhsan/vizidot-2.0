@@ -44,6 +44,7 @@ class ArtistDetailController extends GetxController {
     final name = artistName;
     return list
         .map((a) => AlbumItem(
+              id: a.id,
               title: a.title,
               artist: name,
               coverImage: a.coverImageUrl ?? '',
@@ -69,6 +70,7 @@ class ArtistDetailController extends GetxController {
     final name = artistName;
     return list
         .map((a) => AlbumItem(
+              id: a.id,
               title: a.title,
               artist: name,
               coverImage: a.coverImageUrl ?? '',

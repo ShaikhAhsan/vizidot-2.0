@@ -18,10 +18,101 @@ router.get('/', (req, res) => {
     module: 'music',
     endpoints: [
       'GET /artists/profile/:id',
+      'GET /albums/:id',
       'POST /artists/:id/follow',
       'DELETE /artists/:id/follow'
     ]
   });
+});
+
+/**
+ * GET /api/v1/music/albums/:id
+ * Album detail: album info + tracks (audio or video by album_type). Public.
+ */
+router.get('/albums/:id', async (req, res) => {
+  try {
+    const albumId = parseInt(req.params.id, 10);
+    if (Number.isNaN(albumId) || albumId < 1) {
+      return res.status(400).json({ success: false, error: 'Invalid album id' });
+    }
+
+    const album = await Album.findByPk(albumId, {
+      include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name'] }]
+    });
+    if (!album || !album.is_active) {
+      return res.status(404).json({ success: false, error: 'Album not found' });
+    }
+
+    const artistName = album.artist?.name || '';
+    const albumType = String(album.album_type || '').toLowerCase();
+    const isVideo = albumType === 'video';
+
+    let tracks = [];
+    if (isVideo) {
+      const videoTracks = await VideoTrack.findAll({
+        where: { album_id: albumId },
+        order: [['track_number', 'ASC'], ['video_id', 'ASC']]
+      });
+      tracks = videoTracks.map((t) => ({
+        id: t.video_id,
+        title: t.title,
+        durationFormatted: formatDuration(t.duration),
+        durationSeconds: t.duration ?? null,
+        albumArt: t.thumbnail_url ?? album.cover_image_url ?? null,
+        artistName,
+        videoUrl: t.video_url ?? null,
+        albumId: t.album_id,
+        type: 'video'
+      }));
+    } else {
+      const audioTracks = await AudioTrack.findAll({
+        where: { album_id: albumId },
+        order: [['track_number', 'ASC'], ['audio_id', 'ASC']]
+      });
+      tracks = audioTracks.map((t) => ({
+        id: t.audio_id,
+        title: t.title,
+        durationFormatted: formatDuration(t.duration),
+        durationSeconds: t.duration ?? null,
+        albumArt: t.thumbnail_url ?? album.cover_image_url ?? null,
+        artistName,
+        audioUrl: t.audio_url ?? null,
+        albumId: t.album_id,
+        type: 'audio'
+      }));
+    }
+
+    const releaseYear = album.release_date
+      ? String(album.release_date).slice(0, 4)
+      : null;
+    const totalSeconds = tracks.reduce((sum, t) => sum + (t.durationSeconds || 0), 0);
+    const totalMins = Math.floor(totalSeconds / 60);
+    const totalDurationFormatted =
+      totalMins >= 60 ? `${Math.floor(totalMins / 60)}h ${totalMins % 60}min` : `${totalMins} min`;
+
+    return res.json({
+      success: true,
+      data: {
+        album: {
+          id: album.album_id,
+          title: album.title,
+          description: album.description ?? null,
+          coverImageUrl: album.cover_image_url ?? null,
+          artistId: album.artist_id,
+          artistName,
+          albumType: isVideo ? 'video' : 'audio',
+          releaseDate: album.release_date,
+          releaseYear,
+          trackCount: tracks.length,
+          totalDurationFormatted
+        },
+        tracks
+      }
+    });
+  } catch (err) {
+    console.error('Album detail error:', err);
+    return res.status(500).json({ success: false, error: 'Could not load album' });
+  }
 });
 
 /**

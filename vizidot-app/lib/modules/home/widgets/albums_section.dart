@@ -41,60 +41,21 @@ class AlbumsSection extends StatelessWidget {
                 onTap: () {
                   if (onAlbumTap != null) {
                     onAlbumTap!(album);
+                  } else if (album.id != null) {
+                    Get.toNamed(
+                      AppRoutes.albumDetail,
+                      arguments: {'albumId': album.id},
+                    );
                   } else {
-                    // Default navigation to album detail
                     Get.toNamed(
                       AppRoutes.albumDetail,
                       arguments: {
                         'albumTitle': album.title,
                         'albumImage': album.coverImage,
                         'releaseYear': '2021',
-                        'songCount': 18,
-                        'totalDuration': '2h 20min',
-                        'tracks': [
-                          TrackItem(
-                            title: 'Kiwi',
-                            artist: 'Harry Styles',
-                            albumArt: album.coverImage,
-                            duration: '3:24',
-                          ),
-                          TrackItem(
-                            title: 'Lost',
-                            artist: 'Linkin Park',
-                            albumArt: album.coverImage,
-                            duration: '3:24',
-                          ),
-                          TrackItem(
-                            title: 'Black',
-                            artist: 'The Soft Moon',
-                            albumArt: album.coverImage,
-                            duration: '3:24',
-                          ),
-                          TrackItem(
-                            title: 'Dolls',
-                            artist: 'Bella Poarch',
-                            albumArt: album.coverImage,
-                            duration: '3:24',
-                          ),
-                          TrackItem(
-                            title: 'Milkshake',
-                            artist: 'Kells',
-                            albumArt: album.coverImage,
-                            duration: '3:24',
-                          ),
-                          TrackItem(
-                            title: 'Gasoline',
-                            artist: 'Maneskin',
-                            albumArt: album.coverImage,
-                            duration: '3:24',
-                          ),
-                          TrackItem(
-                            title: 'Best friend',
-                            artist: 'Luna bay',
-                            albumArt: album.coverImage,
-                            duration: '3:24',
-                          ),
-                        ],
+                        'songCount': 0,
+                        'totalDuration': '',
+                        'tracks': <TrackItem>[],
                       },
                     );
                   }
@@ -154,11 +115,13 @@ class AlbumsSection extends StatelessWidget {
 }
 
 class AlbumItem {
+  final int? id;
   final String title;
   final String artist;
   final String coverImage;
 
   AlbumItem({
+    this.id,
     required this.title,
     required this.artist,
     required this.coverImage,

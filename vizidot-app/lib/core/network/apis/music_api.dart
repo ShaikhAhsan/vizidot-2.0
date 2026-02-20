@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../api_client.dart';
 import '../base_api.dart';
 import '../../constants/api_constants.dart';
+import '../../../data/models/album_detail_response.dart';
 import '../../../data/models/artist_profile_response.dart';
 
 /// Music / artist APIs. Use [ApiVisibility.public] for no-auth endpoints,
@@ -48,6 +49,38 @@ class MusicApi extends BaseApi {
       // Backend may return raw { artist, albums, tracks } without success/data wrapper
       if (map.containsKey('artist')) return map;
       return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// GET album detail (public). Returns album info + tracks (audio or video by album_type).
+  Future<AlbumDetailResponse?> getAlbumDetail(int albumId) async {
+    try {
+      final path = ApiConstants.albumDetailPath(albumId);
+      final response = await execute(
+        'GET',
+        path,
+        visibility: ApiVisibility.public,
+      );
+      if (response.statusCode != 200) return null;
+      final Map<String, dynamic>? data = _dataFromResponse(response);
+      if (data == null) return null;
+      return AlbumDetailResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Map<String, dynamic>? _dataFromResponse(http.Response response) {
+    final body = response.body;
+    if (body.isEmpty) return null;
+    try {
+      final map = jsonDecode(body) as Map<String, dynamic>?;
+      if (map == null) return null;
+      final wrapped = ApiClient.parseResponse(response);
+      if (wrapped.$2 != null && wrapped.$2 is Map<String, dynamic>) return wrapped.$2!;
+      return map;
     } catch (_) {
       return null;
     }

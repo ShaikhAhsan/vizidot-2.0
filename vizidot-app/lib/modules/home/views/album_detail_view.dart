@@ -2,25 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
+import '../controllers/album_detail_controller.dart';
 import '../widgets/section_header.dart';
 import '../widgets/tracks_section.dart';
+import '../widgets/videos_section.dart';
+import 'video_web_view.dart';
 
 class AlbumDetailView extends StatefulWidget {
-  final String albumTitle;
-  final String albumImage;
+  final String? albumTitle;
+  final String? albumImage;
   final String? releaseYear;
   final int? songCount;
   final String? totalDuration;
-  final List<TrackItem> tracks;
+  final List<TrackItem>? tracks;
 
   const AlbumDetailView({
     super.key,
-    required this.albumTitle,
-    required this.albumImage,
+    this.albumTitle,
+    this.albumImage,
     this.releaseYear,
     this.songCount,
     this.totalDuration,
-    required this.tracks,
+    this.tracks,
   });
 
   @override
@@ -31,32 +35,19 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
   bool _isFavorite = false;
 
   void _toggleFavorite() {
-    setState(() {
-      _isFavorite = !_isFavorite;
-    });
+    setState(() => _isFavorite = !_isFavorite);
   }
 
-  Future<void> _shareAlbum() async {
+  Future<void> _shareAlbum(String title) async {
     try {
-      final result = await Share.share(
-        'Check out this album: ${widget.albumTitle}\nhttps://vizidot.app/album/${widget.albumTitle.toLowerCase().replaceAll(' ', '-')}',
-        subject: widget.albumTitle,
+      await Share.share(
+        'Check out this album: $title\nhttps://vizidot.app/album/${title.toLowerCase().replaceAll(' ', '-')}',
+        subject: title,
       );
-      
-      if (result.status == ShareResultStatus.success) {
-        debugPrint('Album shared successfully');
-      } else if (result.status == ShareResultStatus.dismissed) {
-        debugPrint('Share dialog dismissed');
-      }
     } catch (e) {
-      debugPrint('Error sharing album: $e');
-      // Show error to user if needed
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to share album: $e'),
-            duration: const Duration(seconds: 2),
-          ),
+          SnackBar(content: Text('Failed to share: $e'), duration: const Duration(seconds: 2)),
         );
       }
     }
@@ -64,38 +55,255 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    if (Get.isRegistered<AlbumDetailController>()) {
+      return _buildFromController(context);
+    }
+    return _buildLegacy(context);
+  }
+
+  Widget _buildFromController(BuildContext context) {
+    final controller = Get.find<AlbumDetailController>();
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return CupertinoPageScaffold(
+          child: CustomScrollView(
+            slivers: [
+              _navBar(context, title: 'Album'),
+              const SliverFillRemaining(
+                child: Center(child: CupertinoActivityIndicator()),
+              ),
+            ],
+          ),
+        );
+      }
+      if (controller.errorMessage.value.isNotEmpty) {
+        return CupertinoPageScaffold(
+          child: CustomScrollView(
+            slivers: [
+              _navBar(context, title: 'Album'),
+              SliverFillRemaining(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        controller.errorMessage.value,
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      CupertinoButton.filled(
+                        onPressed: controller.fetchAlbum,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      final album = controller.album!;
+      final coverUrl = album.coverImageUrl ?? '';
+      final title = album.title;
+      final releaseYear = album.releaseYear;
+      final trackCount = album.trackCount;
+      final totalDuration = album.totalDurationFormatted ?? '';
+
+      return CupertinoPageScaffold(
+        child: CustomScrollView(
+          slivers: [
+            _navBar(context, title: 'Album'),
+            SliverSafeArea(
+              top: false,
+              sliver: SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: assetOrNetworkImage(
+                                src: coverUrl,
+                                width: 86,
+                                height: 86,
+                                fit: BoxFit.cover,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            Positioned.fill(
+                              child: Center(
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    controller.isVideoAlbum
+                                        ? CupertinoIcons.play_fill
+                                        : CupertinoIcons.play_fill,
+                                    color: Colors.black,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                '${controller.isVideoAlbum ? "Video" : "Album"} / ${releaseYear ?? "—"}',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colors.onSurface.withOpacity(0.6),
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                '$trackCount ${trackCount == 1 ? "Track" : "Tracks"}${totalDuration.isNotEmpty ? " · $totalDuration" : ""}',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colors.onSurface.withOpacity(0.6),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          children: [
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              onPressed: _toggleFavorite,
+                              child: Icon(
+                                _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                                color: _isFavorite ? Colors.red : colors.onSurface,
+                                size: 20,
+                              ),
+                            ),
+                            // const SizedBox(height: 40),
+                            // GestureDetector(
+                            //   onTap: () => _shareAlbum(title),
+                            //   child: Icon(
+                            //     CupertinoIcons.share,
+                            //     color: colors.onSurface,
+                            //     size: 20,
+                            //   ),
+                            // ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    // const SizedBox(height: 20),
+                    // const SectionHeader(title: 'TRACK LIST'),
+                    // const SizedBox(height: 16),
+                  ]),
+                ),
+              ),
+            ),
+            if (controller.isVideoAlbum)
+              SliverSafeArea(
+                top: false,
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                  sliver: SliverToBoxAdapter(
+                    child: VideosSection(
+                      videos: controller.videoItems,
+                      onVideoTap: (video) {
+                        if (video.videoUrl.isNotEmpty) {
+                          Get.to(() => VideoWebView(url: video.videoUrl));
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverSafeArea(
+                top: false,
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                  sliver: SliverToBoxAdapter(
+                    child: TracksSection(
+                      tracks: controller.trackItems,
+                      onTrackTap: () {},
+                    ),
+                  ),
+                ),
+              ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _navBar(BuildContext context, {String title = 'Album'}) {
+    final colors = Theme.of(context).colorScheme;
+    return CupertinoSliverNavigationBar(
+      largeTitle: Text(title),
+      leading: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: () => Get.back(),
+        child: Container(
+          width: 35,
+          height: 35,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            CupertinoIcons.arrow_left,
+            color: colors.onSurface,
+            size: 18,
+          ),
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      border: null,
+      automaticallyImplyTitle: false,
+      automaticallyImplyLeading: false,
+    );
+  }
+
+  Widget _buildLegacy(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final tracks = widget.tracks ?? [];
 
     return CupertinoPageScaffold(
       child: CustomScrollView(
         slivers: [
-          // Navigation Bar with Large Title
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Album'),
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              onPressed: () => Get.back(),
-              child: Container(
-                width: 35,
-                height: 35,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  CupertinoIcons.arrow_left,
-                  color: colors.onSurface,
-                  size: 18,
-                ),
-              ),
-            ),
-            backgroundColor: Colors.transparent,
-            border: null,
-            automaticallyImplyTitle: false,
-            automaticallyImplyLeading: false,
-          ),
+          _navBar(context, title: 'Album'),
           SliverSafeArea(
             top: false,
             sliver: SliverPadding(
@@ -103,20 +311,19 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 20),
-                  // Album Info Section
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Album Art
                       Stack(
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
-                              widget.albumImage,
+                            child: assetOrNetworkImage(
+                              src: widget.albumImage ?? '',
                               width: 86,
                               height: 86,
                               fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           Positioned.fill(
@@ -139,41 +346,39 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                         ],
                       ),
                       const SizedBox(width: 16),
-                          // Album Details
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.albumTitle,
-                                  style: textTheme.headlineMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Album / ${widget.releaseYear ?? '2021'}',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: colors.onSurface.withOpacity(0.6),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  '${widget.songCount ?? 18} Songs - ${widget.totalDuration ?? '2h 20min'}',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: colors.onSurface.withOpacity(0.6),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.albumTitle ?? '',
+                              style: textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                      // Favorite and Share Icons
+                            const SizedBox(height: 10),
+                            Text(
+                              'Album / ${widget.releaseYear ?? "2021"}',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurface.withOpacity(0.6),
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '${widget.songCount ?? 0} Songs - ${widget.totalDuration ?? ""}',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colors.onSurface.withOpacity(0.6),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Column(
                         children: [
                           CupertinoButton(
@@ -181,16 +386,14 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                             minimumSize: Size.zero,
                             onPressed: _toggleFavorite,
                             child: Icon(
-                              _isFavorite
-                                  ? CupertinoIcons.heart_fill
-                                  : CupertinoIcons.heart,
+                              _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
                               color: _isFavorite ? Colors.red : colors.onSurface,
                               size: 20,
                             ),
                           ),
                           const SizedBox(height: 40),
                           GestureDetector(
-                            onTap: _shareAlbum,
+                            onTap: () => _shareAlbum(widget.albumTitle ?? ''),
                             child: Icon(
                               CupertinoIcons.share,
                               color: colors.onSurface,
@@ -202,14 +405,11 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // Track List Section
                   const SectionHeader(title: 'TRACK LIST'),
-                  // const SizedBox(height: 16),
                 ]),
               ),
             ),
           ),
-          // Track List with Images
           SliverSafeArea(
             top: false,
             sliver: SliverPadding(
@@ -217,21 +417,21 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final track = widget.tracks[index];
+                    final track = tracks[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Row(
                         children: [
-                          // Album Art with Play Button
                           Stack(
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.asset(
-                                  track.albumArt,
+                                child: assetOrNetworkImage(
+                                  src: track.albumArt,
                                   width: 56,
                                   height: 56,
                                   fit: BoxFit.cover,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                               Positioned.fill(
@@ -254,7 +454,6 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                             ],
                           ),
                           const SizedBox(width: 12),
-                          // Track Info
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,7 +480,6 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                               ],
                             ),
                           ),
-                          // Duration
                           Text(
                             track.duration,
                             style: textTheme.bodySmall?.copyWith(
@@ -293,17 +491,14 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                       ),
                     );
                   },
-                  childCount: widget.tracks.length,
+                  childCount: tracks.length,
                 ),
               ),
             ),
           ),
-          const SliverPadding(
-            padding: EdgeInsets.only(bottom: 24),
-          ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
         ],
       ),
     );
   }
 }
-
