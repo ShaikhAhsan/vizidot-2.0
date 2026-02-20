@@ -37,6 +37,7 @@ class ArtistDetailView extends StatefulWidget {
 class _ArtistDetailViewState extends State<ArtistDetailView> {
   bool _isFollowing = false;
   ContentTab _selectedTab = ContentTab.music;
+  bool _bioExpanded = false;
 
   /// Dummy data when not loading from API
   final List<AlbumItem> _dummyAlbums = [
@@ -204,9 +205,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
           ),
         ),
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
-            child: Column(
+          child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -267,20 +266,57 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Container(
-                  padding: EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  width: double.infinity,
-                  child: Text(
-                    description ?? 'Artist / Musician / Writer',
-                    style: textTheme.bodyMedium?.copyWith(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final bioText = description ?? 'Artist / Musician / Writer';
+                    final bioStyle = textTheme.bodyMedium?.copyWith(
                       color: colors.onSurface.withOpacity(0.6),
                       fontSize: 13,
-                    ),
-                    textAlign: TextAlign.center,
-                    softWrap: true,
-                    maxLines: 50,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    );
+                    final painter = TextPainter(
+                      text: TextSpan(text: bioText, style: bioStyle),
+                      textDirection: TextDirection.ltr,
+                      maxLines: 2,
+                    )..layout(maxWidth: constraints.maxWidth - 20);
+                    final exceedsTwoLines = painter.didExceedMaxLines;
+
+                    return Container(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      width: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: exceedsTwoLines
+                                ? () => setState(() => _bioExpanded = !_bioExpanded)
+                                : null,
+                            child: Text(
+                              bioText,
+                              style: bioStyle,
+                              textAlign: TextAlign.center,
+                              softWrap: true,
+                              maxLines: _bioExpanded ? 50 : 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (exceedsTwoLines) ...[
+                            const SizedBox(height: 4),
+                            GestureDetector(
+                              onTap: () => setState(() => _bioExpanded = !_bioExpanded),
+                              child: Text(
+                                _bioExpanded ? 'Show less' : 'Read more',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colors.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 FollowMessageButtons(
                   isFollowing: isFollowing,
@@ -301,14 +337,12 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 const SizedBox(height: 24),
                 if (_selectedTab == ContentTab.music) ...[
                   AlbumsSection(albums: albums),
-                  const SizedBox(height: 24),
                   TracksSection(
                     tracks: tracks,
                     onTrackTap: () {},
                   ),
                 ] else if (_selectedTab == ContentTab.video) ...[
                   AlbumsSection(albums: videoAlbums),
-                  const SizedBox(height: 24),
                   if (videos.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(20),
@@ -343,7 +377,6 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               ],
             ),
           ),
-        ),
       ],
     );
   }
