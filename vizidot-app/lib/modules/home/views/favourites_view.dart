@@ -54,7 +54,7 @@ class FavouritesView extends GetView<FavouritesController> {
                     ],
                     if (hasAlbums)
                       _TabChip(
-                        label: 'Albums',
+                        label: 'Album',
                         isSelected: controller.selectedType.value == 'album',
                         onTap: () => controller.setType('album'),
                       ),
@@ -94,7 +94,7 @@ class FavouritesView extends GetView<FavouritesController> {
                 }
                 final type = controller.selectedType.value;
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
                   itemCount: controller.items.length + (controller.hasMore.value ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index >= controller.items.length) {
@@ -154,42 +154,63 @@ class _TabChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colors.primary
-              : (isDark ? colors.surfaceContainerHigh : colors.surfaceContainerHighest),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final backgroundColor = isSelected
+        ? colors.primary
+        : (isDark ? colors.surfaceContainerHigh : colors.surfaceContainerHighest);
+
+    final borderColor = isSelected
+        ? Colors.transparent
+        : colors.outlineVariant;
+
+    final textColor =
+    isSelected ? colors.onPrimary : colors.onSurfaceVariant;
+
+    return AnimatedScale(
+      scale: isSelected ? 1.02 : 1.0,
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSelected
-                ? colors.primary
-                : colors.outline.withOpacity(0.2),
-            width: isSelected ? 0 : 1.2,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: colors.primary.withOpacity(0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-            fontSize: 14,
-            letterSpacing: 0.2,
-            color: isSelected ? colors.onPrimary : colors.onSurfaceVariant,
+          splashFactory: InkRipple.splashFactory,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: borderColor,
+                width: 1.2,
+              ),
+              boxShadow: isSelected
+                  ? [
+                BoxShadow(
+                  color: colors.primary.withOpacity(0.30),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ]
+                  : [],
+            ),
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOut,
+              style: theme.textTheme.labelLarge!.copyWith(
+                fontWeight:
+                isSelected ? FontWeight.w700 : FontWeight.w600,
+                letterSpacing: 0.3,
+                color: textColor,
+              ),
+              child: Text(label),
+            ),
           ),
         ),
       ),
