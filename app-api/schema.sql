@@ -293,6 +293,22 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------
+-- Table: user_favourites
+-- ------------------------------
+CREATE TABLE IF NOT EXISTS `user_favourites` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `entity_type` enum('album','track','video') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'album=album_id, track=audio_id, video=video_id',
+  `entity_id` int NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_user_favourite` (`user_id`,`entity_type`,`entity_id`),
+  KEY `idx_user_favourites_user` (`user_id`),
+  KEY `idx_user_favourites_entity` (`entity_type`,`entity_id`),
+  CONSTRAINT `fk_user_favourites_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------
 -- Table: video_tracks
 -- ------------------------------
 CREATE TABLE `video_tracks` (

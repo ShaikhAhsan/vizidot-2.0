@@ -33,6 +33,7 @@ const BrandingArtist = require('./BrandingArtist');
 const ShopArtist = require('./ShopArtist');
 const UserArtist = require('./UserArtist');
 const ArtistFollower = require('./ArtistFollower');
+const UserFavourite = require('./UserFavourite');
 
 // Define associations
 const defineAssociations = () => {
@@ -42,6 +43,10 @@ const defineAssociations = () => {
   User.hasMany(Review, { foreignKey: 'user_id', as: 'reviews' });
   User.hasMany(Cart, { foreignKey: 'user_id', as: 'carts' });
   
+  // User favourites (albums, tracks, videos)
+  User.hasMany(UserFavourite, { foreignKey: 'user_id', as: 'favourites' });
+  UserFavourite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
   // User-Artist associations (many-to-many)
   User.belongsToMany(Artist, {
     through: UserArtist,
@@ -313,6 +318,7 @@ module.exports = {
   BrandingArtist,
   ShopArtist,
   UserArtist,
-  ArtistFollower
+  ArtistFollower,
+  UserFavourite
 };
 

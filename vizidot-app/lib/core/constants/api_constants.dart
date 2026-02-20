@@ -31,6 +31,11 @@ class ApiConstants {
   /// Album detail (public). Replace :id with album id.
   static String albumDetailPath(int albumId) => '$musicSegment/albums/$albumId';
 
+  /// Favourites (auth required).
+  static const String favouritesPath = '$musicSegment/favourites';
+  static String favouriteCheckPath() => '$musicSegment/favourites/check';
+  static String favouriteRemovePath(String type, int id) => '$musicSegment/favourites/$type/$id';
+
   /// Health check (no version prefix on backend).
   static const String healthPath = 'health';
 }

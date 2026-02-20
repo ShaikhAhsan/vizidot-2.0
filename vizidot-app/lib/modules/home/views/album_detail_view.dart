@@ -17,12 +17,6 @@ class AlbumDetailView extends StatefulWidget {
 }
 
 class _AlbumDetailViewState extends State<AlbumDetailView> {
-  bool _isFavorite = false;
-
-  void _toggleFavorite() {
-    setState(() => _isFavorite = !_isFavorite);
-  }
-
   Future<void> _shareAlbum(String title) async {
     try {
       await Share.share(
@@ -181,16 +175,26 @@ class _AlbumDetailViewState extends State<AlbumDetailView> {
                         const SizedBox(width: 8),
                         Column(
                           children: [
-                            CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              onPressed: _toggleFavorite,
-                              child: Icon(
-                                _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-                                color: _isFavorite ? Colors.red : colors.onSurface,
-                                size: 20,
-                              ),
-                            ),
+                            Obx(() {
+                              final loading = controller.isFavouriteLoading.value;
+                              final fav = controller.isFavourite.value;
+                              return CupertinoButton(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                onPressed: loading ? null : () => controller.toggleFavourite(),
+                                child: loading
+                                    ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: const CupertinoActivityIndicator(),
+                                      )
+                                    : Icon(
+                                        fav ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                                        color: fav ? Colors.red : colors.onSurface,
+                                        size: 20,
+                                      ),
+                              );
+                            }),
                             // const SizedBox(height: 40),
                             // GestureDetector(
                             //   onTap: () => _shareAlbum(title),

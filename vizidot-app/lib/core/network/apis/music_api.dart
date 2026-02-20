@@ -116,4 +116,72 @@ class MusicApi extends BaseApi {
       return false;
     }
   }
+
+  // ---------- Favourites (album, track, video) — private ----------
+
+  /// Check if album/track/video is in user's favourites. **Private.**
+  Future<bool> checkFavourite(String entityType, int entityId) async {
+    try {
+      final path = '${ApiConstants.favouriteCheckPath()}?type=$entityType&id=$entityId';
+      final response = await execute(
+        'GET',
+        path,
+        visibility: ApiVisibility.private,
+      );
+      if (response.statusCode != 200) return false;
+      final map = _dataFromResponse(response);
+      final data = map ?? jsonDecode(response.body) as Map<String, dynamic>?;
+      return data?['favourited'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Add album, track, or video to favourites. **Private.** [entityType] = album | track | video.
+  Future<bool> addFavourite(String entityType, int entityId) async {
+    try {
+      final response = await execute(
+        'POST',
+        ApiConstants.favouritesPath,
+        body: {'entityType': entityType, 'entityId': entityId},
+        visibility: ApiVisibility.private,
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Remove from favourites. **Private.**
+  Future<bool> removeFavourite(String entityType, int entityId) async {
+    try {
+      final path = ApiConstants.favouriteRemovePath(entityType, entityId);
+      final response = await execute(
+        'DELETE',
+        path,
+        visibility: ApiVisibility.private,
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// List user's favourites. Optional [type] = album | track | video. **Private.**
+  Future<List<Map<String, dynamic>>> getFavourites({String? type}) async {
+    try {
+      final path = type != null ? '${ApiConstants.favouritesPath}?type=$type' : ApiConstants.favouritesPath;
+      final response = await execute(
+        'GET',
+        path,
+        visibility: ApiVisibility.private,
+      );
+      if (response.statusCode != 200) return [];
+      final map = _dataFromResponse(response);
+      final list = map?['favourites'] as List<dynamic>?;
+      return list?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
 }

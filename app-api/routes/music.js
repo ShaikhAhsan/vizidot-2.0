@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop } = require('../models');
+const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop, UserFavourite } = require('../models');
 const { authenticateToken, optionalAuth } = require('../middleware/authWithRoles');
 
 function formatDuration(seconds) {
@@ -12,6 +12,8 @@ function formatDuration(seconds) {
 }
 
 // Confirm music router is mounted: GET /api/v1/music
+const VALID_ENTITY_TYPES = ['album', 'track', 'video'];
+
 router.get('/', (req, res) => {
   res.json({
     api: 'app',
@@ -20,7 +22,11 @@ router.get('/', (req, res) => {
       'GET /artists/profile/:id',
       'GET /albums/:id',
       'POST /artists/:id/follow',
-      'DELETE /artists/:id/follow'
+      'DELETE /artists/:id/follow',
+      'POST /favourites',
+      'DELETE /favourites/:type/:id',
+      'GET /favourites',
+      'GET /favourites/check'
     ]
   });
 });
@@ -296,6 +302,136 @@ router.delete('/artists/:id/follow', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Unfollow artist error:', err);
     return res.status(500).json({ success: false, error: 'Could not unfollow artist' });
+  }
+});
+
+// ---------- Favourites (albums, tracks, videos) — require auth ----------
+
+/**
+ * POST /api/v1/music/favourites
+ * Add album, track (audio), or video to user's favourites.
+ * Body: { entityType: 'album'|'track'|'video', entityId: number }
+ */
+router.post('/favourites', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id || req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const { entityType, entityId } = req.body || {};
+    if (!entityType || !VALID_ENTITY_TYPES.includes(String(entityType).toLowerCase())) {
+      return res.status(400).json({ success: false, error: 'Invalid entityType; use album, track, or video' });
+    }
+    const id = parseInt(entityId, 10);
+    if (Number.isNaN(id) || id < 1) {
+      return res.status(400).json({ success: false, error: 'Invalid entityId' });
+    }
+    const type = String(entityType).toLowerCase();
+    const [row, created] = await UserFavourite.findOrCreate({
+      where: { user_id: userId, entity_type: type, entity_id: id },
+      defaults: { user_id: userId, entity_type: type, entity_id: id }
+    });
+    return res.status(created ? 201 : 200).json({
+      success: true,
+      message: created ? 'Added to favourites' : 'Already in favourites',
+      data: { favourited: true }
+    });
+  } catch (err) {
+    console.error('Add favourite error:', err.message, err.sql || '');
+    return res.status(500).json({ success: false, error: 'Could not add favourite' });
+  }
+});
+
+/**
+ * DELETE /api/v1/music/favourites/:type/:id
+ * Remove album, track, or video from user's favourites.
+ */
+router.delete('/favourites/:type/:id', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id || req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const type = String(req.params.type || '').toLowerCase();
+    const id = parseInt(req.params.id, 10);
+    if (!VALID_ENTITY_TYPES.includes(type) || Number.isNaN(id) || id < 1) {
+      return res.status(400).json({ success: false, error: 'Invalid type or id' });
+    }
+    const deleted = await UserFavourite.destroy({
+      where: { user_id: userId, entity_type: type, entity_id: id }
+    });
+    return res.status(200).json({
+      success: true,
+      message: deleted ? 'Removed from favourites' : 'Was not in favourites',
+      data: { favourited: false }
+    });
+  } catch (err) {
+    console.error('Remove favourite error:', err);
+    return res.status(500).json({ success: false, error: 'Could not remove favourite' });
+  }
+});
+
+/**
+ * GET /api/v1/music/favourites/check?type=album&id=1
+ * Check if current user has this album/track/video in favourites.
+ * Must be defined before GET /favourites so "check" is not matched as :type.
+ */
+router.get('/favourites/check', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id || req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const type = req.query.type ? String(req.query.type).toLowerCase() : null;
+    const id = req.query.id != null ? parseInt(req.query.id, 10) : NaN;
+    if (!type || !VALID_ENTITY_TYPES.includes(type) || Number.isNaN(id) || id < 1) {
+      return res.status(400).json({ success: false, error: 'Query type and id required (e.g. type=album&id=1)' });
+    }
+    const row = await UserFavourite.findOne({
+      where: { user_id: userId, entity_type: type, entity_id: id }
+    });
+    return res.json({
+      success: true,
+      data: { favourited: !!row }
+    });
+  } catch (err) {
+    console.error('Check favourite error:', err);
+    return res.status(500).json({ success: false, error: 'Could not check favourite' });
+  }
+});
+
+/**
+ * GET /api/v1/music/favourites
+ * List user's favourites. Query: ?type=album|track|video (optional).
+ */
+router.get('/favourites', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id || req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const type = req.query.type ? String(req.query.type).toLowerCase() : null;
+    const where = { user_id: userId };
+    if (type && VALID_ENTITY_TYPES.includes(type)) where.entity_type = type;
+    const list = await UserFavourite.findAll({
+      where,
+      order: [['created_at', 'DESC']],
+      attributes: ['id', 'entity_type', 'entity_id', 'created_at']
+    });
+    return res.json({
+      success: true,
+      data: {
+        favourites: list.map((f) => ({
+          id: f.id,
+          entityType: f.entity_type,
+          entityId: f.entity_id,
+          createdAt: f.created_at
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('List favourites error:', err);
+    return res.status(500).json({ success: false, error: 'Could not list favourites' });
   }
 });
 
