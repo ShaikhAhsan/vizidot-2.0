@@ -17,8 +17,13 @@ class ApiConstants {
   static String artistByIdPath(int artistId) =>
       '$musicSegment/artists/$artistId';
 
-  /// List artists (private).
+  /// List artists with pagination. Public. Query: limit, offset.
   static const String artistsPath = '$musicSegment/artists';
+  static String artistsListPath(int limit, int offset) =>
+      '$musicSegment/artists?limit=$limit&offset=$offset';
+
+  /// Save logged-in user's selected artist ids (follow). Auth required. POST body: artistIds.
+  static const String artistsSelectedPath = '$musicSegment/artists/selected';
 
   /// Follow artist (auth required). Replace :id with artist id.
   static String artistFollowPath(int artistId) =>

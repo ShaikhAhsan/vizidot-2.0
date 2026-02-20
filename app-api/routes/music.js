@@ -23,6 +23,8 @@ router.get('/', (req, res) => {
       'GET /home',
       'GET /categories',
       'POST /categories/selected',
+      'GET /artists',
+      'POST /artists/selected',
       'GET /audio-tracks',
       'GET /artists/profile/:id',
       'GET /albums/:id',
@@ -669,6 +671,70 @@ router.get('/albums/:id', async (req, res) => {
   } catch (err) {
     console.error('Album detail error:', err);
     return res.status(500).json({ success: false, error: 'Could not load album' });
+  }
+});
+
+/**
+ * GET /api/v1/music/artists
+ * List active artists with pagination. Public. Query: limit (default 20, max 100), offset (default 0).
+ * Returns id, name, imageUrl for onboarding/selection UI.
+ */
+router.get('/artists', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 20), 100);
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const { rows, count } = await Artist.findAndCountAll({
+      where: { is_active: true },
+      order: [['name', 'ASC'], ['artist_id', 'ASC']],
+      attributes: ['artist_id', 'name', 'image_url'],
+      limit,
+      offset
+    });
+    const artists = rows.map((r) => ({
+      id: r.artist_id,
+      name: r.name ?? '',
+      imageUrl: r.image_url ?? null
+    }));
+    return res.json({
+      success: true,
+      data: { artists, total: count, limit, offset }
+    });
+  } catch (err) {
+    console.error('List artists error:', err);
+    return res.status(500).json({ success: false, error: 'Could not list artists' });
+  }
+});
+
+/**
+ * POST /api/v1/music/artists/selected
+ * Save logged-in user's selected artist ids (follow those artists). Body: { artistIds: number[] }. Auth required.
+ * Creates follow records for each id; existing follows are left as-is.
+ */
+router.post('/artists/selected', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user?.id ?? req.userId ?? null;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+    const artistIds = req.body?.artistIds;
+    if (!Array.isArray(artistIds)) {
+      return res.status(400).json({ success: false, error: 'artistIds must be an array' });
+    }
+    const ids = [...new Set(artistIds)].filter((id) => Number.isInteger(id) && id > 0);
+    let followed = 0;
+    for (const artistId of ids) {
+      const artist = await Artist.findByPk(artistId, { attributes: ['artist_id', 'is_active'] });
+      if (!artist || !artist.is_active) continue;
+      const [_, created] = await ArtistFollower.findOrCreate({
+        where: { user_id: userId, artist_id: artistId },
+        defaults: { user_id: userId, artist_id: artistId }
+      });
+      if (created) followed += 1;
+    }
+    return res.json({ success: true, data: { artistIds: ids, followed } });
+  } catch (err) {
+    console.error('Save selected artists error:', err);
+    return res.status(500).json({ success: false, error: 'Could not save artist selection' });
   }
 });
 

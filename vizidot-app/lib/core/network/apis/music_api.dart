@@ -91,6 +91,40 @@ class MusicApi extends BaseApi {
     }
   }
 
+  /// GET artists list with pagination. Public. Returns artists, total, limit, offset.
+  Future<ArtistListResponse?> getArtists({int limit = 20, int offset = 0}) async {
+    try {
+      final path = ApiConstants.artistsListPath(limit, offset);
+      final response = await execute(
+        'GET',
+        path,
+        visibility: ApiVisibility.public,
+      );
+      if (response.statusCode != 200) return null;
+      final Map<String, dynamic>? data = _dataFromResponse(response);
+      if (data == null) return null;
+      return ArtistListResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// POST save selected artist ids for the logged-in user (follow those artists). **Private** — requires token.
+  /// Call when user taps Next on artists screen. Skip should not call this.
+  Future<bool> saveSelectedArtists(List<int> artistIds) async {
+    try {
+      final response = await execute(
+        'POST',
+        ApiConstants.artistsSelectedPath,
+        body: {'artistIds': artistIds},
+        visibility: ApiVisibility.private,
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// GET album detail (public). Returns album info + tracks (audio or video by album_type).
   Future<AlbumDetailResponse?> getAlbumDetail(int albumId) async {
     try {
@@ -421,6 +455,48 @@ class MusicCategoryItem {
       slug: json['slug'] as String? ?? '',
       imageUrl: json['imageUrl'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+/// Response from GET /artists (paginated list).
+class ArtistListResponse {
+  ArtistListResponse({
+    required this.artists,
+    required this.total,
+    required this.limit,
+    required this.offset,
+  });
+  final List<ArtistListItem> artists;
+  final int total;
+  final int limit;
+  final int offset;
+
+  factory ArtistListResponse.fromJson(Map<String, dynamic> json) {
+    final list = json['artists'] as List<dynamic>? ?? [];
+    return ArtistListResponse(
+      artists: list
+          .map((e) => ArtistListItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      limit: (json['limit'] as num?)?.toInt() ?? 20,
+      offset: (json['offset'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+/// Single artist in list (id, name, imageUrl).
+class ArtistListItem {
+  ArtistListItem({required this.id, required this.name, this.imageUrl});
+  final int id;
+  final String name;
+  final String? imageUrl;
+
+  factory ArtistListItem.fromJson(Map<String, dynamic> json) {
+    return ArtistListItem(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
     );
   }
 }
