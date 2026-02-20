@@ -168,20 +168,37 @@ class MusicApi extends BaseApi {
   }
 
   /// List user's favourites. Optional [type] = album | track | video. **Private.**
-  Future<List<Map<String, dynamic>>> getFavourites({String? type}) async {
+  /// [limit] and [offset] for pagination; [enrich] returns title, albumArt, artistName, etc.
+  Future<FavouritesListResponse> getFavourites({
+    String? type,
+    int? limit,
+    int offset = 0,
+    bool enrich = false,
+  }) async {
     try {
-      final path = type != null ? '${ApiConstants.favouritesPath}?type=$type' : ApiConstants.favouritesPath;
+      final q = <String>[];
+      if (type != null) q.add('type=$type');
+      if (limit != null) q.add('limit=$limit');
+      if (offset > 0) q.add('offset=$offset');
+      if (enrich) q.add('enrich=1');
+      final path = q.isEmpty ? ApiConstants.favouritesPath : '${ApiConstants.favouritesPath}?${q.join('&')}';
       final response = await execute(
         'GET',
         path,
         visibility: ApiVisibility.private,
       );
-      if (response.statusCode != 200) return [];
+      if (response.statusCode != 200) {
+        return FavouritesListResponse(favourites: [], total: 0, limit: limit ?? 0, offset: offset);
+      }
       final map = _dataFromResponse(response);
       final list = map?['favourites'] as List<dynamic>?;
-      return list?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
+      final total = (map?['total'] as num?)?.toInt() ?? 0;
+      final limitVal = (map?['limit'] as num?)?.toInt() ?? limit ?? 0;
+      final offsetVal = (map?['offset'] as num?)?.toInt() ?? offset;
+      final favourites = list?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [];
+      return FavouritesListResponse(favourites: favourites, total: total, limit: limitVal, offset: offsetVal);
     } catch (_) {
-      return [];
+      return FavouritesListResponse(favourites: [], total: 0, limit: limit ?? 0, offset: offset);
     }
   }
 
@@ -202,14 +219,14 @@ class MusicApi extends BaseApi {
     }
   }
 
-  /// Home API: top audios and top videos (from play history). Public. Use this for the home screen.
+  /// Home API: top audios and top videos; when token is sent, includes favouriteAudios, favouriteVideos, favouriteAlbums.
   Future<HomeTopResponse?> getHomeTop({int limit = 10}) async {
     try {
       final path = ApiConstants.homePath(limit);
       final response = await execute(
         'GET',
         path,
-        visibility: ApiVisibility.public,
+        visibility: ApiVisibility.optional,
       );
       if (response.statusCode != 200) return null;
       final map = _dataFromResponse(response);
@@ -223,7 +240,25 @@ class MusicApi extends BaseApi {
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [];
-      return HomeTopResponse(topAudios: topAudios, topVideos: topVideos);
+      final favouriteAudios = (data['favouriteAudios'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [];
+      final favouriteVideos = (data['favouriteVideos'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [];
+      final favouriteAlbums = (data['favouriteAlbums'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [];
+      return HomeTopResponse(
+        topAudios: topAudios,
+        topVideos: topVideos,
+        favouriteAudios: favouriteAudios,
+        favouriteVideos: favouriteVideos,
+        favouriteAlbums: favouriteAlbums,
+      );
     } catch (_) {
       return null;
     }
@@ -248,9 +283,32 @@ class MusicApi extends BaseApi {
   }
 }
 
-/// Response from GET /api/v1/music/home.
+/// Response from GET /api/v1/music/home. Favourite lists are present when user is logged in.
 class HomeTopResponse {
-  HomeTopResponse({required this.topAudios, required this.topVideos});
+  HomeTopResponse({
+    required this.topAudios,
+    required this.topVideos,
+    this.favouriteAudios = const [],
+    this.favouriteVideos = const [],
+    this.favouriteAlbums = const [],
+  });
   final List<Map<String, dynamic>> topAudios;
   final List<Map<String, dynamic>> topVideos;
+  final List<Map<String, dynamic>> favouriteAudios;
+  final List<Map<String, dynamic>> favouriteVideos;
+  final List<Map<String, dynamic>> favouriteAlbums;
+}
+
+/// Response from GET /api/v1/music/favourites with limit/offset/enrich.
+class FavouritesListResponse {
+  FavouritesListResponse({
+    required this.favourites,
+    required this.total,
+    required this.limit,
+    required this.offset,
+  });
+  final List<Map<String, dynamic>> favourites;
+  final int total;
+  final int limit;
+  final int offset;
 }

@@ -34,6 +34,22 @@ class MediaItem {
   });
 }
 
+class FavouriteAlbumItem {
+  final String title;
+  final String artist;
+  final String? imageUrl;
+  final int? albumId;
+  final int? artistId;
+
+  FavouriteAlbumItem({
+    required this.title,
+    required this.artist,
+    this.imageUrl,
+    this.albumId,
+    this.artistId,
+  });
+}
+
 class HomeController extends GetxController {
   final RxInt counter = 0.obs;
   final RxInt selectedIndex = 0.obs;
@@ -48,20 +64,32 @@ class HomeController extends GetxController {
   /// True while loading Home API.
   final isLoadingTop = true.obs;
 
+  // Favourites (when logged in): top 10 per type
+  final favouriteAudioItems = <MediaItem>[].obs;
+  final favouriteVideoItems = <MediaItem>[].obs;
+  final favouriteAlbumItems = <FavouriteAlbumItem>[].obs;
+  final isLoadingFavourites = false.obs;
+
   @override
   void onInit() {
     super.onInit();
     loadTopFromApi();
   }
 
-  /// Load top audio and video from Home API (GET /api/v1/music/home). Replaces lists with API data only.
+  /// Load top audio and video from Home API (GET /api/v1/music/home). When logged in, favourites come from same response.
   Future<void> loadTopFromApi() async {
     isLoadingTop.value = true;
     topAudioItems.clear();
     topVideoItems.clear();
+    favouriteAudioItems.clear();
+    favouriteVideoItems.clear();
+    favouriteAlbumItems.clear();
     try {
       final config = AppConfig.fromEnv();
-      final api = MusicApi(baseUrl: config.baseUrl);
+      final token = Get.isRegistered<AuthService>()
+          ? await Get.find<AuthService>().getIdToken()
+          : null;
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
       final home = await api.getHomeTop(limit: 10);
 
       if (home != null) {
@@ -103,12 +131,101 @@ class HomeController extends GetxController {
             }),
           );
         }
+        // Favourites from Home API (only when logged in)
+        for (final m in home.favouriteAudios) {
+          favouriteAudioItems.add(MediaItem(
+            title: m['title'] as String? ?? '',
+            artist: m['artistName'] as String? ?? '',
+            asset: _placeholderAsset,
+            imageUrl: m['albumArt'] as String?,
+            audioUrl: m['audioUrl'] as String?,
+            artistId: (m['artistId'] as num?)?.toInt(),
+            trackId: (m['entityId'] as num?)?.toInt(),
+          ));
+        }
+        final heights = [200.0, 280.0, 240.0, 220.0, 260.0, 230.0];
+        for (var i = 0; i < home.favouriteVideos.length; i++) {
+          final m = home.favouriteVideos[i];
+          favouriteVideoItems.add(MediaItem(
+            title: m['title'] as String? ?? '',
+            artist: m['artistName'] as String? ?? '',
+            asset: _placeholderAsset,
+            imageHeight: heights[i % heights.length],
+            imageUrl: m['albumArt'] as String?,
+            videoUrl: m['videoUrl'] as String?,
+            artistId: (m['artistId'] as num?)?.toInt(),
+            videoId: (m['entityId'] as num?)?.toInt(),
+          ));
+        }
+        for (final m in home.favouriteAlbums) {
+          favouriteAlbumItems.add(FavouriteAlbumItem(
+            title: m['title'] as String? ?? '',
+            artist: m['artistName'] as String? ?? '',
+            imageUrl: m['albumArt'] as String?,
+            albumId: (m['entityId'] as num?)?.toInt(),
+            artistId: (m['artistId'] as num?)?.toInt(),
+          ));
+        }
       }
     } catch (_) {
       // Leave lists empty on error
     } finally {
       isLoadingTop.value = false;
     }
+  }
+
+  /// Load top 10 favourites per type (audio, video, album) when user is logged in.
+  Future<void> loadFavourites() async {
+    if (!Get.isRegistered<AuthService>()) return;
+    final auth = Get.find<AuthService>();
+    final token = await auth.getIdToken();
+    if (token == null || token.isEmpty) return;
+    isLoadingFavourites.value = true;
+    favouriteAudioItems.clear();
+    favouriteVideoItems.clear();
+    favouriteAlbumItems.clear();
+    try {
+      final config = AppConfig.fromEnv();
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
+      final heights = [200.0, 280.0, 240.0, 220.0, 260.0, 230.0];
+      final audioRes = await api.getFavourites(type: 'track', limit: 10, enrich: true);
+      final videoRes = await api.getFavourites(type: 'video', limit: 10, enrich: true);
+      final albumRes = await api.getFavourites(type: 'album', limit: 10, enrich: true);
+      for (final m in audioRes.favourites) {
+        favouriteAudioItems.add(MediaItem(
+          title: m['title'] as String? ?? '',
+          artist: m['artistName'] as String? ?? '',
+          asset: _placeholderAsset,
+          imageUrl: m['albumArt'] as String?,
+          audioUrl: m['audioUrl'] as String?,
+          artistId: (m['artistId'] as num?)?.toInt(),
+          trackId: (m['entityId'] as num?)?.toInt(),
+        ));
+      }
+      for (var i = 0; i < videoRes.favourites.length; i++) {
+        final m = videoRes.favourites[i];
+        favouriteVideoItems.add(MediaItem(
+          title: m['title'] as String? ?? '',
+          artist: m['artistName'] as String? ?? '',
+          asset: _placeholderAsset,
+          imageHeight: heights[i % heights.length],
+          imageUrl: m['albumArt'] as String?,
+          videoUrl: m['videoUrl'] as String?,
+          artistId: (m['artistId'] as num?)?.toInt(),
+          videoId: (m['entityId'] as num?)?.toInt(),
+        ));
+      }
+      for (final m in albumRes.favourites) {
+        favouriteAlbumItems.add(FavouriteAlbumItem(
+          title: m['title'] as String? ?? '',
+          artist: m['artistName'] as String? ?? '',
+          imageUrl: m['albumArt'] as String?,
+          albumId: (m['entityId'] as num?)?.toInt(),
+          artistId: (m['artistId'] as num?)?.toInt(),
+        ));
+      }
+    } catch (_) {}
+    isLoadingFavourites.value = false;
   }
 
   void increment() {

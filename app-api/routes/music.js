@@ -276,15 +276,38 @@ async function getLatestVideoItemsRaw(limit) {
 }
 
 /**
- * GET /api/v1/music/home
- * Home API: one top song per album (most played in that album; if 0 plays, any song from album).
- * Same for videos: one top video per video album. Fallback to latest tracks/videos when no albums. Public.
+ * Fetch user's favourites by type (track|video|album), limit 10, enriched. Returns [] when not logged in or on error.
  */
-router.get('/home', async (req, res) => {
+async function getFavouritesForUser(userId, type, limit = 10) {
+  if (!userId) return [];
+  try {
+    const list = await UserFavourite.findAll({
+      where: { user_id: userId, entity_type: type },
+      order: [['created_at', 'DESC']],
+      attributes: ['id', 'entity_type', 'entity_id', 'created_at'],
+      limit: Math.min(limit, 50)
+    });
+    return enrichFavouritesList(list);
+  } catch (err) {
+    console.error('getFavouritesForUser error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * GET /api/v1/music/home
+ * Home API: one top song per album (most played); same for videos. Fallback to latest when no albums.
+ * When user is logged in (optionalAuth), includes favouriteAudios, favouriteVideos, favouriteAlbums (top 10 each).
+ */
+router.get('/home', optionalAuth, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    const userId = req.user?.id ?? req.userId ?? null;
     let topAudios = [];
     let topVideos = [];
+    let favouriteAudios = [];
+    let favouriteVideos = [];
+    let favouriteAlbums = [];
 
     const [audioAlbumIds, videoAlbumIds] = await Promise.all([
       getTopAudioAlbumIds(limit),
@@ -310,11 +333,22 @@ router.get('/home', async (req, res) => {
       topVideos = await getLatestVideoItemsRaw(limit);
     }
 
+    if (userId) {
+      [favouriteAudios, favouriteVideos, favouriteAlbums] = await Promise.all([
+        getFavouritesForUser(userId, 'track', 10),
+        getFavouritesForUser(userId, 'video', 10),
+        getFavouritesForUser(userId, 'album', 10)
+      ]);
+    }
+
     const payload = {
       success: true,
       data: {
         topAudios,
-        topVideos
+        topVideos,
+        favouriteAudios,
+        favouriteVideos,
+        favouriteAlbums
       }
     };
     if (topAudios.length === 0 && topVideos.length === 0) {
@@ -821,8 +855,74 @@ router.get('/favourites/check', authenticateToken, async (req, res) => {
 });
 
 /**
+ * Enrich a list of favourites with full entity details (album/track/video + artist).
+ */
+async function enrichFavouritesList(list) {
+  if (!list || list.length === 0) return [];
+  const albums = list.filter((f) => f.entity_type === 'album').map((f) => f.entity_id);
+  const tracks = list.filter((f) => f.entity_type === 'track').map((f) => f.entity_id);
+  const videos = list.filter((f) => f.entity_type === 'video').map((f) => f.entity_id);
+
+  const [albumRows, trackRows, videoRows] = await Promise.all([
+    albums.length > 0 ? Album.findAll({ where: { album_id: albums }, include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name'] }] }) : [],
+    tracks.length > 0 ? AudioTrack.unscoped().findAll({ where: { audio_id: tracks }, include: [{ model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url'], include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name'] }] }] }) : [],
+    videos.length > 0 ? VideoTrack.unscoped().findAll({ where: { video_id: videos }, include: [{ model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url'], include: [{ model: Artist, as: 'artist', attributes: ['artist_id', 'name'] }] }] }) : []
+  ]);
+
+  const albumById = new Map(albumRows.map((a) => [a.album_id, a]));
+  const trackById = new Map(trackRows.map((t) => [t.audio_id, t]));
+  const videoById = new Map(videoRows.map((v) => [v.video_id, v]));
+
+  return list.map((f) => {
+    const base = { id: f.id, entityType: f.entity_type, entityId: f.entity_id, createdAt: f.created_at };
+    if (f.entity_type === 'album') {
+      const a = albumById.get(f.entity_id);
+      if (!a) return base;
+      return {
+        ...base,
+        title: a.title,
+        artistName: a.artist?.name ?? '',
+        albumArt: a.cover_image_url ?? null,
+        artistId: a.artist_id ?? null
+      };
+    }
+    if (f.entity_type === 'track') {
+      const t = trackById.get(f.entity_id);
+      if (!t) return base;
+      const album = t.album;
+      return {
+        ...base,
+        title: t.title,
+        artistName: album?.artist?.name ?? '',
+        albumArt: (t.thumbnail_url || album?.cover_image_url) ?? null,
+        audioUrl: t.audio_url ?? null,
+        durationFormatted: formatDuration(t.duration),
+        artistId: album?.artist?.artist_id ?? null,
+        albumId: t.album_id
+      };
+    }
+    if (f.entity_type === 'video') {
+      const v = videoById.get(f.entity_id);
+      if (!v) return base;
+      const album = v.album;
+      return {
+        ...base,
+        title: v.title,
+        artistName: album?.artist?.name ?? '',
+        albumArt: (v.thumbnail_url || album?.cover_image_url) ?? null,
+        videoUrl: v.video_url ?? null,
+        durationFormatted: formatDuration(v.duration),
+        artistId: album?.artist?.artist_id ?? null,
+        albumId: v.album_id
+      };
+    }
+    return base;
+  });
+}
+
+/**
  * GET /api/v1/music/favourites
- * List user's favourites. Query: ?type=album|track|video (optional).
+ * List user's favourites. Query: ?type=album|track|video (optional), ?limit=, ?offset=, ?enrich=1.
  */
 router.get('/favourites', authenticateToken, async (req, res) => {
   try {
@@ -831,22 +931,36 @@ router.get('/favourites', authenticateToken, async (req, res) => {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
     const type = req.query.type ? String(req.query.type).toLowerCase() : null;
+    const limit = Math.min(Math.max(0, parseInt(req.query.limit, 10) || 0), 100) || null;
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const enrich = req.query.enrich === '1' || req.query.enrich === 'true';
+
     const where = { user_id: userId };
     if (type && VALID_ENTITY_TYPES.includes(type)) where.entity_type = type;
     const list = await UserFavourite.findAll({
       where,
       order: [['created_at', 'DESC']],
-      attributes: ['id', 'entity_type', 'entity_id', 'created_at']
+      attributes: ['id', 'entity_type', 'entity_id', 'created_at'],
+      ...(limit != null && { limit }),
+      ...(offset > 0 && { offset })
     });
+
+    const favourites = enrich ? await enrichFavouritesList(list) : list.map((f) => ({
+      id: f.id,
+      entityType: f.entity_type,
+      entityId: f.entity_id,
+      createdAt: f.created_at
+    }));
+
+    const total = await UserFavourite.count({ where });
+
     return res.json({
       success: true,
       data: {
-        favourites: list.map((f) => ({
-          id: f.id,
-          entityType: f.entity_type,
-          entityId: f.entity_id,
-          createdAt: f.created_at
-        }))
+        favourites,
+        total,
+        limit: limit ?? total,
+        offset
       }
     });
   } catch (err) {
