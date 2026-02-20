@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { Artist, ArtistFollower } = require('../models');
+const { Op } = require('sequelize');
+const { Artist, ArtistFollower, Album, AudioTrack, ArtistShop } = require('../models');
 const { authenticateToken } = require('../middleware/authWithRoles');
+
+function formatDuration(seconds) {
+  if (seconds == null || isNaN(seconds)) return null;
+  const m = Math.floor(Number(seconds) / 60);
+  const s = Math.floor(Number(seconds) % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 // Confirm music router is mounted: GET /api/v1/music
 router.get('/', (req, res) => {
@@ -9,10 +17,89 @@ router.get('/', (req, res) => {
     api: 'app',
     module: 'music',
     endpoints: [
+      'GET /artists/profile/:id',
       'POST /artists/:id/follow',
       'DELETE /artists/:id/follow'
     ]
   });
+});
+
+/**
+ * GET /api/v1/music/artists/profile/:id
+ * Public artist profile: artist, albums, tracks. No auth required.
+ */
+router.get('/artists/profile/:id', async (req, res) => {
+  try {
+    const artistId = parseInt(req.params.id, 10);
+    if (Number.isNaN(artistId) || artistId < 1) {
+      return res.status(400).json({ success: false, error: 'Invalid artist id' });
+    }
+
+    const artist = await Artist.findByPk(artistId, {
+      include: [{ model: ArtistShop, as: 'shop', required: false }]
+    });
+    if (!artist || !artist.is_active) {
+      return res.status(404).json({ success: false, error: 'Artist not found' });
+    }
+
+    const followersCount = await ArtistFollower.count({ where: { artist_id: artistId } });
+    const followingCount = 0; // optional: count artists this user follows; not in schema for "artist follows X"
+
+    const albums = await Album.findAll({
+      where: { artist_id: artistId, is_active: true },
+      order: [['release_date', 'DESC'], ['album_id', 'ASC']]
+    });
+    const albumIds = albums.map((a) => a.album_id);
+    const audioTracks = albumIds.length
+      ? await AudioTrack.findAll({
+          where: { album_id: { [Op.in]: albumIds } },
+          order: [['album_id', 'ASC'], ['track_number', 'ASC'], ['audio_id', 'ASC']]
+        })
+      : [];
+
+    const artistName = artist.name || '';
+    const payload = {
+      success: true,
+      data: {
+        artist: {
+          id: artist.artist_id,
+          name: artistName,
+          bio: artist.bio ?? null,
+          imageUrl: artist.image_url ?? null,
+          followersCount,
+          followingCount,
+          shopId: artist.shop_id ?? null,
+          shop: artist.shop
+            ? {
+                id: artist.shop.shop_id,
+                shopName: artist.shop.shop_name,
+                shopUrl: artist.shop.shop_url
+              }
+            : null
+        },
+        albums: albums.map((a) => ({
+          id: a.album_id,
+          title: a.title,
+          coverImageUrl: a.cover_image_url ?? null,
+          artistName
+        })),
+        tracks: audioTracks.map((t) => ({
+          id: t.audio_id,
+          title: t.title,
+          durationFormatted: formatDuration(t.duration),
+          durationSeconds: t.duration ?? null,
+          albumArt: t.thumbnail_url ?? (albums.find((a) => a.album_id === t.album_id)?.cover_image_url) ?? null,
+          artistName,
+          audioUrl: t.audio_url ?? null,
+          albumId: t.album_id
+        }))
+      }
+    };
+    return res.json(payload);
+  } catch (err) {
+    console.error('Artist profile error:', err);
+    return res.status(500).json({ success: false, error: 'Could not load artist profile' });
+  }
 });
 
 /**
