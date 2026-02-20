@@ -7,7 +7,9 @@ import '../widgets/follow_message_buttons.dart';
 import '../widgets/content_tabs.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
+import '../widgets/videos_section.dart';
 import 'shop_view.dart';
+import 'video_web_view.dart';
 
 class ArtistDetailView extends StatefulWidget {
   /// When set, profile is fetched from API (public artist profile endpoint).
@@ -136,6 +138,8 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 following: controller.following,
                 albums: controller.albums,
                 tracks: controller.tracks,
+                videoAlbums: controller.videoAlbums,
+                videos: controller.videos,
                 hasShop: controller.hasShop,
                 isFollowing: controller.isFollowing.value,
                 isFollowLoading: controller.isFollowLoading.value,
@@ -153,6 +157,8 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               following: widget.following,
               albums: _dummyAlbums,
               tracks: _dummyTracks,
+              videoAlbums: [],
+              videos: [],
               hasShop: true,
               isFollowing: _isFollowing,
               isFollowLoading: false,
@@ -172,6 +178,8 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     required int? following,
     required List<AlbumItem> albums,
     required List<TrackItem> tracks,
+    required List<AlbumItem> videoAlbums,
+    required List<VideoItem> videos,
     required bool hasShop,
     required bool isFollowing,
     required bool isFollowLoading,
@@ -284,15 +292,26 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                     onTrackTap: () {},
                   ),
                 ] else if (_selectedTab == ContentTab.video) ...[
-                    // TODO: Add video content
+                  AlbumsSection(albums: videoAlbums),
+                  const SizedBox(height: 24),
+                  if (videos.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(20),
                       child: Text(
-                        'Video content coming soon',
+                        'No videos yet',
                         style: textTheme.bodyMedium?.copyWith(
                           color: colors.onSurface.withOpacity(0.6),
                         ),
                       ),
+                    )
+                  else
+                    VideosSection(
+                      videos: videos,
+                      onVideoTap: (video) {
+                        if (video.videoUrl.isNotEmpty) {
+                          Get.to(() => VideoWebView(url: video.videoUrl));
+                        }
+                      },
                     ),
                 ] else if (_selectedTab == ContentTab.about) ...[
                   Padding(

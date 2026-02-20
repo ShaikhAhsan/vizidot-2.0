@@ -4,16 +4,22 @@ class ArtistProfileResponse {
     required this.artist,
     required this.albums,
     required this.tracks,
+    this.videoAlbums = const [],
+    this.videos = const [],
   });
 
   final ArtistProfileArtist artist;
   final List<ArtistProfileAlbum> albums;
   final List<ArtistProfileTrack> tracks;
+  final List<ArtistProfileAlbum> videoAlbums;
+  final List<ArtistProfileVideoTrack> videos;
 
   factory ArtistProfileResponse.fromJson(Map<String, dynamic> json) {
     final artistMap = json['artist'] as Map<String, dynamic>?;
     final albumsList = json['albums'] as List<dynamic>? ?? [];
     final tracksList = json['tracks'] as List<dynamic>? ?? [];
+    final videoAlbumsList = json['videoAlbums'] as List<dynamic>? ?? [];
+    final videosList = json['videos'] as List<dynamic>? ?? [];
 
     return ArtistProfileResponse(
       artist: artistMap != null
@@ -25,6 +31,47 @@ class ArtistProfileResponse {
       tracks: tracksList
           .map((e) => ArtistProfileTrack.fromJson(e as Map<String, dynamic>))
           .toList(),
+      videoAlbums: videoAlbumsList
+          .map((e) => ArtistProfileAlbum.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      videos: videosList
+          .map((e) => ArtistProfileVideoTrack.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class ArtistProfileVideoTrack {
+  ArtistProfileVideoTrack({
+    required this.id,
+    required this.title,
+    this.durationFormatted,
+    this.durationSeconds,
+    this.albumArt,
+    this.artistName,
+    this.videoUrl,
+    this.albumId,
+  });
+
+  final int id;
+  final String title;
+  final String? durationFormatted;
+  final int? durationSeconds;
+  final String? albumArt;
+  final String? artistName;
+  final String? videoUrl;
+  final int? albumId;
+
+  factory ArtistProfileVideoTrack.fromJson(Map<String, dynamic> json) {
+    return ArtistProfileVideoTrack(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      title: json['title'] as String? ?? '',
+      durationFormatted: json['durationFormatted'] as String?,
+      durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
+      albumArt: json['albumArt'] as String?,
+      artistName: json['artistName'] as String?,
+      videoUrl: json['videoUrl'] as String?,
+      albumId: (json['albumId'] as num?)?.toInt(),
     );
   }
 }

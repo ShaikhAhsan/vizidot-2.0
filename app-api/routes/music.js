@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { Artist, ArtistFollower, Album, AudioTrack, ArtistShop } = require('../models');
+const { Artist, ArtistFollower, Album, AudioTrack, VideoTrack, ArtistShop } = require('../models');
 const { authenticateToken } = require('../middleware/authWithRoles');
 
 function formatDuration(seconds) {
@@ -45,22 +45,36 @@ router.get('/artists/profile/:id', async (req, res) => {
     const followersCount = await ArtistFollower.count({ where: { artist_id: artistId } });
     const followingCount = 0; // optional: count artists this user follows; not in schema for "artist follows X"
 
-    const albums = await Album.findAll({
+    const allAlbums = await Album.findAll({
       where: { artist_id: artistId, is_active: true },
       order: [['release_date', 'DESC'], ['album_id', 'ASC']]
     });
-    const albumIds = albums.map((a) => a.album_id);
-    const audioTracks = albumIds.length
-      ? await AudioTrack.findAll({
-          where: { album_id: { [Op.in]: albumIds } },
-          order: [['album_id', 'ASC'], ['track_number', 'ASC'], ['audio_id', 'ASC']]
-        })
-      : [];
+    const albumType = (a) => String(a.album_type || '').toLowerCase();
+    const audioAlbums = allAlbums.filter((a) => albumType(a) === 'audio');
+    const videoAlbums = allAlbums.filter((a) => albumType(a) === 'video');
+    const audioAlbumIds = audioAlbums.map((a) => a.album_id);
+    const videoAlbumIds = videoAlbums.map((a) => a.album_id);
+
+    const audioTracks =
+      audioAlbumIds.length > 0
+        ? await AudioTrack.findAll({
+            where: { album_id: { [Op.in]: audioAlbumIds } },
+            order: [['album_id', 'ASC'], ['track_number', 'ASC'], ['audio_id', 'ASC']]
+          })
+        : [];
+    const videoTracks =
+      videoAlbumIds.length > 0
+        ? await VideoTrack.findAll({
+            where: { album_id: { [Op.in]: videoAlbumIds } },
+            order: [['album_id', 'ASC'], ['track_number', 'ASC'], ['video_id', 'ASC']]
+          })
+        : [];
 
     const artistName = artist.name || '';
     const payload = {
       success: true,
       data: {
+        profileVersion: 2,
         artist: {
           id: artist.artist_id,
           name: artistName,
@@ -77,7 +91,7 @@ router.get('/artists/profile/:id', async (req, res) => {
               }
             : null
         },
-        albums: albums.map((a) => ({
+        albums: audioAlbums.map((a) => ({
           id: a.album_id,
           title: a.title,
           coverImageUrl: a.cover_image_url ?? null,
@@ -88,9 +102,25 @@ router.get('/artists/profile/:id', async (req, res) => {
           title: t.title,
           durationFormatted: formatDuration(t.duration),
           durationSeconds: t.duration ?? null,
-          albumArt: t.thumbnail_url ?? (albums.find((a) => a.album_id === t.album_id)?.cover_image_url) ?? null,
+          albumArt: t.thumbnail_url ?? (audioAlbums.find((a) => a.album_id === t.album_id)?.cover_image_url) ?? null,
           artistName,
           audioUrl: t.audio_url ?? null,
+          albumId: t.album_id
+        })),
+        videoAlbums: videoAlbums.map((a) => ({
+          id: a.album_id,
+          title: a.title,
+          coverImageUrl: a.cover_image_url ?? null,
+          artistName
+        })),
+        videos: videoTracks.map((t) => ({
+          id: t.video_id,
+          title: t.title,
+          durationFormatted: formatDuration(t.duration),
+          durationSeconds: t.duration ?? null,
+          albumArt: t.thumbnail_url ?? (videoAlbums.find((a) => a.album_id === t.album_id)?.cover_image_url) ?? null,
+          artistName,
+          videoUrl: t.video_url ?? null,
           albumId: t.album_id
         }))
       }

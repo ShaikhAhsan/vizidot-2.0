@@ -7,6 +7,7 @@ import '../../../core/utils/auth_service.dart';
 import '../../../data/models/artist_profile_response.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
+import '../widgets/videos_section.dart';
 
 /// Controller for artist detail screen. Uses [MusicApi] for profile and
 /// follow/unfollow; [AppConfig] for base URL; [AuthService] for token when needed.
@@ -55,6 +56,32 @@ class ArtistDetailController extends GetxController {
               artist: name,
               albumArt: t.albumArt ?? '',
               duration: t.durationFormatted ?? '0:00',
+            ))
+        .toList();
+  }
+
+  List<AlbumItem> get videoAlbums {
+    final list = profile.value?.videoAlbums ?? [];
+    final name = artistName;
+    return list
+        .map((a) => AlbumItem(
+              title: a.title,
+              artist: name,
+              coverImage: a.coverImageUrl ?? '',
+            ))
+        .toList();
+  }
+
+  List<VideoItem> get videos {
+    final list = profile.value?.videos ?? [];
+    final name = artistName;
+    return list
+        .map((v) => VideoItem(
+              title: v.title,
+              artist: name,
+              thumbnail: v.albumArt ?? '',
+              duration: v.durationFormatted ?? '0:00',
+              videoUrl: v.videoUrl ?? '',
             ))
         .toList();
   }
