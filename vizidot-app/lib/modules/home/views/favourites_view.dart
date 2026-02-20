@@ -12,91 +12,133 @@ import '../../music_player/utils/record_play_helper.dart';
 class FavouritesView extends GetView<FavouritesController> {
   const FavouritesView({super.key});
 
+  Widget _navBar(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return CupertinoSliverNavigationBar(
+      largeTitle: const Text('Favourites'),
+      leading: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: () => Get.back(),
+        child: Container(
+          width: 35,
+          height: 35,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            CupertinoIcons.arrow_left,
+            color: colors.onSurface,
+            size: 18,
+          ),
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      border: null,
+      automaticallyImplyTitle: false,
+      automaticallyImplyLeading: false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Favourites'),
-        previousPageTitle: 'Back',
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Obx(() {
-              final hasAudio = controller.totalTracks.value > 0;
-              final hasVideo = controller.totalVideos.value > 0;
-              final hasAlbums = controller.totalAlbums.value > 0;
-              if (!hasAudio && !hasVideo && !hasAlbums) {
-                return const SizedBox.shrink();
-              }
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  children: [
-                    if (hasAudio) ...[
-                      _TabChip(
-                        label: 'Audio',
-                        isSelected: controller.selectedType.value == 'track',
-                        onTap: () => controller.setType('track'),
+      child: CustomScrollView(
+        slivers: [
+          _navBar(context),
+          SliverSafeArea(
+            top: false,
+            sliver: SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  Obx(() {
+                    final hasAudio = controller.totalTracks.value > 0;
+                    final hasVideo = controller.totalVideos.value > 0;
+                    final hasAlbums = controller.totalAlbums.value > 0;
+                    if (!hasAudio && !hasVideo && !hasAlbums) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 12),
+                      child: Row(
+                        children: [
+                          if (hasAudio) ...[
+                            _TabChip(
+                              label: 'Audio',
+                              isSelected: controller.selectedType.value == 'track',
+                              onTap: () => controller.setType('track'),
+                            ),
+                            if (hasVideo || hasAlbums) const SizedBox(width: 8),
+                          ],
+                          if (hasVideo) ...[
+                            _TabChip(
+                              label: 'Video',
+                              isSelected: controller.selectedType.value == 'video',
+                              onTap: () => controller.setType('video'),
+                            ),
+                            if (hasAlbums) const SizedBox(width: 8),
+                          ],
+                          if (hasAlbums)
+                            _TabChip(
+                              label: 'Album',
+                              isSelected: controller.selectedType.value == 'album',
+                              onTap: () => controller.setType('album'),
+                            ),
+                        ],
                       ),
-                      if (hasVideo || hasAlbums) const SizedBox(width: 8),
-                    ],
-                    if (hasVideo) ...[
-                      _TabChip(
-                        label: 'Video',
-                        isSelected: controller.selectedType.value == 'video',
-                        onTap: () => controller.setType('video'),
-                      ),
-                      if (hasAlbums) const SizedBox(width: 8),
-                    ],
-                    if (hasAlbums)
-                      _TabChip(
-                        label: 'Album',
-                        isSelected: controller.selectedType.value == 'album',
-                        onTap: () => controller.setType('album'),
-                      ),
-                  ],
+                    );
+                  }),
+                ]),
+              ),
+            ),
+          ),
+          Obx(() {
+            if (controller.isLoadingTotals.value) {
+              return const SliverFillRemaining(
+                child: Center(child: CupertinoActivityIndicator()),
+              );
+            }
+            if (controller.totalTracks.value == 0 &&
+                controller.totalVideos.value == 0 &&
+                controller.totalAlbums.value == 0) {
+              return SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    'No favourites yet',
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: colors.onSurface.withOpacity(0.6),
+                    ),
+                  ),
                 ),
               );
-            }),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoadingTotals.value) {
-                  return const Center(child: CupertinoActivityIndicator());
-                }
-                if (controller.totalTracks.value == 0 &&
-                    controller.totalVideos.value == 0 &&
-                    controller.totalAlbums.value == 0) {
-                  return Center(
-                    child: Text(
-                      'No favourites yet',
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: colors.onSurface.withOpacity(0.6),
-                      ),
+            }
+            if (controller.isLoading.value && controller.items.isEmpty) {
+              return const SliverFillRemaining(
+                child: Center(child: CupertinoActivityIndicator()),
+              );
+            }
+            if (controller.items.isEmpty) {
+              return SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    'No favourites in this category',
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: colors.onSurface.withOpacity(0.6),
                     ),
-                  );
-                }
-                if (controller.isLoading.value && controller.items.isEmpty) {
-                  return const Center(child: CupertinoActivityIndicator());
-                }
-                if (controller.items.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No favourites in this category',
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: colors.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                  );
-                }
-                final type = controller.selectedType.value;
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-                  itemCount: controller.items.length + (controller.hasMore.value ? 1 : 0),
-                  itemBuilder: (context, index) {
+                  ),
+                ),
+              );
+            }
+            final type = controller.selectedType.value;
+            return SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
                     if (index >= controller.items.length) {
                       controller.loadMore();
                       return const Padding(
@@ -131,11 +173,12 @@ class FavouritesView extends GetView<FavouritesController> {
                       artistId: (item['artistId'] as num?)?.toInt(),
                     );
                   },
-                );
-              }),
-            ),
-          ],
-        ),
+                  childCount: controller.items.length + (controller.hasMore.value ? 1 : 0),
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
