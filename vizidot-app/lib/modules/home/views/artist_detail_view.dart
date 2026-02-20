@@ -171,6 +171,29 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     );
   }
 
+  Widget assetOrNetworkImage({
+    required String src,
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    if (src.startsWith('http')) {
+      return Image.network(
+        src,
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    } else {
+      return Image.asset(
+        src,
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    }
+  }
+
   Widget _buildContent(
     BuildContext context,
     double statusBarHeight,
@@ -232,38 +255,34 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                       ),
                     ),
                     const SizedBox(width: 40),
-                    Column(
-                      children: [
-                        Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: colors.surface,
-                            borderRadius: BorderRadius.circular(24),
+                    // Container(
+                    //   width: 80,
+                    //   height: 80,
+                    //   decoration: BoxDecoration(
+                    //     color: colors.surfaceContainerHighest,
+                    //     borderRadius: BorderRadius.circular(20),
+                    //   ),
+                    //   clipBehavior: Clip.antiAlias,
+                    //   child:
+                      artistImage.isEmpty
+                          ? Icon(
+                        CupertinoIcons.person_fill,
+                        size: 36,
+                        color: colors.onSurfaceVariant,
+                      )
+                          : SizedBox(
+                        width: 120,
+                            height: 100,
+                            child: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    child: assetOrNetworkImage(
+                            src: artistImage,
+                            fit: BoxFit.cover,
+                                                    ),
+                                                  ),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: artistImage.isEmpty
-                              ? const Icon(CupertinoIcons.person_fill)
-                              : assetOrNetworkImage(
-                                  src: artistImage,
-                                  width: 70,
-                                  height: 70,
-                                  fit: BoxFit.cover,
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          artistName,
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                    // ),
 
-                      ],
-                    ),
                     const SizedBox(width: 40),
                     Padding(
                       padding: const EdgeInsets.only(top: 40),
@@ -276,6 +295,16 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  artistName,
+                  style: textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
                 const SizedBox(height: 6),
                 LayoutBuilder(
                   builder: (context, constraints) {
