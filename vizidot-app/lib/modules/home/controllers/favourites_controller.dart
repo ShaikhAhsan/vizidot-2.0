@@ -10,13 +10,58 @@ class FavouritesController extends GetxController {
   final RxString selectedType = 'track'.obs; // track | video | album
   final RxList<Map<String, dynamic>> items = <Map<String, dynamic>>[].obs;
   final RxInt total = 0.obs;
+  final RxInt totalTracks = 0.obs;
+  final RxInt totalVideos = 0.obs;
+  final RxInt totalAlbums = 0.obs;
   final RxBool isLoading = false.obs;
   final RxBool hasMore = true.obs;
+  final RxBool isLoadingTotals = true.obs;
   int _offset = 0;
 
   @override
   void onInit() {
     super.onInit();
+    _loadTotalsThenPage();
+  }
+
+  /// Uses passed-in counts from Home (View All) when available; otherwise falls back to Home API. Then loads the selected tab's list.
+  Future<void> _loadTotalsThenPage() async {
+    if (!Get.isRegistered<AuthService>()) return;
+    final auth = Get.find<AuthService>();
+    final token = await auth.getIdToken();
+    if (token == null || token.isEmpty) return;
+    isLoadingTotals.value = true;
+    try {
+      final args = Get.arguments as Map<String, dynamic>?;
+      if (args != null &&
+          args.containsKey('totalTracks') &&
+          args.containsKey('totalVideos') &&
+          args.containsKey('totalAlbums')) {
+        totalTracks.value = (args['totalTracks'] as num?)?.toInt() ?? 0;
+        totalVideos.value = (args['totalVideos'] as num?)?.toInt() ?? 0;
+        totalAlbums.value = (args['totalAlbums'] as num?)?.toInt() ?? 0;
+      } else {
+        final config = AppConfig.fromEnv();
+        final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
+        final home = await api.getHomeTop(limit: 10);
+        totalTracks.value = home?.favouriteAudios.length ?? 0;
+        totalVideos.value = home?.favouriteVideos.length ?? 0;
+        totalAlbums.value = home?.favouriteAlbums.length ?? 0;
+      }
+      final current = selectedType.value;
+      if (current == 'track' && totalTracks.value == 0 ||
+          current == 'video' && totalVideos.value == 0 ||
+          current == 'album' && totalAlbums.value == 0) {
+        if (totalTracks.value > 0) {
+          selectedType.value = 'track';
+        } else if (totalVideos.value > 0) {
+          selectedType.value = 'video';
+        } else if (totalAlbums.value > 0) {
+          selectedType.value = 'album';
+        }
+      }
+    } catch (_) {}
+    isLoadingTotals.value = false;
     loadPage();
   }
 
@@ -64,6 +109,6 @@ class FavouritesController extends GetxController {
     items.clear();
     _offset = 0;
     hasMore.value = true;
-    loadPage();
+    _loadTotalsThenPage();
   }
 }

@@ -64,15 +64,26 @@ class HomeContentView extends GetView<HomeController> {
                       final isLoggedIn = Get.isRegistered<AuthService>() &&
                           Get.find<AuthService>().isLoggedIn.value;
                       if (!isLoggedIn) return const SizedBox.shrink();
+                      final hasAudio = controller.favouriteAudioItems.isNotEmpty;
+                      final hasVideo = controller.favouriteVideoItems.isNotEmpty;
+                      final hasAlbums = controller.favouriteAlbumItems.isNotEmpty;
+                      if (!hasAudio && !hasVideo && !hasAlbums) return const SizedBox.shrink();
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SectionHeader(
                             title: 'FAVOURITES',
-                            onViewAllTap: () => Get.toNamed(AppRoutes.favourites),
+                            onViewAllTap: () => Get.toNamed(
+                              AppRoutes.favourites,
+                              arguments: <String, int>{
+                                'totalTracks': controller.favouriteAudioItems.length,
+                                'totalVideos': controller.favouriteVideoItems.length,
+                                'totalAlbums': controller.favouriteAlbumItems.length,
+                              },
+                            ),
                           ),
-                          // const SizedBox(height: 16),
-                          if (controller.favouriteAudioItems.isNotEmpty)
+                          const SizedBox(height: 16),
+                          if (hasAudio) ...[
                             SizedBox(
                               height: 178,
                               child: ListView.builder(
@@ -99,7 +110,9 @@ class HomeContentView extends GetView<HomeController> {
                                 },
                               ),
                             ),
-                          if (controller.favouriteVideoItems.isNotEmpty)
+                            if (hasVideo || hasAlbums) const SizedBox(height: 20),
+                          ],
+                          if (hasVideo) ...[
                             SizedBox(
                               height: 178,
                               child: ListView.builder(
@@ -128,8 +141,9 @@ class HomeContentView extends GetView<HomeController> {
                                 },
                               ),
                             ),
-                            const SizedBox(height: 20),
-                          if (controller.favouriteAlbumItems.isNotEmpty)
+                            if (hasAlbums) const SizedBox(height: 20),
+                          ],
+                          if (hasAlbums)
                             SizedBox(
                               height: 140,
                               child: ListView.builder(

@@ -25,39 +25,67 @@ class FavouritesView extends GetView<FavouritesController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  _TabChip(
-                    label: 'Audio',
-                    isSelected: controller.selectedType.value == 'track',
-                    onTap: () => controller.setType('track'),
-                  ),
-                  const SizedBox(width: 8),
-                  _TabChip(
-                    label: 'Video',
-                    isSelected: controller.selectedType.value == 'video',
-                    onTap: () => controller.setType('video'),
-                  ),
-                  const SizedBox(width: 8),
-                  _TabChip(
-                    label: 'Albums',
-                    isSelected: controller.selectedType.value == 'album',
-                    onTap: () => controller.setType('album'),
-                  ),
-                ],
-              ),
-            ),
+            Obx(() {
+              final hasAudio = controller.totalTracks.value > 0;
+              final hasVideo = controller.totalVideos.value > 0;
+              final hasAlbums = controller.totalAlbums.value > 0;
+              if (!hasAudio && !hasVideo && !hasAlbums) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  children: [
+                    if (hasAudio) ...[
+                      _TabChip(
+                        label: 'Audio',
+                        isSelected: controller.selectedType.value == 'track',
+                        onTap: () => controller.setType('track'),
+                      ),
+                      if (hasVideo || hasAlbums) const SizedBox(width: 8),
+                    ],
+                    if (hasVideo) ...[
+                      _TabChip(
+                        label: 'Video',
+                        isSelected: controller.selectedType.value == 'video',
+                        onTap: () => controller.setType('video'),
+                      ),
+                      if (hasAlbums) const SizedBox(width: 8),
+                    ],
+                    if (hasAlbums)
+                      _TabChip(
+                        label: 'Albums',
+                        isSelected: controller.selectedType.value == 'album',
+                        onTap: () => controller.setType('album'),
+                      ),
+                  ],
+                ),
+              );
+            }),
             Expanded(
               child: Obx(() {
+                if (controller.isLoadingTotals.value) {
+                  return const Center(child: CupertinoActivityIndicator());
+                }
+                if (controller.totalTracks.value == 0 &&
+                    controller.totalVideos.value == 0 &&
+                    controller.totalAlbums.value == 0) {
+                  return Center(
+                    child: Text(
+                      'No favourites yet',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colors.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  );
+                }
                 if (controller.isLoading.value && controller.items.isEmpty) {
                   return const Center(child: CupertinoActivityIndicator());
                 }
                 if (controller.items.isEmpty) {
                   return Center(
                     child: Text(
-                      'No favourites yet',
+                      'No favourites in this category',
                       style: textTheme.bodyLarge?.copyWith(
                         color: colors.onSurface.withOpacity(0.6),
                       ),
@@ -127,20 +155,41 @@ class _TabChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? colors.primary : colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected
+              ? colors.primary
+              : (isDark ? colors.surfaceContainerHigh : colors.surfaceContainerHighest),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected
+                ? colors.primary
+                : colors.outline.withOpacity(0.2),
+            width: isSelected ? 0 : 1.2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: colors.primary.withOpacity(0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isSelected ? colors.onPrimary : colors.onSurface,
-            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+            fontSize: 14,
+            letterSpacing: 0.2,
+            color: isSelected ? colors.onPrimary : colors.onSurfaceVariant,
           ),
         ),
       ),
