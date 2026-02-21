@@ -5,6 +5,7 @@ import '../../../core/network/apis/music_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
 import '../../../data/models/artist_profile_response.dart';
+import 'home_controller.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
 import '../widgets/videos_section.dart';
@@ -156,6 +157,7 @@ class ArtistDetailController extends GetxController {
       if (success) {
         isFollowing.value = !currentlyFollowing;
         await fetchProfile();
+        _reloadHomeIfNeeded();
       } else {
         Get.snackbar('Error', 'Could not update follow');
       }
@@ -163,6 +165,12 @@ class ArtistDetailController extends GetxController {
       Get.snackbar('Error', 'Something went wrong');
     } finally {
       isFollowLoading.value = false;
+    }
+  }
+
+  void _reloadHomeIfNeeded() {
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().loadTopFromApi();
     }
   }
 }

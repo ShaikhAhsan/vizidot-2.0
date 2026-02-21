@@ -4,6 +4,7 @@ import '../../../core/network/apis/music_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
 import '../../../data/models/album_detail_response.dart';
+import 'home_controller.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
 import '../widgets/videos_section.dart';
@@ -104,15 +105,27 @@ class AlbumDetailController extends GetxController {
       final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
       if (isFavourite.value) {
         final ok = await api.removeFavourite('album', albumId);
-        if (ok) isFavourite.value = false;
+        if (ok) {
+          isFavourite.value = false;
+          _reloadHomeFavourites();
+        }
       } else {
         final ok = await api.addFavourite('album', albumId);
-        if (ok) isFavourite.value = true;
+        if (ok) {
+          isFavourite.value = true;
+          _reloadHomeFavourites();
+        }
       }
     } catch (_) {
       // keep current state on error
     } finally {
       isFavouriteLoading.value = false;
+    }
+  }
+
+  void _reloadHomeFavourites() {
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().loadTopFromApi();
     }
   }
 }

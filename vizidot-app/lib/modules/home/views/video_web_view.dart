@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import '../../music_player/controllers/music_player_controller.dart';
 
 /// Full-screen WebView for opening a video URL (e.g. from artist Video tab).
+/// Stops the music player when opened so video and music do not play together.
 class VideoWebView extends StatefulWidget {
   final String url;
 
@@ -20,6 +22,7 @@ class _VideoWebViewState extends State<VideoWebView> {
   @override
   void initState() {
     super.initState();
+    _stopMusicPlayer();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -29,6 +32,12 @@ class _VideoWebViewState extends State<VideoWebView> {
         ),
       )
       ..loadRequest(Uri.parse(widget.url));
+  }
+
+  void _stopMusicPlayer() {
+    if (Get.isRegistered<MusicPlayerController>()) {
+      Get.find<MusicPlayerController>().pause();
+    }
   }
 
   @override
