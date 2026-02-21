@@ -28,6 +28,27 @@ class AuthService extends GetxService {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
+  /// Changes the current user's password. Requires reauth with [currentPassword].
+  /// Throws [FirebaseAuthException] on failure (e.g. wrong current password, weak new password).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(code: 'no-user', message: 'You must be signed in to change password.');
+    }
+    if (user.email == null || user.email!.isEmpty) {
+      throw FirebaseAuthException(code: 'no-email', message: 'Email/password account required to change password.');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
   Future<UserCredential> signInWithGoogle() async {
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
     if (googleUser == null) {
