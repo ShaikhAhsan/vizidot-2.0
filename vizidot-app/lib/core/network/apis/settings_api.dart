@@ -33,6 +33,36 @@ class SettingsApi extends BaseApi {
     }
   }
 
+  /// DELETE /api/v1/auth/account. Auth required. Deletes Firebase user and backend user.
+  /// Returns true on success. On failure returns false; check [lastAccountDeleteError] for message.
+  String? lastAccountDeleteError;
+
+  Future<bool> deleteAccount() async {
+    lastAccountDeleteError = null;
+    try {
+      final response = await execute(
+        'DELETE',
+        ApiConstants.accountDeletePath,
+        visibility: ApiVisibility.private,
+      );
+      if (response.statusCode == 200) return true;
+      final body = response.body;
+      if (body.isNotEmpty) {
+        try {
+          final map = jsonDecode(body) as Map<String, dynamic>?;
+          if (map != null && map['error'] != null) {
+            lastAccountDeleteError = map['error'] as String?;
+          }
+        } catch (_) {}
+      }
+      lastAccountDeleteError ??= 'Could not delete account';
+      return false;
+    } catch (e) {
+      lastAccountDeleteError = e.toString().replaceFirst(RegExp(r'^Exception: '), '');
+      return false;
+    }
+  }
+
   /// PATCH /api/v1/settings. Auth required. Updates user settings (notifications, language).
   Future<SettingsResponse?> updateSettings({
     bool? enableNotifications,

@@ -66,4 +66,7 @@ class ApiConstants {
 
   /// Settings (user toggles + app config). GET = load, PATCH = update user settings. Auth optional for GET, required for PATCH.
   static const String settingsPath = 'settings';
+
+  /// Delete current user account (Firebase + backend). DELETE. Auth required.
+  static const String accountDeletePath = 'auth/account';
 }

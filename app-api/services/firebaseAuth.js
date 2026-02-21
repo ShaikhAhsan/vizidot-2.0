@@ -181,20 +181,24 @@ class FirebaseAuthService {
   }
 
   /**
-   * Delete user from Firebase and MySQL (soft delete)
+   * "Delete" account: permanently remove from Firebase Auth; in MySQL mark user inactive (do not delete row).
+   * Use for "delete my account" and admin user deletion.
    */
   static async deleteUser(firebaseUid) {
     try {
-      // Disable Firebase user
-      await firebaseAdmin.auth().updateUser(firebaseUid, {
-        disabled: true
-      });
-
-      // Soft delete MySQL user
-      await User.destroy({
-        where: { firebase_uid: firebaseUid }
-      });
-
+      if (!firebaseAdmin) {
+        throw new Error('Firebase Admin SDK not initialized');
+      }
+      // Permanently delete Firebase user
+      await firebaseAdmin.auth().deleteUser(firebaseUid);
+      // Mark MySQL user inactive (keep row for audit/history)
+      const [affected] = await User.update(
+        { is_active: false, deleted_at: new Date() },
+        { where: { firebase_uid: firebaseUid } }
+      );
+      if (affected === 0) {
+        console.warn('deleteUser: no MySQL user found for firebase_uid', firebaseUid);
+      }
       return true;
     } catch (error) {
       console.error('Error deleting user:', error);
