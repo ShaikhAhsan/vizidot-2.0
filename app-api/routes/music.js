@@ -25,6 +25,7 @@ router.get('/', (req, res) => {
       'POST /categories/selected',
       'GET /artists',
       'POST /artists/selected',
+      'GET /search',
       'GET /audio-tracks',
       'GET /artists/profile/:id',
       'GET /albums/:id',
@@ -735,6 +736,126 @@ router.post('/artists/selected', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Save selected artists error:', err);
     return res.status(500).json({ success: false, error: 'Could not save artist selection' });
+  }
+});
+
+const SEARCH_TYPES = ['all', 'artists', 'albums', 'music', 'videos'];
+
+/**
+ * GET /api/v1/music/search
+ * Single search API across artists, albums, music (audio), videos.
+ * Query: q (optional), type (all|artists|albums|music|videos, default all), limit (default 20, max 50).
+ * When q is empty, returns browse/featured (first N items per type). When q is set, filters by name/title.
+ */
+router.get('/search', async (req, res) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const type = SEARCH_TYPES.includes(req.query.type) ? req.query.type : 'all';
+    const limit = Math.min(Math.max(5, parseInt(req.query.limit, 10) || 20), 50);
+    const perType = type === 'all' ? Math.ceil(limit / 4) : limit;
+    const results = [];
+    const likePattern = q ? { [Op.like]: `%${q.replace(/%/g, '\\%')}%` } : null;
+
+    if (type === 'all' || type === 'artists') {
+      const where = { is_active: true };
+      if (q) where.name = likePattern;
+      const artists = await Artist.findAll({
+        where,
+        order: [['name', 'ASC']],
+        attributes: ['artist_id', 'name', 'image_url'],
+        limit: perType
+      });
+      artists.forEach((a) => {
+        results.push({
+          type: 'artist',
+          id: a.artist_id,
+          title: a.name ?? '',
+          subtitle: 'Artist',
+          imageUrl: a.image_url ?? null
+        });
+      });
+    }
+
+    if (type === 'all' || type === 'albums') {
+      const albumWhere = { is_active: true };
+      if (q) albumWhere.title = likePattern;
+      const albums = await Album.findAll({
+        where: albumWhere,
+        include: [{ model: Artist, as: 'artist', attributes: ['name'], required: true }],
+        order: [['release_date', 'DESC'], ['album_id', 'DESC']],
+        limit: perType
+      });
+      albums.forEach((a) => {
+        const artistName = a.artist?.name ?? '';
+        results.push({
+          type: 'album',
+          id: a.album_id,
+          title: a.title ?? '',
+          subtitle: artistName ? `Album · ${artistName}` : 'Album',
+          imageUrl: a.cover_image_url ?? null,
+          artistId: a.artist_id ?? null
+        });
+      });
+    }
+
+    if (type === 'all' || type === 'music') {
+      const trackWhere = { is_deleted: false };
+      if (q) trackWhere.title = likePattern;
+      const audios = await AudioTrack.unscoped().findAll({
+        where: trackWhere,
+        include: [
+          { model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url', 'artist_id'], required: true, where: { is_active: true }, include: [{ model: Artist, as: 'artist', attributes: ['name'], required: false }] }
+        ],
+        order: [['audio_id', 'DESC']],
+        limit: perType
+      });
+      audios.forEach((t) => {
+        const album = t.album;
+        const artistName = album?.artist?.name ?? '';
+        results.push({
+          type: 'music',
+          id: t.audio_id,
+          title: t.title ?? '',
+          subtitle: artistName ? `${artistName} · ${album?.title ?? ''}` : (album?.title ?? 'Track'),
+          imageUrl: t.thumbnail_url ?? album?.cover_image_url ?? null,
+          albumId: album?.album_id ?? null,
+          artistId: album?.artist_id ?? null,
+          duration: t.duration ?? null
+        });
+      });
+    }
+
+    if (type === 'all' || type === 'videos') {
+      const videoWhere = { is_deleted: false };
+      if (q) videoWhere.title = likePattern;
+      const videos = await VideoTrack.unscoped().findAll({
+        where: videoWhere,
+        include: [
+          { model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url', 'artist_id'], required: true, where: { is_active: true }, include: [{ model: Artist, as: 'artist', attributes: ['name'], required: false }] }
+        ],
+        order: [['video_id', 'DESC']],
+        limit: perType
+      });
+      videos.forEach((t) => {
+        const album = t.album;
+        const artistName = album?.artist?.name ?? '';
+        results.push({
+          type: 'video',
+          id: t.video_id,
+          title: t.title ?? '',
+          subtitle: artistName ? `${artistName} · ${album?.title ?? ''}` : (album?.title ?? 'Video'),
+          imageUrl: t.thumbnail_url ?? album?.cover_image_url ?? null,
+          albumId: album?.album_id ?? null,
+          artistId: album?.artist_id ?? null,
+          duration: t.duration ?? null
+        });
+      });
+    }
+
+    return res.json({ success: true, data: { results } });
+  } catch (err) {
+    console.error('Search error:', err);
+    return res.status(500).json({ success: false, error: 'Could not search' });
   }
 });
 

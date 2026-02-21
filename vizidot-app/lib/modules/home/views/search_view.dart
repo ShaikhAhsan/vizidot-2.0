@@ -1,70 +1,26 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SearchController;
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+
+import '../controllers/search_controller.dart';
 import '../widgets/search_category_tabs.dart';
-import '../widgets/search_result_item.dart';
+import '../widgets/search_result_item.dart' as search_widget;
 import '../../../routes/app_pages.dart';
+import '../../../core/utils/app_config.dart';
+import '../../../core/network/apis/music_api.dart';
 
-class SearchView extends StatefulWidget {
+class SearchView extends GetView<SearchController> {
   const SearchView({super.key});
-
-  @override
-  State<SearchView> createState() => _SearchViewState();
-}
-
-class _SearchViewState extends State<SearchView> {
-  final TextEditingController _searchController = TextEditingController();
-  SearchCategory _selectedCategory = SearchCategory.albums;
-
-  // Dummy data for albums
-  final List<Map<String, String>> _albums = const [
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'This is Harry Styles',
-      'subtitle': 'Album / 2021',
-      'details': '18 Songs - 2h 20min',
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'Love on Tour 2023',
-      'subtitle': 'Album / 2021',
-      'details': '18 Songs - 2h 20min',
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'The setlist march',
-      'subtitle': 'Album / 2021',
-      'details': '18 Songs - 2h 20min',
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'All songs, live & covers',
-      'subtitle': 'Album / 2021',
-      'details': '18 Songs - 2h 20min',
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'This is Harry Styles',
-      'subtitle': 'Album / 2021',
-      'details': '18 Songs - 2h 20min',
-    },
-  ];
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final baseUrl = AppConfig.fromEnv().baseUrl.replaceFirst(RegExp(r'/$'), '');
 
     return CupertinoPageScaffold(
       child: CustomScrollView(
         slivers: [
-          // Navigation Bar with Large Title - matching home screen
           CupertinoSliverNavigationBar(
             largeTitle: const Text('Search'),
             leading: CupertinoButton(
@@ -85,26 +41,6 @@ class _SearchViewState extends State<SearchView> {
                 ),
               ),
             ),
-            trailing: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(32, 32),
-                onPressed: () {
-                  Get.toNamed(AppRoutes.filters);
-                },
-                child: const Icon(
-                  CupertinoIcons.slider_horizontal_3,
-                  color: Colors.black,
-                  size: 20,
-                ),
-              ),
-            ),
             backgroundColor: Colors.transparent,
             border: null,
             automaticallyImplyTitle: false,
@@ -117,7 +53,6 @@ class _SearchViewState extends State<SearchView> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 12),
-                  // Search Bar
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -127,50 +62,76 @@ class _SearchViewState extends State<SearchView> {
                         width: 1,
                       ),
                     ),
-                    child: CupertinoTextField(
-                      controller: _searchController,
-                      placeholder: 'Search',
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: const BoxDecoration(),
-                      prefix: Padding(
-                        padding: const EdgeInsets.only(left: 16),
-                        child: Icon(
-                          CupertinoIcons.search,
-                          color: colors.onSurface.withOpacity(0.5),
-                          size: 20,
+                    child: Obx(() => CupertinoTextField(
+                          onChanged: controller.setQuery,
+                          placeholder: 'Search',
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: const BoxDecoration(),
+                          prefix: Padding(
+                            padding: const EdgeInsets.only(left: 16),
+                            child: Icon(
+                              CupertinoIcons.search,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                          ),
+                          placeholderStyle: textTheme.bodyMedium?.copyWith(
+                            fontSize: 16,
+                            color: colors.onSurface.withOpacity(0.5),
+                          ),
+                          style: textTheme.bodyMedium?.copyWith(
+                            fontSize: 16,
+                            color: colors.onSurface,
+                          ),
+                        )),
+                  ),
+                  const SizedBox(height: 20),
+                  Obx(() => SearchCategoryTabs(
+                        selectedCategory: controller.selectedCategory.value,
+                        onCategoryChanged: controller.setCategory,
+                      )),
+                  const SizedBox(height: 20),
+                  Obx(() {
+                    if (controller.isLoading.value && controller.results.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Center(child: CupertinoActivityIndicator()),
+                      );
+                    }
+                    if (controller.results.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Text(
+                            'No results',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colors.onSurface.withOpacity(0.6),
+                            ),
+                          ),
                         ),
-                      ),
-                      placeholderStyle: textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        color: colors.onSurface.withOpacity(0.5),
-                      ),
-                      style: textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Category Tabs
-                  SearchCategoryTabs(
-                    selectedCategory: _selectedCategory,
-                    onCategoryChanged: (category) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  // Search Results
-                  ..._albums.map((album) {
-                    return SearchResultItem(
-                      imageUrl: album['image']!,
-                      title: album['title']!,
-                      subtitle: album['subtitle']!,
-                      details: album['details']!,
-                      onTap: () {
-                        // TODO: Navigate to album detail
-                      },
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: controller.results.map((item) {
+                        String? imageUrl = item.imageUrl;
+                        if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
+                          imageUrl = '$baseUrl${imageUrl.startsWith('/') ? '' : '/'}$imageUrl';
+                        }
+                        String? details;
+                        if (item.duration != null && item.duration! > 0) {
+                          final m = item.duration! ~/ 60;
+                          final s = item.duration! % 60;
+                          details = '${m}:${s.toString().padLeft(2, '0')}';
+                        }
+                        return search_widget.SearchResultItem(
+                          imageUrl: imageUrl,
+                          title: item.title,
+                          subtitle: item.subtitle,
+                          details: details,
+                          onTap: () => _onResultTap(item),
+                        );
+                      }).toList(),
                     );
                   }),
                   const SizedBox(height: 24),
@@ -182,5 +143,21 @@ class _SearchViewState extends State<SearchView> {
       ),
     );
   }
-}
 
+  void _onResultTap(SearchResultItem item) {
+    switch (item.type) {
+      case 'artist':
+        Get.toNamed(AppRoutes.artistDetail, parameters: {'id': item.id.toString()});
+        break;
+      case 'album':
+        Get.toNamed(AppRoutes.albumDetail, parameters: {'id': item.id.toString()});
+        break;
+      case 'music':
+      case 'video':
+        if (item.albumId != null) {
+          Get.toNamed(AppRoutes.albumDetail, parameters: {'id': item.albumId.toString()});
+        }
+        break;
+    }
+  }
+}

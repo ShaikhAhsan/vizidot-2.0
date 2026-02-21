@@ -25,6 +25,7 @@ import '../modules/home/views/change_password_view.dart';
 import '../modules/home/views/upload_view.dart';
 import '../modules/home/views/notifications_view.dart';
 import '../modules/home/views/search_view.dart';
+import '../modules/home/bindings/search_binding.dart';
 import '../modules/home/views/filters_view.dart';
 import '../modules/home/views/favourites_view.dart';
 import '../modules/home/controllers/favourites_controller.dart';
@@ -180,6 +181,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.search,
       page: () => const SearchView(),
+      binding: SearchBinding(),
       transition: Transition.cupertino,
     ),
     GetPage(

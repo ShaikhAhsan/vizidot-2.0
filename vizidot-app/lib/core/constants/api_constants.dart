@@ -50,6 +50,9 @@ class ApiConstants {
   /// Save logged-in user's selected category ids. Auth required. POST body: categoryIds.
   static const String categoriesSelectedPath = '$musicSegment/categories/selected';
 
+  /// Search: artists, albums, music, videos. Query: q, type (all|artists|albums|music|videos), limit. Public.
+  static const String searchPath = '$musicSegment/search';
+
   /// Home API: top audios + top videos (from play history). Public.
   static String homePath([int limit = 10]) => '$musicSegment/home?limit=$limit';
 

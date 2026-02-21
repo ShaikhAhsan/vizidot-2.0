@@ -125,6 +125,30 @@ class MusicApi extends BaseApi {
     }
   }
 
+  /// GET search across artists, albums, music, videos. Public.
+  /// [q] optional query; [type] all|artists|albums|music|videos; [limit] default 20.
+  Future<SearchResponse?> search({String q = '', String type = 'all', int limit = 20}) async {
+    try {
+      final queryParams = <String, String>{
+        'type': type,
+        'limit': limit.toString(),
+      };
+      if (q.isNotEmpty) queryParams['q'] = q;
+      final response = await execute(
+        'GET',
+        ApiConstants.searchPath,
+        queryParams: queryParams,
+        visibility: ApiVisibility.public,
+      );
+      if (response.statusCode != 200) return null;
+      final Map<String, dynamic>? data = _dataFromResponse(response);
+      if (data == null) return null;
+      return SearchResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// GET album detail (public). Returns album info + tracks (audio or video by album_type).
   Future<AlbumDetailResponse?> getAlbumDetail(int albumId) async {
     try {
@@ -497,6 +521,56 @@ class ArtistListItem {
       id: (json['id'] as num).toInt(),
       name: json['name'] as String? ?? '',
       imageUrl: json['imageUrl'] as String?,
+    );
+  }
+}
+
+/// Response from GET /search.
+class SearchResponse {
+  SearchResponse({required this.results});
+  final List<SearchResultItem> results;
+
+  factory SearchResponse.fromJson(Map<String, dynamic> json) {
+    final list = json['results'] as List<dynamic>? ?? [];
+    return SearchResponse(
+      results: list
+          .map((e) => SearchResultItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+    );
+  }
+}
+
+/// Single search result (artist, album, music, video).
+class SearchResultItem {
+  SearchResultItem({
+    required this.type,
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    this.imageUrl,
+    this.artistId,
+    this.albumId,
+    this.duration,
+  });
+  final String type; // artist, album, music, video
+  final int id;
+  final String title;
+  final String subtitle;
+  final String? imageUrl;
+  final int? artistId;
+  final int? albumId;
+  final int? duration;
+
+  factory SearchResultItem.fromJson(Map<String, dynamic> json) {
+    return SearchResultItem(
+      type: json['type'] as String? ?? 'artist',
+      id: (json['id'] as num).toInt(),
+      title: json['title'] as String? ?? '',
+      subtitle: json['subtitle'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      artistId: (json['artistId'] as num?)?.toInt(),
+      albumId: (json['albumId'] as num?)?.toInt(),
+      duration: (json['duration'] as num?)?.toInt(),
     );
   }
 }

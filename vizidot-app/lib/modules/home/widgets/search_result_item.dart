@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
 class SearchResultItem extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl; // network URL or null for placeholder
   final String title;
-  final String subtitle; // e.g., "Album / 2021"
-  final String details; // e.g., "18 Songs - 2h 20min"
+  final String subtitle;
+  final String? details;
   final VoidCallback? onTap;
 
   const SearchResultItem({
     super.key,
-    required this.imageUrl,
+    this.imageUrl,
     required this.title,
     required this.subtitle,
-    required this.details,
+    this.details,
     this.onTap,
   });
 
@@ -29,34 +29,12 @@ class SearchResultItem extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image with play button overlay
             Stack(
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    imageUrl,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: colors.onSurface.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          CupertinoIcons.music_note,
-                          color: colors.onSurface.withOpacity(0.3),
-                          size: 32,
-                        ),
-                      );
-                    },
-                  ),
+                  child: _buildImage(context, colors),
                 ),
-                // Play button overlay
                 Positioned(
                   bottom: 4,
                   right: 4,
@@ -84,7 +62,6 @@ class SearchResultItem extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 12),
-            // Title and details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,14 +84,16 @@ class SearchResultItem extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    details,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colors.onSurface.withOpacity(0.5),
-                      fontSize: 12,
+                  if (details != null && details!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      details!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colors.onSurface.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -123,5 +102,33 @@ class SearchResultItem extends StatelessWidget {
       ),
     );
   }
-}
 
+  Widget _buildImage(BuildContext context, ColorScheme colors) {
+    if (imageUrl != null && imageUrl!.isNotEmpty && (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://'))) {
+      return Image.network(
+        imageUrl!,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(colors),
+      );
+    }
+    return _placeholder(colors);
+  }
+
+  Widget _placeholder(ColorScheme colors) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: colors.onSurface.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        CupertinoIcons.music_note,
+        color: colors.onSurface.withOpacity(0.3),
+        size: 32,
+      ),
+    );
+  }
+}
