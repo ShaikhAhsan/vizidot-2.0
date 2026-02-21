@@ -63,4 +63,7 @@ class ApiConstants {
 
   /// Health check (no version prefix on backend).
   static const String healthPath = 'health';
+
+  /// Settings (user toggles + app config). GET = load, PATCH = update user settings. Auth optional for GET, required for PATCH.
+  static const String settingsPath = 'settings';
 }

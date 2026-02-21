@@ -29,6 +29,8 @@ import '../modules/home/bindings/search_binding.dart';
 import '../modules/home/views/filters_view.dart';
 import '../modules/home/views/favourites_view.dart';
 import '../modules/home/views/artist_message_view.dart';
+import '../modules/home/views/language_view.dart';
+import '../modules/home/views/about_view.dart';
 import '../modules/home/controllers/favourites_controller.dart';
 import '../modules/music_player/views/music_player_view.dart';
 import '../modules/music_player/bindings/music_player_binding.dart';
@@ -157,6 +159,16 @@ class AppPages {
     GetPage(
       name: AppRoutes.settings,
       page: () => const SettingsView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.language,
+      page: () => const LanguageView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.about,
+      page: () => const AboutView(),
       transition: Transition.cupertino,
     ),
     GetPage(

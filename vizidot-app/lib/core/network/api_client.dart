@@ -62,6 +62,22 @@ class ApiClient {
         .timeout(timeout);
   }
 
+  /// PATCH request (partial update).
+  Future<http.Response> patch(
+    String path, {
+    Map<String, dynamic>? body,
+    bool useAuth = false,
+  }) async {
+    final uri = Uri.parse('$_apiBase/$path');
+    return http
+        .patch(
+          uri,
+          headers: _headers(useAuth: useAuth),
+          body: body != null ? jsonEncode(body) : null,
+        )
+        .timeout(timeout);
+  }
+
   /// PUT request.
   Future<http.Response> put(
     String path, {

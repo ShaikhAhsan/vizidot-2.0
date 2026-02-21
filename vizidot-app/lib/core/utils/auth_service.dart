@@ -89,6 +89,14 @@ class AuthService extends GetxService {
     return await _auth.signInWithCredential(fbCred);
   }
 
+  /// True if the current user can change password (signed in with email/password).
+  /// False for Google, Apple, Facebook or when not logged in.
+  bool get canChangePassword {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    return user.providerData.any((p) => p.providerId == 'password');
+  }
+
   /// Returns the current Firebase ID token for API auth, or null if not logged in.
   /// Use this for Bearer token on backend (if backend accepts Firebase idToken or after exchanging via /auth/login).
   Future<String?> getIdToken() async {

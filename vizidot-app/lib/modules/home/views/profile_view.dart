@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../core/utils/auth_service.dart';
 import '../../../routes/app_pages.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_menu_item.dart';
@@ -100,13 +101,14 @@ class _ProfileViewState extends State<ProfileView> {
                       Get.toNamed(AppRoutes.personalData);
                     },
                   ),
-                  ProfileMenuItem(
-                    icon: CupertinoIcons.lock,
-                    title: 'Change password',
-                    onTap: () {
-                      Get.toNamed(AppRoutes.changePassword);
-                    },
-                  ),
+                  if (Get.isRegistered<AuthService>() && Get.find<AuthService>().canChangePassword)
+                    ProfileMenuItem(
+                      icon: CupertinoIcons.lock,
+                      title: 'Change password',
+                      onTap: () {
+                        Get.toNamed(AppRoutes.changePassword);
+                      },
+                    ),
                   ProfileMenuItem(
                     icon: CupertinoIcons.lightbulb,
                     title: 'Announcements',

@@ -84,6 +84,9 @@ class BaseApi {
       case 'PUT':
         future = _client.put(path, body: body, useAuth: useAuth);
         break;
+      case 'PATCH':
+        future = _client.patch(path, body: body, useAuth: useAuth);
+        break;
       case 'DELETE':
         future = _client.delete(path, useAuth: useAuth);
         break;
