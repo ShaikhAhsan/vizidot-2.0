@@ -28,6 +28,7 @@ import '../modules/home/views/search_view.dart';
 import '../modules/home/bindings/search_binding.dart';
 import '../modules/home/views/filters_view.dart';
 import '../modules/home/views/favourites_view.dart';
+import '../modules/home/views/artist_message_view.dart';
 import '../modules/home/controllers/favourites_controller.dart';
 import '../modules/music_player/views/music_player_view.dart';
 import '../modules/music_player/bindings/music_player_binding.dart';
@@ -201,6 +202,18 @@ class AppPages {
       name: AppRoutes.musicPlayer,
       page: () => const MusicPlayerView(),
       binding: MusicPlayerBinding(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.artistMessage,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>? ?? {};
+        return ArtistMessageView(
+          artistId: (args['artistId'] as num?)?.toInt(),
+          artistName: args['artistName'] as String? ?? '',
+          artistImageUrl: args['artistImageUrl'] as String?,
+        );
+      },
       transition: Transition.cupertino,
     ),
   ];

@@ -11,6 +11,7 @@ import '../widgets/videos_section.dart';
 import '../../music_player/utils/record_play_helper.dart';
 import 'shop_view.dart';
 import 'video_web_view.dart';
+import '../../../routes/app_pages.dart';
 
 class ArtistDetailView extends StatefulWidget {
   /// When set, profile is fetched from API (public artist profile endpoint).
@@ -133,6 +134,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 context,
                 statusBarHeight,
                 navBarHeight,
+                artistId: controller.artistId,
                 artistName: controller.artistName,
                 artistImage: controller.artistImage,
                 description: controller.description,
@@ -153,6 +155,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               context,
               statusBarHeight,
               navBarHeight,
+              artistId: widget.artistId,
               artistName: widget.artistName,
               artistImage: widget.artistImage,
               description: widget.description,
@@ -198,6 +201,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     BuildContext context,
     double statusBarHeight,
     double navBarHeight, {
+    required int? artistId,
     required String artistName,
     required String artistImage,
     required String? description,
@@ -363,7 +367,16 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                   isFollowLoading: isFollowLoading,
                   showShop: hasValidShop,
                   onFollowTap: onFollowTap,
-                  onMessageTap: () {},
+                  onMessageTap: () {
+                    Get.toNamed(
+                      AppRoutes.artistMessage,
+                      arguments: {
+                        'artistId': artistId,
+                        'artistName': artistName,
+                        'artistImageUrl': artistImage.isEmpty ? null : artistImage,
+                      },
+                    );
+                  },
                   onShopTap: hasValidShop
                       ? () {
                           Get.to(() => ShopView(initialUrl: shopUrl!.trim()));
