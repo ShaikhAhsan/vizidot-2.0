@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide SearchController;
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:vizidot_flutter/modules/home/views/video_web_view.dart';
 
 import '../controllers/search_controller.dart';
 import '../widgets/search_category_tabs.dart';
@@ -8,6 +9,8 @@ import '../widgets/search_result_item.dart' as search_widget;
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/network/apis/music_api.dart';
+import '../../music_player/utils/play_track_helper.dart';
+import '../../music_player/utils/record_play_helper.dart';
 
 class SearchView extends GetView<SearchController> {
   const SearchView({super.key});
@@ -124,16 +127,30 @@ class SearchView extends GetView<SearchController> {
                           imageUrl = '$baseUrl${imageUrl.startsWith('/') ? '' : '/'}$imageUrl';
                         }
                         String? details;
-                        if (item.duration != null && item.duration! > 0) {
-                          final m = item.duration! ~/ 60;
-                          final s = item.duration! % 60;
-                          details = '${m}:${s.toString().padLeft(2, '0')}';
+                        bool showPlayIcon = false;
+                        switch (item.type) {
+                          case 'album':
+                            details = item.trackLabel; // e.g. "12 songs" or "3 videos"
+                            showPlayIcon = false;
+                            break;
+                          case 'music':
+                          case 'video':
+                            if (item.duration != null && item.duration! > 0) {
+                              final m = item.duration! ~/ 60;
+                              final s = item.duration! % 60;
+                              details = '${m}:${s.toString().padLeft(2, '0')}';
+                            }
+                            showPlayIcon = true;
+                            break;
+                          default:
+                            showPlayIcon = false; // artist
                         }
                         return search_widget.SearchResultItem(
                           imageUrl: imageUrl,
                           title: item.title,
                           subtitle: item.subtitle,
                           details: details,
+                          showPlayIcon: showPlayIcon,
                           onTap: () => _onResultTap(item),
                         );
                       }).toList(),
@@ -155,14 +172,51 @@ class SearchView extends GetView<SearchController> {
         Get.toNamed(AppRoutes.artistDetail, parameters: {'id': item.id.toString()});
         break;
       case 'album':
-        Get.toNamed(AppRoutes.albumDetail, parameters: {'id': item.id.toString()});
+        Get.toNamed(AppRoutes.albumDetail, arguments: {'albumId': item.id});
         break;
       case 'music':
-      case 'video':
-        if (item.albumId != null) {
-          Get.toNamed(AppRoutes.albumDetail, parameters: {'id': item.albumId.toString()});
-        }
+        _playTrackFromSearch(item);
         break;
+      case 'video':
+        _openVideoFromSearch(item);
+        break;
+    }
+  }
+
+  Future<void> _playTrackFromSearch(SearchResultItem item) async {
+    final baseUrl = AppConfig.fromEnv().baseUrl.replaceFirst(RegExp(r'/$'), '');
+    String? albumArt = item.imageUrl;
+    if (albumArt != null && albumArt.isNotEmpty && !albumArt.startsWith('http')) {
+      albumArt = '$baseUrl${albumArt.startsWith('/') ? '' : '/'}$albumArt';
+    }
+    final parts = item.subtitle.split(' · ');
+    final artist = parts.isNotEmpty ? parts.first : '';
+    Duration duration = Duration.zero;
+    if (item.duration != null && item.duration! > 0) {
+      duration = Duration(seconds: item.duration!);
+    }
+    final played = await playTrack(
+      title: item.title,
+      artist: artist,
+      albumArt: albumArt ?? '',
+      audioUrl: item.audioUrl,
+      duration: duration,
+    );
+    if (played) {
+      recordPlayIfPossible('audio', item.id);
+      Get.toNamed(AppRoutes.musicPlayer);
+    }
+  }
+
+  void _openVideoFromSearch(SearchResultItem item) {
+    final videoUrl = item.videoUrl;
+    if (videoUrl != null && videoUrl.isNotEmpty) {
+      recordPlayIfPossible('video', item.id);
+      Get.to(() => VideoWebView(url: videoUrl));
+    } else {
+      if (item.albumId != null) {
+        Get.toNamed(AppRoutes.albumDetail, arguments: {'albumId': item.albumId});
+      }
     }
   }
 }

@@ -7,6 +7,8 @@ class SearchResultItem extends StatelessWidget {
   final String subtitle;
   final String? details;
   final VoidCallback? onTap;
+  /// When true, show play button overlay (for tracks/videos). When false, no overlay (artist/album).
+  final bool showPlayIcon;
 
   const SearchResultItem({
     super.key,
@@ -15,6 +17,7 @@ class SearchResultItem extends StatelessWidget {
     required this.subtitle,
     this.details,
     this.onTap,
+    this.showPlayIcon = true,
   });
 
   @override
@@ -35,30 +38,31 @@ class SearchResultItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: _buildImage(context, colors),
                 ),
-                Positioned(
-                  bottom: 4,
-                  right: 4,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.play_fill,
-                      color: Colors.black,
-                      size: 14,
+                if (showPlayIcon)
+                  Positioned(
+                    bottom: 4,
+                    right: 4,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.play_fill,
+                        color: Colors.black,
+                        size: 14,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(width: 12),

@@ -781,19 +781,42 @@ router.get('/search', async (req, res) => {
       if (q) albumWhere.title = likePattern;
       const albums = await Album.findAll({
         where: albumWhere,
+        attributes: ['album_id', 'title', 'cover_image_url', 'artist_id', 'album_type'],
         include: [{ model: Artist, as: 'artist', attributes: ['name'], required: true }],
         order: [['release_date', 'DESC'], ['album_id', 'DESC']],
         limit: perType
       });
+      const albumIds = albums.map((a) => a.album_id);
+      const countByAlbum = {};
+      albumIds.forEach((id) => { countByAlbum[id] = { audio: 0, video: 0 }; });
+      if (albumIds.length > 0) {
+        const audioRows = await sequelize.query(
+          'SELECT album_id, COUNT(*) AS c FROM audio_tracks WHERE album_id IN (?) GROUP BY album_id',
+          { replacements: [albumIds], type: sequelize.QueryTypes.SELECT }
+        ).then((r) => (Array.isArray(r) ? r : []));
+        const videoRows = await sequelize.query(
+          'SELECT album_id, COUNT(*) AS c FROM video_tracks WHERE album_id IN (?) GROUP BY album_id',
+          { replacements: [albumIds], type: sequelize.QueryTypes.SELECT }
+        ).then((r) => (Array.isArray(r) ? r : []));
+        (audioRows || []).forEach((row) => { if (countByAlbum[row.album_id]) countByAlbum[row.album_id].audio = Number(row.c) || 0; });
+        (videoRows || []).forEach((row) => { if (countByAlbum[row.album_id]) countByAlbum[row.album_id].video = Number(row.c) || 0; });
+      }
       albums.forEach((a) => {
         const artistName = a.artist?.name ?? '';
+        const counts = countByAlbum[a.album_id] || { audio: 0, video: 0 };
+        const isVideo = (a.album_type || '').toLowerCase() === 'video';
+        const trackCount = isVideo ? counts.video : counts.audio;
+        const trackLabel = trackCount === 1 ? (isVideo ? '1 video' : '1 song') : (isVideo ? `${trackCount} videos` : `${trackCount} songs`);
         results.push({
           type: 'album',
           id: a.album_id,
           title: a.title ?? '',
           subtitle: artistName ? `Album · ${artistName}` : 'Album',
           imageUrl: a.cover_image_url ?? null,
-          artistId: a.artist_id ?? null
+          artistId: a.artist_id ?? null,
+          trackCount,
+          trackLabel,
+          isVideo: isVideo
         });
       });
     }
@@ -803,6 +826,7 @@ router.get('/search', async (req, res) => {
       if (q) trackWhere.title = likePattern;
       const audios = await AudioTrack.unscoped().findAll({
         where: trackWhere,
+        attributes: ['audio_id', 'title', 'duration', 'thumbnail_url', 'audio_url'],
         include: [
           { model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url', 'artist_id'], required: true, where: { is_active: true }, include: [{ model: Artist, as: 'artist', attributes: ['name'], required: false }] }
         ],
@@ -820,7 +844,8 @@ router.get('/search', async (req, res) => {
           imageUrl: t.thumbnail_url ?? album?.cover_image_url ?? null,
           albumId: album?.album_id ?? null,
           artistId: album?.artist_id ?? null,
-          duration: t.duration ?? null
+          duration: t.duration ?? null,
+          audioUrl: t.audio_url ?? null
         });
       });
     }
@@ -830,6 +855,7 @@ router.get('/search', async (req, res) => {
       if (q) videoWhere.title = likePattern;
       const videos = await VideoTrack.unscoped().findAll({
         where: videoWhere,
+        attributes: ['video_id', 'title', 'duration', 'thumbnail_url', 'video_url'],
         include: [
           { model: Album, as: 'album', attributes: ['album_id', 'title', 'cover_image_url', 'artist_id'], required: true, where: { is_active: true }, include: [{ model: Artist, as: 'artist', attributes: ['name'], required: false }] }
         ],
@@ -847,7 +873,8 @@ router.get('/search', async (req, res) => {
           imageUrl: t.thumbnail_url ?? album?.cover_image_url ?? null,
           albumId: album?.album_id ?? null,
           artistId: album?.artist_id ?? null,
-          duration: t.duration ?? null
+          duration: t.duration ?? null,
+          videoUrl: t.video_url ?? null
         });
       });
     }

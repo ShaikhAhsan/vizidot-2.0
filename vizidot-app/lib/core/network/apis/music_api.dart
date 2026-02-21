@@ -551,6 +551,10 @@ class SearchResultItem {
     this.artistId,
     this.albumId,
     this.duration,
+    this.audioUrl,
+    this.videoUrl,
+    this.trackCount,
+    this.trackLabel,
   });
   final String type; // artist, album, music, video
   final int id;
@@ -560,6 +564,10 @@ class SearchResultItem {
   final int? artistId;
   final int? albumId;
   final int? duration;
+  final String? audioUrl;
+  final String? videoUrl;
+  final int? trackCount;
+  final String? trackLabel; // e.g. "12 songs" or "3 videos"
 
   factory SearchResultItem.fromJson(Map<String, dynamic> json) {
     return SearchResultItem(
@@ -571,6 +579,10 @@ class SearchResultItem {
       artistId: (json['artistId'] as num?)?.toInt(),
       albumId: (json['albumId'] as num?)?.toInt(),
       duration: (json['duration'] as num?)?.toInt(),
+      audioUrl: json['audioUrl'] as String?,
+      videoUrl: json['videoUrl'] as String?,
+      trackCount: (json['trackCount'] as num?)?.toInt(),
+      trackLabel: json['trackLabel'] as String?,
     );
   }
 }
