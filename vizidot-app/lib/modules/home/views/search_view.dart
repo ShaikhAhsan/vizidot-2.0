@@ -62,43 +62,48 @@ class SearchView extends GetView<SearchController> {
                         width: 1,
                       ),
                     ),
-                    child: Obx(() => CupertinoTextField(
-                          onChanged: controller.setQuery,
-                          placeholder: 'Search',
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: const BoxDecoration(),
-                          prefix: Padding(
-                            padding: const EdgeInsets.only(left: 16),
-                            child: Icon(
-                              CupertinoIcons.search,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                          ),
-                          placeholderStyle: textTheme.bodyMedium?.copyWith(
-                            fontSize: 16,
-                            color: colors.onSurface.withOpacity(0.5),
-                          ),
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontSize: 16,
-                            color: colors.onSurface,
-                          ),
-                        )),
+                    child: CupertinoTextField(
+                      onChanged: controller.setQuery,
+                      placeholder: 'Search',
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: const BoxDecoration(),
+                      prefix: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Icon(
+                          CupertinoIcons.search,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
+                      ),
+                      placeholderStyle: textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        color: colors.onSurface.withOpacity(0.5),
+                      ),
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        color: colors.onSurface,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
-                  Obx(() => SearchCategoryTabs(
-                        selectedCategory: controller.selectedCategory.value,
-                        onCategoryChanged: controller.setCategory,
-                      )),
+                  Obx(() {
+                    final category = controller.selectedCategory.value;
+                    return SearchCategoryTabs(
+                      selectedCategory: category,
+                      onCategoryChanged: controller.setCategory,
+                    );
+                  }),
                   const SizedBox(height: 20),
                   Obx(() {
-                    if (controller.isLoading.value && controller.results.isEmpty) {
+                    final loading = controller.isLoading.value;
+                    final resultsList = controller.results.toList();
+                    if (loading && resultsList.isEmpty) {
                       return const Padding(
                         padding: EdgeInsets.symmetric(vertical: 32),
                         child: Center(child: CupertinoActivityIndicator()),
                       );
                     }
-                    if (controller.results.isEmpty) {
+                    if (resultsList.isEmpty) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 32),
                         child: Center(
@@ -113,7 +118,7 @@ class SearchView extends GetView<SearchController> {
                     }
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: controller.results.map((item) {
+                      children: resultsList.map((item) {
                         String? imageUrl = item.imageUrl;
                         if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
                           imageUrl = '$baseUrl${imageUrl.startsWith('/') ? '' : '/'}$imageUrl';

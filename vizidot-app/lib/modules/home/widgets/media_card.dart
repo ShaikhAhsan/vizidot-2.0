@@ -85,17 +85,19 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
     final imageSrc = useNetworkImage ? widget.imageUrl! : widget.asset;
     final imageHeight = widget.imageHeight ?? 200.0;
 
+    // Horizontal card must fit in ~174px: use smaller image so title + artist fit
+    final horizontalImageHeight = 88.0;
     Widget imageWidget = ClipRRect(
       borderRadius: widget.borderRadius,
       child: widget.isHorizontal
           ? SizedBox(
               width: double.infinity,
-              height: 100,
+              height: horizontalImageHeight,
               child: useNetworkImage
                   ? assetOrNetworkImage(
                       src: imageSrc,
                       width: double.infinity,
-                      height: 100,
+                      height: horizontalImageHeight,
                       fit: BoxFit.cover,
                       borderRadius: widget.borderRadius,
                     )
@@ -103,7 +105,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
                       widget.asset,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      height: 100,
+                      height: horizontalImageHeight,
                     ),
             )
           : SizedBox(
@@ -130,9 +132,9 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       widget.title,
       style: textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.bold,
-        fontSize: 14,
+        fontSize: widget.isHorizontal ? 13 : 14,
       ),
-      maxLines: 2,
+      maxLines: widget.isHorizontal ? 1 : 2,
       overflow: TextOverflow.ellipsis,
     );
 
@@ -228,7 +230,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
             mainAxisSize: MainAxisSize.min,
             children: [
               animatedImage,
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               animatedTitle,
             ],
           )
@@ -246,7 +248,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       mainAxisSize: widget.isHorizontal ? MainAxisSize.min : MainAxisSize.max,
       children: [
         imageAndTitle,
-        const SizedBox(height: 10),
+        SizedBox(height: widget.isHorizontal ? 6 : 10),
         artistNameWidget,
       ],
     );
