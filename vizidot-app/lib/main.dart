@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,6 +15,18 @@ import 'firebase_options.dart';
 /// environment variables, and the Flutter engine before starting the app.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Suppress Flutter Inspector "Id does not exist" when a selected widget is disposed (e.g. after navigation).
+  if (kDebugMode) {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      final msg = details.exception.toString();
+      final stack = details.stack?.toString() ?? '';
+      if (msg.contains('Id does not exist') && stack.contains('WidgetInspectorService')) {
+        return;
+      }
+      FlutterError.presentError(details);
+    };
+  }
   
   // Initialize Firebase with platform-specific options.
   await Firebase.initializeApp(
