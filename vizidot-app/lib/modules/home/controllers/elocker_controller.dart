@@ -25,28 +25,27 @@ class ELockerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadFromSearch();
+    loadElocker();
   }
 
-  Future<void> loadFromSearch() async {
+  /// Fetches featured and rising star artists from GET /api/v1/music/elocker.
+  Future<void> loadElocker() async {
     isLoading.value = true;
     try {
       final config = AppConfig.fromEnv();
       final api = MusicApi(baseUrl: config.baseUrl);
-      final resp = await api.search(q: '', type: 'artists', limit: 30);
-      if (resp != null && resp.results.isNotEmpty) {
-        final artists = resp.results
-            .where((r) => r.type == 'artist')
-            .map((r) => ElockerArtist(
-                  id: r.id,
-                  name: r.title,
-                  genre: r.subtitle,
-                  imageUrl: r.imageUrl,
-                ))
-            .toList();
-        const featuredCount = 5;
-        featuredArtists.assignAll(artists.take(featuredCount));
-        risingStars.assignAll(artists.skip(featuredCount));
+      final resp = await api.getElocker();
+      if (resp != null) {
+        featuredArtists.assignAll(
+          resp.featuredArtists
+              .map((a) => ElockerArtist(id: a.id, name: a.name, genre: 'Artist', imageUrl: a.imageUrl))
+              .toList(),
+        );
+        risingStars.assignAll(
+          resp.risingStarArtists
+              .map((a) => ElockerArtist(id: a.id, name: a.name, genre: 'Artist', imageUrl: a.imageUrl))
+              .toList(),
+        );
       } else {
         featuredArtists.clear();
         risingStars.clear();

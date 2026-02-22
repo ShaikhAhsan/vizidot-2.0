@@ -98,7 +98,8 @@ class AppPages {
       name: AppRoutes.artistDetail,
       page: () {
         final args = Get.arguments as Map<String, dynamic>? ?? {};
-        final artistId = args['artistId'] as int?;
+        final id = args['artistId'];
+        final artistId = id is int ? id : (id is num ? id.toInt() : null);
         if (artistId != null) {
           Get.put(ArtistDetailController(artistId: artistId));
         }

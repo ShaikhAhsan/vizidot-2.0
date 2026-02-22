@@ -17,6 +17,9 @@ class ApiConstants {
   static String artistByIdPath(int artistId) =>
       '$musicSegment/artists/$artistId';
 
+  /// E-locker: featured + rising star artists. Public.
+  static const String elockerPath = '$musicSegment/elocker';
+
   /// List artists with pagination. Public. Query: limit, offset.
   static const String artistsPath = '$musicSegment/artists';
   static String artistsListPath(int limit, int offset) =>

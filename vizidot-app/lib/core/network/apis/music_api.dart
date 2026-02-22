@@ -109,6 +109,23 @@ class MusicApi extends BaseApi {
     }
   }
 
+  /// GET E-locker: featured and rising star artists. Public.
+  Future<ElockerResponse?> getElocker() async {
+    try {
+      final response = await execute(
+        'GET',
+        ApiConstants.elockerPath,
+        visibility: ApiVisibility.public,
+      );
+      if (response.statusCode != 200) return null;
+      final Map<String, dynamic>? data = _dataFromResponse(response);
+      if (data == null) return null;
+      return ElockerResponse.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// POST save selected artist ids for the logged-in user (follow those artists). **Private** — requires token.
   /// Call when user taps Next on artists screen. Skip should not call this.
   Future<bool> saveSelectedArtists(List<int> artistIds) async {
@@ -521,6 +538,29 @@ class ArtistListItem {
       id: (json['id'] as num).toInt(),
       name: json['name'] as String? ?? '',
       imageUrl: json['imageUrl'] as String?,
+    );
+  }
+}
+
+/// Response from GET /music/elocker (featured + rising star artists).
+class ElockerResponse {
+  ElockerResponse({
+    required this.featuredArtists,
+    required this.risingStarArtists,
+  });
+  final List<ArtistListItem> featuredArtists;
+  final List<ArtistListItem> risingStarArtists;
+
+  factory ElockerResponse.fromJson(Map<String, dynamic> json) {
+    final feat = json['featuredArtists'] as List<dynamic>? ?? [];
+    final rising = json['risingStarArtists'] as List<dynamic>? ?? [];
+    return ElockerResponse(
+      featuredArtists: feat
+          .map((e) => ArtistListItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      risingStarArtists: rising
+          .map((e) => ArtistListItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
     );
   }
 }

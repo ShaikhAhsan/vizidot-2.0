@@ -154,7 +154,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        padding: const EdgeInsets.symmetric(vertical: 0.0),
         child: Text(
           widget.artist,
           style: textTheme.bodySmall?.copyWith(
@@ -172,28 +172,31 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,
-      onTap: () async {
-        if (widget.isHorizontal) {
-          final played = await playTrack(
-            title: widget.title,
-            artist: widget.artist,
-            albumArt: widget.imageUrl ?? widget.asset,
-            audioUrl: widget.audioUrl,
-            duration: const Duration(minutes: 3, seconds: 30),
-          );
-          if (played && widget.trackId != null) {
+      onTap:
+          () async {
+
+          print("widget.trackId  ${widget.videoUrl}");
+          print("widget.trackId  ${widget.videoUrl}");
+
+          if ( widget.trackId != null) {
+            final played = await playTrack(
+              title: widget.title,
+              artist: widget.artist,
+              albumArt: widget.imageUrl ?? widget.asset,
+              audioUrl: widget.audioUrl,
+              duration: const Duration(minutes: 3, seconds: 30),
+            );
             recordPlayIfPossible('audio', widget.trackId!);
           }
-          return;
-        }
-        if (widget.videoUrl != null && widget.videoUrl!.isNotEmpty) {
+        else if (widget.videoUrl != null && widget.videoUrl!.isNotEmpty) {
           if (widget.videoId != null) {
             recordPlayIfPossible('video', widget.videoId!);
           }
           Get.to(() => VideoWebView(url: widget.videoUrl!));
           return;
-        }
-        widget.onTap?.call();
+        } else {
+            widget.onTap?.call();
+          }
       },
       behavior: HitTestBehavior.deferToChild,
       child: AnimatedBuilder(

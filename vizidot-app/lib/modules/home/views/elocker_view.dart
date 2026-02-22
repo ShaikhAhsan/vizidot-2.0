@@ -50,7 +50,7 @@ class ELockerView extends GetView<ELockerController> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   Obx(() {
                     if (controller.isLoading.value && controller.featuredArtists.isEmpty && controller.risingStars.isEmpty) {
                       return const Padding(
@@ -60,10 +60,12 @@ class ELockerView extends GetView<ELockerController> {
                     }
                     return const SizedBox.shrink();
                   }),
-                  const SectionHeader(title: 'FEATURED'),
-                  const SizedBox(height: 16),
+                   if(controller.featuredArtists.isNotEmpty)
+                   const SectionHeader(title: 'FEATURED'),
+                  if(controller.featuredArtists.isNotEmpty)
+                    const SizedBox(height: 20),
                   SizedBox(
-                    height: 174,
+                    height: 150,
                     child: Obx(() => ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount: controller.featuredArtists.length,
@@ -83,14 +85,14 @@ class ELockerView extends GetView<ELockerController> {
                                 bottomLeft: Radius.circular(12),
                                 bottomRight: Radius.circular(30),
                               ),
-                              onTap: () => Get.toNamed(AppRoutes.artistDetail, parameters: {'id': artist.id.toString()}),
+                              onTap: () => Get.toNamed(AppRoutes.artistDetail, arguments: {'artistId': artist.id}),
                             );
                           },
                         )),
                   ),
-                  const SizedBox(height: 32),
+                  // const SizedBox(height: 40),
                   const SectionHeader(title: 'RISING STARS'),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Obx(() => Column(
                         children: List.generate(
                           controller.risingStars.length,
@@ -99,25 +101,30 @@ class ELockerView extends GetView<ELockerController> {
                             final imageUrl = _fullImageUrl(baseUrl, artist.imageUrl);
                             return Padding(
                               padding: EdgeInsets.only(
-                                bottom: index < controller.risingStars.length - 1 ? 16 : 0,
+                                bottom: index < controller.risingStars.length - 1 ? 8 : 8,
                               ),
                               child: InkWell(
-                                onTap: () => Get.toNamed(AppRoutes.artistDetail, parameters: {'id': artist.id.toString()}),
+                                onTap: () => Get.toNamed(AppRoutes.artistDetail, arguments: {'artistId': artist.id}),
+                                borderRadius: BorderRadius.circular(12),
                                 child: Row(
                                   children: [
                                     ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: imageUrl != null && imageUrl.isNotEmpty
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(30),
+                                        topRight: Radius.circular(12),
+                                        bottomLeft: Radius.circular(12),
+                                        bottomRight: Radius.circular(30),
+                                      ),                                      child: imageUrl != null && imageUrl.isNotEmpty
                                           ? Image.network(
                                               imageUrl,
-                                              width: 64,
-                                              height: 64,
+                                              width: 80,
+                                              height: 70,
                                               fit: BoxFit.cover,
                                               errorBuilder: (_, __, ___) => _placeholder(context),
                                             )
                                           : _placeholder(context),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,7 +156,7 @@ class ELockerView extends GetView<ELockerController> {
                           },
                         ),
                       )),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                 ]),
               ),
             ),
