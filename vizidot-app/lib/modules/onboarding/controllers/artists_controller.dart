@@ -18,6 +18,7 @@ class ArtistsController extends GetxController {
   final items = <ArtistItem>[].obs;
   final isLoading = true.obs;
   final isSaving = false.obs;
+  final isSkipping = false.obs;
   final hasMore = true.obs;
   final _offset = 0.obs;
   static const int _pageSize = 24;
@@ -122,20 +123,26 @@ class ArtistsController extends GetxController {
 
   /// Called when user taps Skip. If logged in, marks onboarded so onboarding is not shown again.
   Future<void> onSkip() async {
-    final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
-    if (auth?.isLoggedIn.value ?? false) {
-      final token = await auth?.getIdToken();
-      final config = AppConfig.fromEnv();
-      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
-      final api = SettingsApi(baseUrl: baseUrl, authToken: token);
-      await api.updateSettings(isOnboarded: true);
-      if (Get.isRegistered<UserProfileService>()) {
-        final p = Get.find<UserProfileService>().profile;
-        if (p != null) {
-          Get.find<UserProfileService>().setProfile(p.copyWith(isOnboarded: true));
+    if (isSkipping.value) return;
+    isSkipping.value = true;
+    try {
+      final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+      if (auth?.isLoggedIn.value ?? false) {
+        final token = await auth?.getIdToken();
+        final config = AppConfig.fromEnv();
+        final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+        final api = SettingsApi(baseUrl: baseUrl, authToken: token);
+        await api.updateSettings(isOnboarded: true);
+        if (Get.isRegistered<UserProfileService>()) {
+          final p = Get.find<UserProfileService>().profile;
+          if (p != null) {
+            Get.find<UserProfileService>().setProfile(p.copyWith(isOnboarded: true));
+          }
         }
       }
+      Get.offAllNamed('/');
+    } finally {
+      isSkipping.value = false;
     }
-    Get.offAllNamed('/');
   }
 }

@@ -32,10 +32,10 @@ class HomeContentView extends GetView<HomeController> {
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(32, 32),
                 onPressed: () {
-                  // TODO: Show options menu
+                  Get.toNamed(AppRoutes.search);
                 },
                 child: const Icon(
-                  CupertinoIcons.ellipsis_vertical,
+                  CupertinoIcons.search,
                   color: Colors.black,
                   size: 20,
                 ),

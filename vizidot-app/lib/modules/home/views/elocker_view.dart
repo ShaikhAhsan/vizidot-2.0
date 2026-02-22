@@ -60,103 +60,112 @@ class ELockerView extends GetView<ELockerController> {
                     }
                     return const SizedBox.shrink();
                   }),
-                   if(controller.featuredArtists.isNotEmpty)
-                   const SectionHeader(title: 'FEATURED'),
-                  if(controller.featuredArtists.isNotEmpty)
-                    const SizedBox(height: 20),
-                  SizedBox(
-                    height: 150,
-                    child: Obx(() => ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: controller.featuredArtists.length,
-                          itemBuilder: (context, index) {
-                            final artist = controller.featuredArtists[index];
-                            final imageUrl = _fullImageUrl(baseUrl, artist.imageUrl);
-                            return MediaCard(
-                              title: artist.name,
-                              artist: artist.genre,
-                              asset: '',
-                              imageUrl: imageUrl,
-                              artistId: artist.id,
-                              isHorizontal: true,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(30),
-                                topRight: Radius.circular(12),
-                                bottomLeft: Radius.circular(12),
-                                bottomRight: Radius.circular(30),
-                              ),
-                              onTap: () => Get.toNamed(AppRoutes.artistDetail, arguments: {'artistId': artist.id}),
-                            );
-                          },
-                        )),
-                  ),
-                  // const SizedBox(height: 40),
-                  const SectionHeader(title: 'RISING STARS'),
-                  const SizedBox(height: 20),
-                  Obx(() => Column(
-                        children: List.generate(
-                          controller.risingStars.length,
-                          (index) {
-                            final artist = controller.risingStars[index];
-                            final imageUrl = _fullImageUrl(baseUrl, artist.imageUrl);
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom: index < controller.risingStars.length - 1 ? 8 : 8,
-                              ),
-                              child: InkWell(
-                                onTap: () => Get.toNamed(AppRoutes.artistDetail, arguments: {'artistId': artist.id}),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Row(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(30),
-                                        topRight: Radius.circular(12),
-                                        bottomLeft: Radius.circular(12),
-                                        bottomRight: Radius.circular(30),
-                                      ),                                      child: imageUrl != null && imageUrl.isNotEmpty
-                                          ? Image.network(
-                                              imageUrl,
-                                              width: 80,
-                                              height: 70,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => _placeholder(context),
-                                            )
-                                          : _placeholder(context),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            artist.name,
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                  Obx(() {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (controller.featuredArtists.isNotEmpty) ...[
+                          const SectionHeader(title: 'FEATURED'),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            height: 150,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: controller.featuredArtists.length,
+                              itemBuilder: (context, index) {
+                                final artist = controller.featuredArtists[index];
+                                final imageUrl = _fullImageUrl(baseUrl, artist.imageUrl);
+                                return MediaCard(
+                                  title: artist.name,
+                                  artist: artist.genre,
+                                  asset: '',
+                                  imageUrl: imageUrl,
+                                  artistId: artist.id,
+                                  isHorizontal: true,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(30),
+                                    topRight: Radius.circular(12),
+                                    bottomLeft: Radius.circular(12),
+                                    bottomRight: Radius.circular(30),
+                                  ),
+                                  onTap: () => Get.toNamed(AppRoutes.artistDetail, arguments: {'artistId': artist.id}),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                        if (controller.risingStars.isNotEmpty) ...[
+                          const SectionHeader(title: 'RISING STARS'),
+                          const SizedBox(height: 20),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(
+                              controller.risingStars.length,
+                              (index) {
+                                final artist = controller.risingStars[index];
+                                final imageUrl = _fullImageUrl(baseUrl, artist.imageUrl);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: InkWell(
+                                    onTap: () => Get.toNamed(AppRoutes.artistDetail, arguments: {'artistId': artist.id}),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Row(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            topRight: Radius.circular(12),
+                                            bottomLeft: Radius.circular(12),
+                                            bottomRight: Radius.circular(30),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            artist.genre,
-                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                          child: imageUrl != null && imageUrl.isNotEmpty
+                                              ? Image.network(
+                                                  imageUrl,
+                                                  width: 80,
+                                                  height: 70,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) => _placeholder(context),
+                                                )
+                                              : _placeholder(context),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                artist.name,
+                                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                artist.genre,
+                                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                                    ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      )),
-                  const SizedBox(height: 32),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 32),
+                      ],
+                    );
+                  }),
                 ]),
               ),
             ),
