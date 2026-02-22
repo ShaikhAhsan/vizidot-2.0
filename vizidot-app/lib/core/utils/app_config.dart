@@ -19,6 +19,8 @@ class AppConfig {
   factory AppConfig.fromEnv() {
     String env = 'development';
     String baseUrl = 'http://localhost:8000';
+    // String baseUrl = 'http://109.106.244.241:9000';
+
     String? testToken;
     try {
       env = (dotenv.env['ENV'] ?? env).toLowerCase();
