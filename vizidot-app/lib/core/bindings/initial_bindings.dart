@@ -6,6 +6,7 @@ import '../../modules/live_stream/controllers/live_stream_controller.dart';
 import '../utils/theme_controller.dart';
 import '../utils/app_config.dart';
 import '../utils/auth_service.dart';
+import '../utils/user_profile_service.dart';
 
 class InitialBindings extends Bindings {
   @override
@@ -14,6 +15,7 @@ class InitialBindings extends Bindings {
     Get.put<AppConfig>(AppConfig.fromEnv(), permanent: true);
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
     Get.putAsync<AuthService>(() async => AuthService().init(), permanent: true);
+    Get.put<UserProfileService>(UserProfileService(), permanent: true);
     Get.put<MusicPlayerController>(MusicPlayerController(), permanent: true);
     Get.put<LiveStreamController>(LiveStreamController(), permanent: true);
   }

@@ -80,7 +80,7 @@ class FirebaseAuthService {
         last_name: lastName,
         phone,
         country_code: countryCode || '+92',
-        role: role || 'customer',
+        primary_role: role || 'customer',
         is_verified: firebaseUser.emailVerified,
         is_active: true
       });
@@ -96,40 +96,68 @@ class FirebaseAuthService {
   }
 
   /**
-   * Get or create user from Firebase token
+   * Get or create user from Firebase token.
+   * - Find by firebase_uid first; if found, return.
+   * - Else fetch Firebase user, then create new MySQL row (or re-link existing row by email if duplicate).
    */
   static async getUserFromToken(idToken) {
     try {
       const decodedToken = await this.verifyToken(idToken);
-      console.log('Token verified successfully, UID:', decodedToken.uid);
-      
-      // Find user in MySQL by Firebase UID
+      const firebaseUid = decodedToken.uid;
+      console.log('Token verified successfully, UID:', firebaseUid);
+
+      // Find user in MySQL by Firebase UID only (do not find by email here)
       let user = await User.findOne({
-        where: { firebase_uid: decodedToken.uid }
+        where: { firebase_uid: firebaseUid }
       });
 
-      // If user doesn't exist in MySQL, create them
-      if (!user) {
-        console.log('User not found in DB, creating new user...');
-        const firebaseUser = await firebaseAdmin.auth().getUser(decodedToken.uid);
-        
+      if (user) {
+        console.log('User found in DB:', user.email);
+        return user;
+      }
+
+      // New Firebase user: get profile from Firebase, then create or re-link in MySQL
+      console.log('User not found in DB, creating new user...');
+      const firebaseUser = await firebaseAdmin.auth().getUser(firebaseUid);
+      const email = firebaseUser.email || `${firebaseUid}@firebase.local`;
+      const displayParts = (firebaseUser.displayName || 'User').trim().split(/\s+/);
+      const firstName = displayParts[0] || 'User';
+      const lastName = displayParts.slice(1).join(' ') || '';
+      const phone = firebaseUser.phoneNumber ? firebaseUser.phoneNumber.replace(/^\+\d{1,3}/, '') : null;
+      const countryCode = firebaseUser.phoneNumber
+        ? `+${(firebaseUser.phoneNumber.match(/^\+\d{1,3}/) || [])[0]?.slice(1) || '92'}`
+        : '+92';
+
+      try {
         user = await User.create({
-          firebase_uid: decodedToken.uid,
-          email: firebaseUser.email,
-          first_name: firebaseUser.displayName?.split(' ')[0] || 'User',
-          last_name: firebaseUser.displayName?.split(' ').slice(1).join(' ') || '',
-          phone: firebaseUser.phoneNumber?.replace(/^\+\d{1,3}/, '') || null,
-          country_code: firebaseUser.phoneNumber ? `+${firebaseUser.phoneNumber.match(/^\+\d{1,3}/)?.[0]?.slice(1) || '92'}` : '+92',
-          role: 'customer',
-          is_verified: firebaseUser.emailVerified,
+          firebase_uid: firebaseUid,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone || null,
+          country_code: countryCode,
+          primary_role: 'customer',
+          is_verified: !!firebaseUser.emailVerified,
           is_active: true
         });
         console.log('User created successfully:', user.email);
-      } else {
-        console.log('User found in DB:', user.email);
+        return user;
+      } catch (createErr) {
+        // Duplicate email (or firebase_uid): re-link existing row to this Firebase UID if same email
+        if (createErr.name === 'SequelizeUniqueConstraintError') {
+          const existing = await User.findOne({ where: { email } });
+          if (existing) {
+            await User.update(
+              { firebase_uid: firebaseUid, is_active: true, is_delete: false, deleted_at: null },
+              { where: { id: existing.id } }
+            );
+            user = await User.findByPk(existing.id);
+            console.log('Re-linked existing user to new Firebase UID:', user.email);
+            return user;
+          }
+        }
+        throw createErr;
       }
-
-      return user;
     } catch (error) {
       console.error('Error getting user from token:', error.message);
       console.error('Error stack:', error.stack);
@@ -165,7 +193,7 @@ class FirebaseAuthService {
       if (lastName) mysqlUpdateData.last_name = lastName;
       if (phone) mysqlUpdateData.phone = phone;
       if (countryCode) mysqlUpdateData.country_code = countryCode;
-      if (role) mysqlUpdateData.role = role;
+      if (role) mysqlUpdateData.primary_role = role;
 
       if (Object.keys(mysqlUpdateData).length > 0) {
         await User.update(mysqlUpdateData, {
@@ -191,9 +219,9 @@ class FirebaseAuthService {
       }
       // Permanently delete Firebase user
       await firebaseAdmin.auth().deleteUser(firebaseUid);
-      // Mark MySQL user inactive (keep row for audit/history)
+      // Mark MySQL user inactive and soft-deleted (keep row for audit/history)
       const [affected] = await User.update(
-        { is_active: false, deleted_at: new Date() },
+        { is_active: false, is_delete: true, deleted_at: new Date() },
         { where: { firebase_uid: firebaseUid } }
       );
       if (affected === 0) {
@@ -234,7 +262,7 @@ class FirebaseAuthService {
       await firebaseAdmin.auth().setCustomUserClaims(firebaseUid, claims);
       
       // Update MySQL user role
-      await User.update({ role }, {
+      await User.update({ primary_role: role }, {
         where: { firebase_uid: firebaseUid }
       });
 

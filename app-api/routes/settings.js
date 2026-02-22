@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { UserSettings, AppSetting } = require('../models');
+const { UserSettings, AppSetting, User } = require('../models');
 const { authenticateToken, optionalAuth } = require('../middleware/authWithRoles');
 
 /**
@@ -14,6 +14,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const userId = req.user?.id ?? req.userId ?? null;
     let userSettings = null;
 
+    let profile = null;
     if (userId) {
       let row = await UserSettings.findOne({ where: { user_id: userId } });
       if (!row) {
@@ -24,11 +25,27 @@ router.get('/', optionalAuth, async (req, res) => {
           language: 'en'
         });
       }
+      const userRow = await User.findByPk(userId, {
+        attributes: ['id', 'email', 'first_name', 'last_name', 'profile_image', 'is_onboarded'],
+        raw: true
+      });
+      const isOnboarded = userRow?.is_onboarded === true;
       userSettings = {
         enableNotifications: !!row.enable_notifications,
         messageNotifications: !!row.message_notifications,
-        language: row.language || 'en'
+        language: row.language || 'en',
+        isOnboarded
       };
+      if (userRow) {
+        profile = {
+          id: userRow.id,
+          email: userRow.email || '',
+          firstName: userRow.first_name || '',
+          lastName: userRow.last_name || '',
+          profileImageUrl: userRow.profile_image || null,
+          isOnboarded
+        };
+      }
     }
 
     const appRows = await AppSetting.findAll({ attributes: ['key', 'value'] });
@@ -37,11 +54,9 @@ router.get('/', optionalAuth, async (req, res) => {
       appConfig[r.key] = r.value;
     }
 
-    return res.json({
-      success: true,
-      data: {
-        user: userSettings,
-        app: {
+    const dataPayload = {
+      user: userSettings,
+      app: {
           helpCenterUrl: appConfig.help_center_url || null,
           privacyPolicyUrl: appConfig.privacy_policy_url || null,
           termsUrl: appConfig.terms_url || null,
@@ -54,7 +69,12 @@ router.get('/', optionalAuth, async (req, res) => {
           contactEmail: appConfig.contact_email || null,
           websiteUrl: appConfig.website_url || null
         }
-      }
+    };
+    if (profile) dataPayload.profile = profile;
+
+    return res.json({
+      success: true,
+      data: dataPayload
     });
   } catch (err) {
     const noTable =
@@ -74,7 +94,7 @@ router.get('/', optionalAuth, async (req, res) => {
 /**
  * PATCH /api/v1/settings
  * Update current user's settings. Auth required.
- * Body: { enableNotifications?: boolean, messageNotifications?: boolean, language?: string }
+ * Body: { enableNotifications?: boolean, messageNotifications?: boolean, language?: string, isOnboarded?: boolean }
  */
 router.patch('/', authenticateToken, async (req, res) => {
   try {
@@ -105,12 +125,20 @@ router.patch('/', authenticateToken, async (req, res) => {
     }
     await row.save();
 
+    if (typeof body.isOnboarded === 'boolean' && body.isOnboarded === true) {
+      await User.update({ is_onboarded: true }, { where: { id: userId } });
+    }
+
+    const userRow = await User.findByPk(userId, { attributes: ['is_onboarded'], raw: true });
+    const isOnboarded = userRow?.is_onboarded === true;
+
     return res.json({
       success: true,
       data: {
         enableNotifications: !!row.enable_notifications,
         messageNotifications: !!row.message_notifications,
-        language: row.language || 'en'
+        language: row.language || 'en',
+        isOnboarded
       }
     });
   } catch (err) {

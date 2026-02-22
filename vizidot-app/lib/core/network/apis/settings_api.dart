@@ -63,17 +63,19 @@ class SettingsApi extends BaseApi {
     }
   }
 
-  /// PATCH /api/v1/settings. Auth required. Updates user settings (notifications, language).
+  /// PATCH /api/v1/settings. Auth required. Updates user settings (notifications, language, isOnboarded).
   Future<SettingsResponse?> updateSettings({
     bool? enableNotifications,
     bool? messageNotifications,
     String? language,
+    bool? isOnboarded,
   }) async {
     try {
       final body = <String, dynamic>{};
       if (enableNotifications != null) body['enableNotifications'] = enableNotifications;
       if (messageNotifications != null) body['messageNotifications'] = messageNotifications;
       if (language != null) body['language'] = language;
+      if (isOnboarded != null) body['isOnboarded'] = isOnboarded;
       final response = await execute(
         'PATCH',
         ApiConstants.settingsPath,
@@ -107,21 +109,76 @@ class SettingsApi extends BaseApi {
   }
 }
 
-/// Response from GET /api/v1/settings. [user] null when not logged in.
+/// Response from GET /api/v1/settings. [user] and [profile] null when not logged in.
 class SettingsResponse {
   SettingsResponse({
     this.user,
+    this.profile,
     required this.app,
   });
   final UserSettingsData? user;
+  /// Current user profile (id, name, email, isOnboarded). Present when authenticated.
+  final UserProfileData? profile;
   final AppSettingsData app;
 
   factory SettingsResponse.fromJson(Map<String, dynamic> json) {
     final userMap = json['user'] as Map<String, dynamic>?;
+    final profileMap = json['profile'] as Map<String, dynamic>?;
     final appMap = json['app'] as Map<String, dynamic>? ?? {};
     return SettingsResponse(
       user: userMap != null ? UserSettingsData.fromJson(userMap) : null,
+      profile: profileMap != null ? UserProfileData.fromJson(profileMap) : null,
       app: AppSettingsData.fromJson(appMap),
+    );
+  }
+}
+
+/// User profile from GET /api/v1/settings (data.profile). Use across the app via [UserProfileService].
+class UserProfileData {
+  UserProfileData({
+    required this.id,
+    required this.email,
+    required this.firstName,
+    required this.lastName,
+    this.profileImageUrl,
+    this.isOnboarded = false,
+  });
+  final int id;
+  final String email;
+  final String firstName;
+  final String lastName;
+  final String? profileImageUrl;
+  final bool isOnboarded;
+
+  String get fullName => '$firstName $lastName'.trim();
+  bool get hasImage => profileImageUrl != null && profileImageUrl!.isNotEmpty;
+
+  UserProfileData copyWith({
+    int? id,
+    String? email,
+    String? firstName,
+    String? lastName,
+    String? profileImageUrl,
+    bool? isOnboarded,
+  }) {
+    return UserProfileData(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      isOnboarded: isOnboarded ?? this.isOnboarded,
+    );
+  }
+
+  factory UserProfileData.fromJson(Map<String, dynamic> json) {
+    return UserProfileData(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      email: json['email'] as String? ?? '',
+      firstName: json['firstName'] as String? ?? '',
+      lastName: json['lastName'] as String? ?? '',
+      profileImageUrl: json['profileImageUrl'] as String?,
+      isOnboarded: json['isOnboarded'] as bool? ?? false,
     );
   }
 }
@@ -132,16 +189,20 @@ class UserSettingsData {
     this.enableNotifications = true,
     this.messageNotifications = false,
     this.language = 'en',
+    this.isOnboarded = false,
   });
   final bool enableNotifications;
   final bool messageNotifications;
   final String language;
+  /// True after user completed categories + artists onboarding; used to skip onboarding on next app open.
+  final bool isOnboarded;
 
   factory UserSettingsData.fromJson(Map<String, dynamic> json) {
     return UserSettingsData(
       enableNotifications: json['enableNotifications'] as bool? ?? true,
       messageNotifications: json['messageNotifications'] as bool? ?? false,
       language: json['language'] as String? ?? 'en',
+      isOnboarded: json['isOnboarded'] as bool? ?? false,
     );
   }
 }

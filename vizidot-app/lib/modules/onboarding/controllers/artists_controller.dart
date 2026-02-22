@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
 
 import '../../../core/network/apis/music_api.dart';
+import '../../../core/network/apis/settings_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/user_profile_service.dart';
 
 class ArtistItem {
   final int id;
@@ -90,21 +92,48 @@ class ArtistsController extends GetxController {
 
   void toggle(int index) => toggleByIndex(index);
 
-  /// Called when user taps Next. If logged in, saves selected artists (follow) then navigates.
-  /// Skip does not call this — it only navigates (no save).
+  /// Called when user taps Next. If logged in, saves selected artists (follow), marks onboarded, then navigates to home.
   Future<void> onContinue() async {
     if (!canContinue) return;
     final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
     final loggedIn = auth?.isLoggedIn.value ?? false;
-    if (loggedIn) {
-      isSaving.value = true;
-      try {
+    isSaving.value = true;
+    try {
+      if (loggedIn) {
         final token = await auth?.getIdToken();
         final config = AppConfig.fromEnv();
-        final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
-        await api.saveSelectedArtists(selected.toList());
-      } finally {
-        isSaving.value = false;
+        final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+        final musicApi = MusicApi(baseUrl: baseUrl, authToken: token);
+        await musicApi.saveSelectedArtists(selected.toList());
+        final settingsApi = SettingsApi(baseUrl: baseUrl, authToken: token);
+        await settingsApi.updateSettings(isOnboarded: true);
+        if (Get.isRegistered<UserProfileService>()) {
+          final p = Get.find<UserProfileService>().profile;
+          if (p != null) {
+            Get.find<UserProfileService>().setProfile(p.copyWith(isOnboarded: true));
+          }
+        }
+      }
+    } finally {
+      isSaving.value = false;
+    }
+    Get.offAllNamed('/');
+  }
+
+  /// Called when user taps Skip. If logged in, marks onboarded so onboarding is not shown again.
+  Future<void> onSkip() async {
+    final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+    if (auth?.isLoggedIn.value ?? false) {
+      final token = await auth?.getIdToken();
+      final config = AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final api = SettingsApi(baseUrl: baseUrl, authToken: token);
+      await api.updateSettings(isOnboarded: true);
+      if (Get.isRegistered<UserProfileService>()) {
+        final p = Get.find<UserProfileService>().profile;
+        if (p != null) {
+          Get.find<UserProfileService>().setProfile(p.copyWith(isOnboarded: true));
+        }
       }
     }
     Get.offAllNamed('/');

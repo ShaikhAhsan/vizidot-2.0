@@ -84,6 +84,12 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
+  },
+  is_onboarded: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'True after user completes categories + artists onboarding'
   }
 }, {
   tableName: 'users',
@@ -104,6 +110,9 @@ const User = sequelize.define('User', {
     },
     {
       fields: ['is_delete']
+    },
+    {
+      fields: ['is_onboarded']
     },
     {
       fields: ['primary_role']

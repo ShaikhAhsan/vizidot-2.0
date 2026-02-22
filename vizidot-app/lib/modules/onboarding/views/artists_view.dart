@@ -81,7 +81,7 @@ class ArtistsView extends GetView<ArtistsController> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  TextButton(onPressed: () => Get.offAllNamed('/'), child: const Text('Skip')),
+                  TextButton(onPressed: () => controller.onSkip(), child: const Text('Skip')),
                   const SizedBox(width: 5),
                   Obx(() => InkWell(
                         onTap: controller.canContinue && !controller.isSaving.value
