@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/device_registration_service.dart';
 import '../../../core/utils/user_profile_service.dart';
 import '../../../routes/app_pages.dart';
 
@@ -58,6 +59,9 @@ class SplashView extends StatelessWidget {
     final profile = await profileService.loadFromApi();
     final isOnboarded = profile?.isOnboarded ?? false;
     final next = isOnboarded ? AppRoutes.home : AppRoutes.categories;
+    if (Get.isRegistered<DeviceRegistrationService>()) {
+      await Get.find<DeviceRegistrationService>().registerDevice();
+    }
     Get.offAllNamed(next);
   }
 }

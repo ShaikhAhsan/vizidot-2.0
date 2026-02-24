@@ -72,4 +72,11 @@ class ApiConstants {
 
   /// Delete current user account (Firebase + backend). DELETE. Auth required.
   static const String accountDeletePath = 'auth/account';
+
+  /// Device/FCM: register device on login. POST. Auth required.
+  static const String deviceRegisterPath = 'device/register';
+  /// Device/FCM: de-register device on logout. POST. Auth required.
+  static const String deviceLogoutPath = 'device/logout';
+  /// Device/FCM: get tokens for user IDs (e.g. for sending push). GET ?userIds=1,2,3. Auth required.
+  static const String deviceTokensPath = 'device/tokens';
 }

@@ -13,6 +13,8 @@
     <!-- For Android 12 (API 31) and above devices, the following permission is also required -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     
+    <!-- FCM / Push notifications (Android 13+ requires POST_NOTIFICATIONS for runtime) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- App-specific permissions -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>

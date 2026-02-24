@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/device_registration_service.dart';
 import '../../../routes/app_pages.dart';
 
 class AuthController extends GetxController {
@@ -46,6 +47,9 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithEmail(emailController.text.trim(), passwordController.text);
+      if (Get.isRegistered<DeviceRegistrationService>()) {
+        await Get.find<DeviceRegistrationService>().registerDevice();
+      }
       Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Sign in failed', _mapError(e));
@@ -86,6 +90,9 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signUpWithEmail(emailController.text.trim(), passwordController.text);
+      if (Get.isRegistered<DeviceRegistrationService>()) {
+        await Get.find<DeviceRegistrationService>().registerDevice();
+      }
       Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Sign up failed', _mapError(e));
@@ -108,6 +115,9 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithGoogle();
+      if (Get.isRegistered<DeviceRegistrationService>()) {
+        await Get.find<DeviceRegistrationService>().registerDevice();
+      }
       Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Google sign-in failed', _mapError(e));
@@ -120,6 +130,9 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithApple();
+      if (Get.isRegistered<DeviceRegistrationService>()) {
+        await Get.find<DeviceRegistrationService>().registerDevice();
+      }
       Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Apple sign-in failed', _mapError(e));
@@ -132,6 +145,9 @@ class AuthController extends GetxController {
     isSubmitting.value = true;
     try {
       await Get.find<AuthService>().signInWithFacebook();
+      if (Get.isRegistered<DeviceRegistrationService>()) {
+        await Get.find<DeviceRegistrationService>().registerDevice();
+      }
       Get.offAllNamed(AppRoutes.categories);
     } on Exception catch (e) {
       Get.snackbar('Facebook sign-in failed', _mapError(e));

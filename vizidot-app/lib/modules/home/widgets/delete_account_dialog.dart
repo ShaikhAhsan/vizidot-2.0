@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../../../core/network/apis/settings_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/device_registration_service.dart';
 import '../../../routes/app_pages.dart';
 
 class DeleteAccountDialog extends StatefulWidget {
@@ -51,6 +52,11 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
       final ok = await api.deleteAccount();
       if (!mounted) return;
       if (ok) {
+        if (Get.isRegistered<DeviceRegistrationService>()) {
+          try {
+            await Get.find<DeviceRegistrationService>().logoutDevice();
+          } catch (_) {}
+        }
         await auth.signOut();
         Get.offAllNamed(AppRoutes.landing);
       } else {
