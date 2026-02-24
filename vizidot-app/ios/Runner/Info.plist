@@ -85,5 +85,7 @@
 	<string>Camera Usage require for Live Streaming</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone Usage require for Live Streaming</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Vizidot needs access to your photo library so you can choose a profile picture or share content.</string>
 </dict>
 </plist>
