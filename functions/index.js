@@ -2,17 +2,17 @@
  * Firebase Cloud Functions for Vizidot.
  * Deploy: firebase deploy --only functions
  *
- * sendPushNotification - HTTP function. Call from your API server with a shared secret.
+ * sendPushNotification - HTTP function. Call from your API (no secret; protect the function URL or use IAM).
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const admin = require('firebase-admin');
-const functions = require('firebase-functions');
 
 setGlobalOptions({ maxInstances: 10 });
 
-admin.initializeApp();
+const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'vizidot-4b492';
+admin.initializeApp({ projectId });
 
 const FCM_BATCH_SIZE = 500;
 const CONCURRENT_BATCHES = 5;
@@ -33,21 +33,13 @@ function stringifyData(data) {
 }
 
 /**
- * POST body: { secret, title, message, fcmTokens, data?, imageUrl? }
- * Set SEND_PUSH_SECRET in Firebase Functions config; your API sends the same value as "secret".
+ * POST body: { title, message, fcmTokens, data?, imageUrl? }
  */
 exports.sendPushNotification = onRequest(
   { cors: true },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.status(405).json({ success: false, error: 'Method not allowed' });
-      return;
-    }
-
-    const expectedSecret = process.env.SEND_PUSH_SECRET || functions.config().send_push?.secret;
-    if (!expectedSecret) {
-      console.error('SEND_PUSH_SECRET is not set in Firebase config');
-      res.status(500).json({ success: false, error: 'Server configuration error' });
       return;
     }
 
@@ -59,11 +51,7 @@ exports.sendPushNotification = onRequest(
       return;
     }
 
-    const { secret, title, message, fcmTokens, data, imageUrl } = body;
-    if (secret !== expectedSecret) {
-      res.status(401).json({ success: false, error: 'Unauthorized' });
-      return;
-    }
+    const { title, message, fcmTokens, data, imageUrl } = body;
     if (!title || !message) {
       res.status(400).json({ success: false, error: 'title and message are required' });
       return;
@@ -136,10 +124,12 @@ exports.sendPushNotification = onRequest(
       });
     } catch (err) {
       console.error('sendPushNotification error:', err);
+      const message = err.message || String(err);
+      const code = err.code || err.errorInfo?.code;
       res.status(500).json({
         success: false,
-        error: err.message || String(err),
-        code: err.code || undefined
+        error: message,
+        code: code || undefined
       });
     }
   }

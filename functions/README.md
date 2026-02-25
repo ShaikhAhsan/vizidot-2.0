@@ -12,13 +12,7 @@ This function sends FCM push notifications from Firebase’s environment, so you
    firebase use vizidot-4b492   # or your project
    ```
 
-2. **Set the secret** (used to authorize your API when it calls the function):
-   ```bash
-   firebase functions:config:set send_push.secret="YOUR_STRONG_SECRET"
-   ```
-   Or in Firebase Console: **Functions → sendPushNotification → Configuration** and add an environment variable (e.g. `SEND_PUSH_SECRET`). The function reads `process.env.SEND_PUSH_SECRET` or `functions.config().send_push?.secret`.
-
-3. **Install function dependencies and deploy**  
+2. **Install function dependencies and deploy**  
    From the **repo root**:
    ```bash
    cd functions && npm install && cd ..
@@ -29,18 +23,16 @@ This function sends FCM push notifications from Firebase’s environment, so you
 
 ## Use from your API
 
-In your Node API (e.g. Coolify env):
+In your Node API (e.g. Coolify env), set:
 
-- `FIREBASE_SEND_PUSH_FUNCTION_URL` = the function URL from step 3  
-- `FIREBASE_SEND_PUSH_SECRET` = the same secret you set in step 2  
+- `FIREBASE_SEND_PUSH_FUNCTION_URL` = the function URL from the deploy step  
 
-When both are set, `sendPushNotification()` in your API will **POST to this function** instead of using Firebase Admin on the server. Notification history is still written by your API to `push_notification_log` using the function’s response.
+When this is set, `sendPushNotification()` in your API will **POST to this function** instead of using Firebase Admin on the server. No secret is required; protect the function URL (e.g. allow only your API via IAM or keep the URL private). Notification history is still written by your API to `push_notification_log` using the function’s response.
 
 ## Request format (from your API to the function)
 
 `POST` with JSON body:
 
-- `secret` (string) – must match the configured secret  
 - `title` (string) – notification title  
 - `message` (string) – body  
 - `fcmTokens` (string[]) – device tokens  
