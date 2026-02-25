@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:http/http.dart' as http;
 
@@ -121,7 +122,7 @@ class BaseApi {
     }
 
     // ignore: avoid_print
-    print('${buffer.toString()}');
+    log('${buffer.toString()}');
   }
 
  void _printResponse(http.Response response) {
