@@ -94,44 +94,53 @@ exports.sendPushNotification = onRequest(
       return;
     }
 
-    const messaging = admin.messaging();
-    const batches = chunk(tokens, FCM_BATCH_SIZE);
-    const errors = [];
-    let successCount = 0;
-    let failureCount = 0;
+    try {
+      const messaging = admin.messaging();
+      const batches = chunk(tokens, FCM_BATCH_SIZE);
+      const errors = [];
+      let successCount = 0;
+      let failureCount = 0;
 
-    for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
-      const slice = batches.slice(i, i + CONCURRENT_BATCHES);
-      const results = await Promise.allSettled(
-        slice.map((tokenBatch) =>
-          messaging.sendEachForMulticast({
-            tokens: tokenBatch,
-            ...baseMessage
-          })
-        )
-      );
-      results.forEach((r, idx) => {
-        const tokenBatch = slice[idx];
-        if (r.status === 'fulfilled' && r.value) {
-          successCount += r.value.successCount || 0;
-          failureCount += r.value.failureCount || 0;
-          (r.value.responses || []).forEach((resp, j) => {
-            if (!resp.success && resp.error)
-              errors.push(`${(tokenBatch && tokenBatch[j])?.slice(0, 20) || '?'}...: ${resp.error.message}`);
-          });
-        } else {
-          failureCount += (tokenBatch && tokenBatch.length) || 0;
-          if (r.reason) errors.push(r.reason.message || String(r.reason));
-        }
+      for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
+        const slice = batches.slice(i, i + CONCURRENT_BATCHES);
+        const results = await Promise.allSettled(
+          slice.map((tokenBatch) =>
+            messaging.sendEachForMulticast({
+              tokens: tokenBatch,
+              ...baseMessage
+            })
+          )
+        );
+        results.forEach((r, idx) => {
+          const tokenBatch = slice[idx];
+          if (r.status === 'fulfilled' && r.value) {
+            successCount += r.value.successCount || 0;
+            failureCount += r.value.failureCount || 0;
+            (r.value.responses || []).forEach((resp, j) => {
+              if (!resp.success && resp.error)
+                errors.push(`${(tokenBatch && tokenBatch[j])?.slice(0, 20) || '?'}...: ${resp.error.message}`);
+            });
+          } else {
+            failureCount += (tokenBatch && tokenBatch.length) || 0;
+            if (r.reason) errors.push(r.reason.message || String(r.reason));
+          }
+        });
+      }
+
+      res.json({
+        success: true,
+        successCount,
+        failureCount,
+        total: tokens.length,
+        errors: errors.length ? errors.slice(0, 10) : undefined
+      });
+    } catch (err) {
+      console.error('sendPushNotification error:', err);
+      res.status(500).json({
+        success: false,
+        error: err.message || String(err),
+        code: err.code || undefined
       });
     }
-
-    res.json({
-      success: true,
-      successCount,
-      failureCount,
-      total: tokens.length,
-      errors: errors.length ? errors.slice(0, 10) : undefined
-    });
   }
 );
