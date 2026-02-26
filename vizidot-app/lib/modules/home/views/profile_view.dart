@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/user_profile_service.dart';
+import '../../../core/utils/app_config.dart';
 import '../../../routes/app_pages.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_menu_item.dart';
@@ -32,9 +34,23 @@ class _ProfileViewState extends State<ProfileView> {
     });
   }
 
+  String? _fullProfileImageUrl(String? profileImageUrl) {
+    if (profileImageUrl == null || profileImageUrl.isEmpty) return null;
+    if (profileImageUrl.startsWith('http')) return profileImageUrl;
+    final base = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>().baseUrl : AppConfig.fromEnv().baseUrl;
+    final baseUrl = base.replaceFirst(RegExp(r'/$'), '');
+    return baseUrl + (profileImageUrl.startsWith('/') ? profileImageUrl : '/$profileImageUrl');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    return Obx(() {
+      final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
+      final name = profile?.fullName ?? 'User';
+      final role = profile?.caption?.trim().isNotEmpty == true ? profile!.caption! : 'Artist / Musician / Writer';
+      final profileImageUrl = _fullProfileImageUrl(profile?.profileImageUrl);
+
+      return CupertinoPageScaffold(
       child: CustomScrollView(
         slivers: [
           // Navigation Bar with Large Title - matching home screen
@@ -72,28 +88,13 @@ class _ProfileViewState extends State<ProfileView> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 10),
-                  // Profile Header
-                  const ProfileHeader(
-                    profileImage: 'assets/artists/Choc B.png',
-                    name: 'Jacob Lee',
-                    role: 'Artist / Musician / Writer',
+                  ProfileHeader(
+                    profileImageUrl: profileImageUrl,
+                    fallbackAssetPath: 'assets/artists/Choc B.png',
+                    name: name,
+                    role: role,
                   ),
                   const SizedBox(height: 40),
-                  // Menu Items
-                  ProfileMenuItem(
-                    icon: CupertinoIcons.person_circle,
-                    title: 'My Profile',
-                    onTap: () {
-                      // TODO: Navigate to my profile
-                    },
-                  ),
-                  ProfileMenuItem(
-                    icon: CupertinoIcons.person_2,
-                    title: 'Upload',
-                    onTap: () {
-                      Get.toNamed(AppRoutes.upload);
-                    },
-                  ),
                   ProfileMenuItem(
                     icon: CupertinoIcons.person,
                     title: 'Personal data',
@@ -135,5 +136,6 @@ class _ProfileViewState extends State<ProfileView> {
         ],
       ),
     );
+    });
   }
 }

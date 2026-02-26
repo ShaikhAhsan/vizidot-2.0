@@ -69,6 +69,8 @@ class ApiConstants {
 
   /// Settings (user toggles + app config). GET = load, PATCH = update user settings. Auth optional for GET, required for PATCH.
   static const String settingsPath = 'settings';
+  /// Upload profile image. POST multipart. Auth required.
+  static const String settingsProfileImagePath = 'settings/profile-image';
 
   /// Delete current user account (Firebase + backend). DELETE. Auth required.
   static const String accountDeletePath = 'auth/account';

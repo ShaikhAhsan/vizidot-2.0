@@ -1,12 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../api_client.dart';
 import '../base_api.dart';
 import '../../constants/api_constants.dart';
-
-/// Settings API: load user + app settings, update user settings.
 class SettingsApi extends BaseApi {
   SettingsApi({
     required super.baseUrl,
@@ -63,12 +64,15 @@ class SettingsApi extends BaseApi {
     }
   }
 
-  /// PATCH /api/v1/settings. Auth required. Updates user settings (notifications, language, isOnboarded).
+  /// PATCH /api/v1/settings. Auth required. Updates user settings (notifications, language, isOnboarded, profile: firstName, lastName, caption).
   Future<SettingsResponse?> updateSettings({
     bool? enableNotifications,
     bool? messageNotifications,
     String? language,
     bool? isOnboarded,
+    String? firstName,
+    String? lastName,
+    String? caption,
   }) async {
     try {
       final body = <String, dynamic>{};
@@ -76,6 +80,9 @@ class SettingsApi extends BaseApi {
       if (messageNotifications != null) body['messageNotifications'] = messageNotifications;
       if (language != null) body['language'] = language;
       if (isOnboarded != null) body['isOnboarded'] = isOnboarded;
+      if (firstName != null) body['firstName'] = firstName;
+      if (lastName != null) body['lastName'] = lastName;
+      if (caption != null) body['caption'] = caption;
       final response = await execute(
         'PATCH',
         ApiConstants.settingsPath,
@@ -90,6 +97,71 @@ class SettingsApi extends BaseApi {
         app: AppSettingsData(),
       );
     } catch (_) {
+      return null;
+    }
+  }
+
+  /// POST /api/v1/settings/profile-image. Auth required. Upload profile image (multipart field: image).
+  /// Returns the new profileImageUrl on success. On failure returns null and [lastProfileImageError] is set.
+  String? lastProfileImageError;
+
+  Future<String?> uploadProfileImageFromBytes(Uint8List jpegBytes) async {
+    lastProfileImageError = null;
+    try {
+      final uri = Uri.parse('$baseUrl/${ApiConstants.apiVersion}/${ApiConstants.settingsProfileImagePath}');
+      debugPrint('[profile-image] POST $uri (bytes: ${jpegBytes.length})');
+      final request = http.MultipartRequest('POST', uri);
+      if (authToken != null && authToken!.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $authToken';
+      }
+      request.headers['Accept'] = 'application/json';
+      // Do not set Content-Type: multipart/form-data - the client sets it with boundary
+      request.files.add(http.MultipartFile.fromBytes(
+        'image',
+        jpegBytes,
+        filename: 'image.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ));
+      final streamed = await request.send().timeout(timeout);
+      final response = await http.Response.fromStream(streamed);
+      debugPrint('[profile-image] Response: ${response.statusCode}');
+      debugPrint('[profile-image] Body: ${response.body}');
+      if (response.statusCode == 200) {
+        final Map<String, dynamic>? data = _dataFromResponse(response);
+        final url = data?['profileImageUrl'] as String?;
+        if (url != null && url.isNotEmpty) {
+          debugPrint('[profile-image] Success: $url');
+          return url;
+        }
+        lastProfileImageError = 'Server returned invalid response. Try again.';
+        debugPrint('[profile-image] Error: $lastProfileImageError');
+        return null;
+      }
+      // Parse error message from body
+      final body = response.body;
+      if (body.isNotEmpty) {
+        try {
+          final map = jsonDecode(body) as Map<String, dynamic>?;
+          if (map != null && map['error'] != null) {
+            lastProfileImageError = map['error'] as String?;
+          }
+        } catch (_) {}
+      }
+      if (lastProfileImageError == null || lastProfileImageError!.isEmpty) {
+        if (response.statusCode == 401) {
+          lastProfileImageError = 'Please sign in again.';
+        } else {
+          lastProfileImageError = 'Upload failed (${response.statusCode})';
+        }
+      }
+      debugPrint('[profile-image] Error: $lastProfileImageError');
+      return null;
+    } catch (e) {
+      lastProfileImageError = e.toString().replaceFirst(RegExp(r'^Exception: '), '');
+      if (lastProfileImageError != null && lastProfileImageError!.length > 80) {
+        lastProfileImageError = 'Network error. Check connection and try again.';
+      }
+      debugPrint('[profile-image] Exception: $lastProfileImageError');
       return null;
     }
   }
@@ -141,6 +213,8 @@ class UserProfileData {
     required this.firstName,
     required this.lastName,
     this.profileImageUrl,
+    this.profileImageThumbUrl,
+    this.caption,
     this.isOnboarded = false,
   });
   final int id;
@@ -148,6 +222,8 @@ class UserProfileData {
   final String firstName;
   final String lastName;
   final String? profileImageUrl;
+  final String? profileImageThumbUrl;
+  final String? caption;
   final bool isOnboarded;
 
   String get fullName => '$firstName $lastName'.trim();
@@ -159,6 +235,8 @@ class UserProfileData {
     String? firstName,
     String? lastName,
     String? profileImageUrl,
+    String? profileImageThumbUrl,
+    String? caption,
     bool? isOnboarded,
   }) {
     return UserProfileData(
@@ -167,6 +245,8 @@ class UserProfileData {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      profileImageThumbUrl: profileImageThumbUrl ?? this.profileImageThumbUrl,
+      caption: caption ?? this.caption,
       isOnboarded: isOnboarded ?? this.isOnboarded,
     );
   }
@@ -178,6 +258,8 @@ class UserProfileData {
       firstName: json['firstName'] as String? ?? '',
       lastName: json['lastName'] as String? ?? '',
       profileImageUrl: json['profileImageUrl'] as String?,
+      profileImageThumbUrl: json['profileImageThumbUrl'] as String?,
+      caption: json['caption'] as String?,
       isOnboarded: json['isOnboarded'] as bool? ?? false,
     );
   }
