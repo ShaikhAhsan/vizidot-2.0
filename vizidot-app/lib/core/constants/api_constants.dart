@@ -81,4 +81,7 @@ class ApiConstants {
   static const String deviceLogoutPath = 'device/logout';
   /// Device/FCM: get tokens for user IDs (e.g. for sending push). GET ?userIds=1,2,3. Auth required.
   static const String deviceTokensPath = 'device/tokens';
+
+  /// Chat history (archived messages from MySQL). GET ?chatDocId=&before=&limit=. Auth required.
+  static const String chatsMessagesPath = 'chats/messages';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
@@ -82,9 +83,12 @@ class _ProfileViewState extends State<ProfileView> {
             if (hasArtists) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 0)),
               SliverToBoxAdapter(
-                child: _ProfileTabBar(
+                child: _ProfileTabBarWithBadges(
                   selectedTab: _selectedTab,
                   onTabChanged: (tab) => setState(() => _selectedTab = tab),
+                  hasArtists: hasArtists,
+                  currentUserUid: auth.FirebaseAuth.instance.currentUser?.uid,
+                  assignedArtistIds: profile?.assignedArtists?.map((a) => a.artistId).toList() ?? const [],
                 ),
               ),
             ],
@@ -137,6 +141,7 @@ class _ProfileViewState extends State<ProfileView> {
           title: 'Announcements',
           onTap: () => Get.toNamed(AppRoutes.notifications),
         ),
+        _PersonalMessagesMenuItem(),
         const SizedBox(height: 40),
         Center(
           child: Text(
@@ -174,14 +179,99 @@ class _ProfileViewState extends State<ProfileView> {
 
 enum ProfileTab { personal, artist }
 
-class _ProfileTabBar extends StatelessWidget {
-  const _ProfileTabBar({
+/// Wraps _ProfileTabBar and subscribes to Firestore to show unread counts on Personal and Artist tabs.
+class _ProfileTabBarWithBadges extends StatefulWidget {
+  const _ProfileTabBarWithBadges({
     required this.selectedTab,
     required this.onTabChanged,
+    required this.hasArtists,
+    this.currentUserUid,
+    required this.assignedArtistIds,
   });
 
   final ProfileTab selectedTab;
   final ValueChanged<ProfileTab> onTabChanged;
+  final bool hasArtists;
+  final String? currentUserUid;
+  final List<int> assignedArtistIds;
+
+  static const String _chatsCollection = 'chats';
+
+  @override
+  State<_ProfileTabBarWithBadges> createState() => _ProfileTabBarWithBadgesState();
+}
+
+class _ProfileTabBarWithBadgesState extends State<_ProfileTabBarWithBadges> {
+  int _personalUnread = 0;
+  final Map<int, int> _artistUnreadByArtistId = {};
+  final List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>> _subs = [];
+
+  int get _artistUnread => _artistUnreadByArtistId.values.fold(0, (a, b) => a + b);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.currentUserUid != null) {
+      _subs.add(
+        FirebaseFirestore.instance
+            .collection(_ProfileTabBarWithBadges._chatsCollection)
+            .where('userId', isEqualTo: widget.currentUserUid)
+            .snapshots()
+            .listen((snap) {
+          int total = 0;
+          for (final doc in snap.docs) {
+            total += (doc.data()['unreadByUser'] as num?)?.toInt() ?? 0;
+          }
+          if (mounted) setState(() => _personalUnread = total);
+        }),
+      );
+    }
+    for (final artistId in widget.assignedArtistIds) {
+      _subs.add(
+        FirebaseFirestore.instance
+            .collection(_ProfileTabBarWithBadges._chatsCollection)
+            .where('artistId', isEqualTo: artistId)
+            .snapshots()
+            .listen((snap) {
+          int total = 0;
+          for (final doc in snap.docs) {
+            total += (doc.data()['unreadByArtist'] as num?)?.toInt() ?? 0;
+          }
+          if (mounted) setState(() => _artistUnreadByArtistId[artistId] = total);
+        }),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final s in _subs) s.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _ProfileTabBar(
+      selectedTab: widget.selectedTab,
+      onTabChanged: widget.onTabChanged,
+      personalUnread: _personalUnread,
+      artistUnread: _artistUnread,
+    );
+  }
+}
+
+class _ProfileTabBar extends StatelessWidget {
+  const _ProfileTabBar({
+    required this.selectedTab,
+    required this.onTabChanged,
+    this.personalUnread = 0,
+    this.artistUnread = 0,
+  });
+
+  final ProfileTab selectedTab;
+  final ValueChanged<ProfileTab> onTabChanged;
+  final int personalUnread;
+  final int artistUnread;
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +303,7 @@ class _ProfileTabBar extends StatelessWidget {
                   icon: CupertinoIcons.person_fill,
                   isSelected: selectedTab == ProfileTab.personal,
                   onTap: () => onTabChanged(ProfileTab.personal),
+                  unreadCount: personalUnread,
                   colors: colors,
                   textTheme: textTheme,
                 ),
@@ -226,6 +317,7 @@ class _ProfileTabBar extends StatelessWidget {
                   icon: CupertinoIcons.music_note_2,
                   isSelected: selectedTab == ProfileTab.artist,
                   onTap: () => onTabChanged(ProfileTab.artist),
+                  unreadCount: artistUnread,
                   colors: colors,
                   textTheme: textTheme,
                 ),
@@ -243,6 +335,7 @@ class _ProfileTabButton extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback? onTap;
+  final int unreadCount;
   final ColorScheme colors;
   final TextTheme textTheme;
 
@@ -251,6 +344,7 @@ class _ProfileTabButton extends StatelessWidget {
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    this.unreadCount = 0,
     required this.colors,
     required this.textTheme,
   });
@@ -279,32 +373,58 @@ class _ProfileTabButton extends StatelessWidget {
                 ]
               : null,
         ),
-        child: SizedBox.expand(
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: isSelected
-                      ? colors.primary
-                      : (enabled ? colors.onSurface.withOpacity(0.5) : colors.onSurface.withOpacity(0.3)),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SizedBox.expand(
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 18,
+                      color: isSelected
+                          ? colors.primary
+                          : (enabled ? colors.onSurface.withOpacity(0.5) : colors.onSurface.withOpacity(0.3)),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: textTheme.labelLarge?.copyWith(
+                        color: isSelected
+                            ? colors.onSurface
+                            : (enabled ? colors.onSurface.withOpacity(0.7) : colors.onSurface.withOpacity(0.4)),
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: textTheme.labelLarge?.copyWith(
-                    color: isSelected
-                        ? colors.onSurface
-                        : (enabled ? colors.onSurface.withOpacity(0.7) : colors.onSurface.withOpacity(0.4)),
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    fontSize: 15,
+              ),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                top: 6,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  constraints: const BoxConstraints(minWidth: 18),
+                  decoration: BoxDecoration(
+                    color: colors.primary,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text(
+                    unreadCount > 99 ? '99+' : '$unreadCount',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colors.onPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -416,7 +536,65 @@ class _ArtistProfileBlock extends StatelessWidget {
   }
 }
 
-/// Messages menu row: opens chat list for this artist. Badge = number of conversations (chats).
+/// Messages menu row for Personal tab: opens list of user's chats (as fan). Badge = total unread by user.
+class _PersonalMessagesMenuItem extends StatelessWidget {
+  static const String _chatsCollection = 'chats';
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final uid = auth.FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return ProfileMenuItem(
+        icon: CupertinoIcons.chat_bubble_2,
+        title: 'Messages',
+        onTap: () => Get.toNamed(AppRoutes.personalChatList),
+      );
+    }
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection(_chatsCollection)
+          .where('userId', isEqualTo: uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        int unreadTotal = 0;
+        if (snapshot.hasData) {
+          for (final doc in snapshot.data!.docs) {
+            final d = doc.data();
+            unreadTotal += (d['unreadByUser'] as num?)?.toInt() ?? 0;
+          }
+        }
+        Widget? trailing;
+        if (unreadTotal > 0) {
+          trailing = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: colors.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              unreadTotal > 99 ? '99+' : '$unreadTotal',
+              style: textTheme.labelSmall?.copyWith(
+                color: colors.onPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          );
+        }
+        return ProfileMenuItem(
+          icon: CupertinoIcons.chat_bubble_2,
+          title: 'Messages',
+          onTap: () => Get.toNamed(AppRoutes.personalChatList),
+          trailing: trailing,
+        );
+      },
+    );
+  }
+}
+
+/// Messages menu row: opens chat list for this artist. Badge = total unread count across all chats.
 class _MessagesMenuItem extends StatelessWidget {
   const _MessagesMenuItem({
     required this.artistId,
@@ -441,9 +619,15 @@ class _MessagesMenuItem extends StatelessWidget {
           .where('artistId', isEqualTo: artistId)
           .snapshots(),
       builder: (context, snapshot) {
-        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        int unreadTotal = 0;
+        if (snapshot.hasData) {
+          for (final doc in snapshot.data!.docs) {
+            final d = doc.data();
+            unreadTotal += (d['unreadByArtist'] as num?)?.toInt() ?? 0;
+          }
+        }
         Widget? trailing;
-        if (count > 0) {
+        if (unreadTotal > 0) {
           trailing = Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -451,7 +635,7 @@ class _MessagesMenuItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              count > 99 ? '99+' : '$count',
+              unreadTotal > 99 ? '99+' : '$unreadTotal',
               style: textTheme.labelSmall?.copyWith(
                 color: colors.onPrimary,
                 fontWeight: FontWeight.bold,

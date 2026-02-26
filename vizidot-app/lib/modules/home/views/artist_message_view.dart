@@ -8,6 +8,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as chat_core;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 
+import '../../../core/utils/app_config.dart';
+import '../../../core/utils/user_profile_service.dart';
+import '../../../core/network/apis/chat_api.dart';
+
 /// Builds the Firestore chat document ID for a conversation between an artist and a fan (user).
 /// Format: {artistId}_{fanUserId} so we can query all chats for an artist.
 String chatDocId(int artistId, String fanUserId) => '${artistId}_$fanUserId';
@@ -48,6 +52,8 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   auth.User? _user;
   late chat_core.InMemoryChatController _chatController;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
+  List<chat_core.Message> _historyMessages = [];
+  List<chat_core.Message> _firebaseMessages = [];
 
   String get _chatDocId => chatDocId(widget.artistId ?? 0, _fanUserId);
 
@@ -75,15 +81,60 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
     _user = auth.FirebaseAuth.instance.currentUser;
     _chatController = chat_core.InMemoryChatController(messages: const []);
     if (_user != null && widget.artistId != null && _fanUserId.isNotEmpty) {
-      _subscription = _messagesRef
-          .orderBy('createdAt', descending: false)
-          .snapshots()
-          .listen(_onMessagesSnapshot);
+      _loadHistoryThenSubscribe();
+      if (widget.isCurrentUserArtist) {
+        _markChatAsRead();
+      } else {
+        _markChatAsReadForUser();
+      }
     }
   }
 
+  Future<void> _loadHistoryThenSubscribe() async {
+    final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token != null) {
+      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final api = ChatApi(baseUrl: baseUrl, authToken: token);
+      final before = DateTime.now().subtract(const Duration(hours: 24)).toUtc().toIso8601String();
+      final res = await api.getMessages(chatDocId: _chatDocId, before: before, limit: 50);
+      if (res != null && res.messages.isNotEmpty && mounted) {
+        _historyMessages = res.messages.map((m) => chat_core.Message.text(
+          id: 'hist_${m.id}',
+          authorId: m.senderId,
+          createdAt: m.createdAt,
+          text: m.text,
+        )).toList();
+      }
+      if (mounted) _mergeAndSetMessages(_historyMessages, _firebaseMessages);
+    }
+    _subscription = _messagesRef
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .listen(_onMessagesSnapshot);
+  }
+
+  Future<void> _markChatAsRead() async {
+    try {
+      await _chatDocRef.set({
+        'unreadByArtist': 0,
+        'artistLastReadAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  /// When fan opens the chat, clear unread count for the user.
+  Future<void> _markChatAsReadForUser() async {
+    try {
+      await _chatDocRef.set({
+        'unreadByUser': 0,
+        'userLastReadAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
   void _onMessagesSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
-    final messages = snapshot.docs.map((doc) {
+    _firebaseMessages = snapshot.docs.map((doc) {
       final d = doc.data();
       final text = d['text'] as String? ?? '';
       final senderId = d['senderId'] as String? ?? _user!.uid;
@@ -97,7 +148,13 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
         text: text,
       );
     }).toList();
-    _chatController.setMessages(messages, animated: false);
+    _mergeAndSetMessages(_historyMessages, _firebaseMessages);
+  }
+
+  void _mergeAndSetMessages(List<chat_core.Message> history, List<chat_core.Message> firebase) {
+    final combined = <chat_core.Message>[...history, ...firebase];
+    combined.sort((a, b) => (a.createdAt ?? DateTime.now()).compareTo(b.createdAt ?? DateTime.now()));
+    _chatController.setMessages(combined, animated: false);
   }
 
   @override
@@ -118,14 +175,42 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
         'senderType': senderType,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      await _chatDocRef.set({
+      final Map<String, dynamic> chatData = {
         'artistId': widget.artistId,
         'userId': _fanUserId,
         'lastMessage': text.trim(),
         'lastMessageAt': FieldValue.serverTimestamp(),
-        'userDisplayName': widget.isCurrentUserArtist ? widget.otherPartyDisplayName : (_user!.displayName ?? _user!.email ?? 'User'),
         'artistName': widget.artistName.isNotEmpty ? widget.artistName : null,
-      }, SetOptions(merge: true));
+      };
+      if (widget.isCurrentUserArtist) {
+        chatData['userDisplayName'] = widget.otherPartyDisplayName;
+      } else {
+        final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
+        final displayName = profile?.fullName?.trim();
+        final authDisplayName = _user!.displayName?.trim();
+        final email = _user!.email;
+        chatData['userDisplayName'] = (displayName != null && displayName.isNotEmpty)
+            ? displayName
+            : (authDisplayName != null && authDisplayName.isNotEmpty)
+                ? authDisplayName
+                : (email ?? 'User');
+        if (email != null) chatData['userEmail'] = email;
+        String? photoUrl = _user!.photoURL;
+        if ((photoUrl == null || photoUrl.isEmpty) && profile?.profileImageUrl != null && profile!.profileImageUrl!.isNotEmpty) {
+          final base = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>().baseUrl : AppConfig.fromEnv().baseUrl;
+          final baseUrl = base.replaceFirst(RegExp(r'/$'), '');
+          photoUrl = profile.profileImageUrl!.startsWith('http')
+              ? profile.profileImageUrl
+              : baseUrl + (profile.profileImageUrl!.startsWith('/') ? profile.profileImageUrl! : '/${profile.profileImageUrl}');
+        }
+        chatData['userPhotoURL'] = photoUrl;
+        chatData['unreadByArtist'] = FieldValue.increment(1);
+        if (widget.artistImageUrl != null) chatData['artistImageUrl'] = widget.artistImageUrl;
+      }
+      if (widget.isCurrentUserArtist) {
+        chatData['unreadByUser'] = FieldValue.increment(1);
+      }
+      await _chatDocRef.set(chatData, SetOptions(merge: true));
     } catch (e) {
       if (mounted) {
         Get.snackbar('Error', 'Could not send message.', snackPosition: SnackPosition.BOTTOM);

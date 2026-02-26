@@ -1,34 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../routes/app_pages.dart';
 
-/// Lists all chats (conversations with users) for an artist. Artist taps Messages in Profile > Artist tab.
-class ArtistChatListView extends StatefulWidget {
-  final int artistId;
-  final String artistName;
-  final String? artistImageUrl;
-
-  const ArtistChatListView({
-    super.key,
-    required this.artistId,
-    required this.artistName,
-    this.artistImageUrl,
-  });
+/// Lists all chats where the current user is the fan (conversations with artists).
+/// Shown from Profile > Personal tab > Messages.
+class PersonalChatListView extends StatefulWidget {
+  const PersonalChatListView({super.key});
 
   @override
-  State<ArtistChatListView> createState() => _ArtistChatListViewState();
+  State<PersonalChatListView> createState() => _PersonalChatListViewState();
 }
 
-class _ArtistChatListViewState extends State<ArtistChatListView> {
+class _PersonalChatListViewState extends State<PersonalChatListView> {
   static const String _chatsCollection = 'chats';
 
   @override
   Widget build(BuildContext context) {
+    final user = auth.FirebaseAuth.instance.currentUser;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final topPadding = MediaQuery.paddingOf(context).top;
+
+    if (user == null) {
+      return CupertinoPageScaffold(
+        child: CustomScrollView(
+          slivers: [
+            CupertinoSliverNavigationBar(
+              largeTitle: const Text('Messages'),
+              backgroundColor: colors.surface,
+              border: null,
+              leading: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Get.back(),
+                child: const Icon(CupertinoIcons.arrow_left),
+              ),
+            ),
+            const SliverFillRemaining(
+              child: Center(child: Text('Sign in to see your messages')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final uid = user.uid;
 
     return CupertinoPageScaffold(
       child: CustomScrollView(
@@ -47,7 +65,7 @@ class _ArtistChatListViewState extends State<ArtistChatListView> {
           StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: FirebaseFirestore.instance
                 .collection(_chatsCollection)
-                .where('artistId', isEqualTo: widget.artistId)
+                .where('userId', isEqualTo: uid)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
@@ -65,7 +83,9 @@ class _ArtistChatListViewState extends State<ArtistChatListView> {
                           const SizedBox(height: 8),
                           Text(
                             snapshot.error.toString(),
-                            style: textTheme.bodySmall?.copyWith(color: colors.onSurface.withOpacity(0.7)),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colors.onSurface.withOpacity(0.7),
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -81,7 +101,6 @@ class _ArtistChatListViewState extends State<ArtistChatListView> {
               }
               final rawDocs = snapshot.data!.docs;
               final docs = rawDocs.toList();
-              // Sort by lastMessageAt descending (newest first) in memory to avoid composite index
               docs.sort((a, b) {
                 final tA = a.data()['lastMessageAt'] is Timestamp
                     ? (a.data()['lastMessageAt'] as Timestamp).millisecondsSinceEpoch
@@ -116,7 +135,7 @@ class _ArtistChatListViewState extends State<ArtistChatListView> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'When users message you, conversations will appear here.',
+                            'When you message artists, your conversations will appear here.',
                             style: textTheme.bodyMedium?.copyWith(
                               color: colors.onSurface.withOpacity(0.6),
                             ),
@@ -133,35 +152,32 @@ class _ArtistChatListViewState extends State<ArtistChatListView> {
                   (context, index) {
                     final doc = docs[index];
                     final d = doc.data();
-                    final userId = d['userId'] as String? ?? '';
-                    final userDisplayName = d['userDisplayName'] as String?;
-                    final userEmail = d['userEmail'] as String?;
-                    final displayLabel = (userDisplayName != null && userDisplayName.trim().isNotEmpty)
-                        ? userDisplayName.trim()
-                        : (userEmail != null && userEmail.trim().isNotEmpty ? userEmail.trim() : 'User');
-                    final userPhotoURL = d['userPhotoURL'] as String?;
+                    final artistId = (d['artistId'] as num?)?.toInt();
+                    final artistName = d['artistName'] as String? ?? 'Artist';
+                    final artistImageUrl = d['artistImageUrl'] as String?;
                     final lastMessage = d['lastMessage'] as String? ?? '';
                     final lastMessageAt = d['lastMessageAt'] is Timestamp
                         ? (d['lastMessageAt'] as Timestamp).toDate()
                         : null;
-                    final unreadByArtist = (d['unreadByArtist'] as num?)?.toInt() ?? 0;
+                    final unreadByUser = (d['unreadByUser'] as num?)?.toInt() ?? 0;
                     return _ChatTile(
-                      displayLabel: displayLabel,
-                      userPhotoURL: userPhotoURL,
+                      displayLabel: artistName,
+                      imageUrl: artistImageUrl,
                       lastMessage: lastMessage,
                       lastMessageAt: lastMessageAt,
-                      unreadCount: unreadByArtist,
+                      unreadCount: unreadByUser,
                       onTap: () {
+                        if (artistId == null) return;
                         Get.toNamed(
                           AppRoutes.artistMessage,
                           arguments: {
-                            'artistId': widget.artistId,
-                            'otherPartyUserId': userId,
-                            'otherPartyDisplayName': displayLabel,
-                            'otherPartyImageUrl': userPhotoURL,
-                            'isCurrentUserArtist': true,
-                            'artistName': widget.artistName,
-                            'artistImageUrl': widget.artistImageUrl,
+                            'artistId': artistId,
+                            'otherPartyUserId': null,
+                            'otherPartyDisplayName': artistName,
+                            'otherPartyImageUrl': artistImageUrl,
+                            'isCurrentUserArtist': false,
+                            'artistName': artistName,
+                            'artistImageUrl': artistImageUrl,
                           },
                         );
                       },
@@ -180,7 +196,7 @@ class _ArtistChatListViewState extends State<ArtistChatListView> {
 
 class _ChatTile extends StatelessWidget {
   final String displayLabel;
-  final String? userPhotoURL;
+  final String? imageUrl;
   final String lastMessage;
   final DateTime? lastMessageAt;
   final int unreadCount;
@@ -188,7 +204,7 @@ class _ChatTile extends StatelessWidget {
 
   const _ChatTile({
     required this.displayLabel,
-    this.userPhotoURL,
+    this.imageUrl,
     required this.lastMessage,
     required this.lastMessageAt,
     this.unreadCount = 0,
@@ -213,9 +229,9 @@ class _ChatTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(25),
-              child: userPhotoURL != null && userPhotoURL!.isNotEmpty
+              child: imageUrl != null && imageUrl!.isNotEmpty
                   ? Image.network(
-                      userPhotoURL!,
+                      imageUrl!,
                       width: 50,
                       height: 50,
                       fit: BoxFit.cover,

@@ -30,6 +30,7 @@ import '../modules/home/views/filters_view.dart';
 import '../modules/home/views/favourites_view.dart';
 import '../modules/home/views/artist_message_view.dart';
 import '../modules/home/views/artist_chat_list_view.dart';
+import '../modules/home/views/personal_chat_list_view.dart';
 import '../modules/home/views/language_view.dart';
 import '../modules/home/views/about_view.dart';
 import '../modules/home/controllers/favourites_controller.dart';
@@ -245,6 +246,11 @@ class AppPages {
           artistImageUrl: args['artistImageUrl'] as String?,
         );
       },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.personalChatList,
+      page: () => const PersonalChatListView(),
       transition: Transition.cupertino,
     ),
   ];
