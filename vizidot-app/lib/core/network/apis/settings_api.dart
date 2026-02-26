@@ -216,6 +216,7 @@ class UserProfileData {
     this.profileImageThumbUrl,
     this.caption,
     this.isOnboarded = false,
+    this.assignedArtists,
   });
   final int id;
   final String email;
@@ -225,9 +226,13 @@ class UserProfileData {
   final String? profileImageThumbUrl;
   final String? caption;
   final bool isOnboarded;
+  /// Artists linked to this user via user_artists (from settings API).
+  final List<AssignedArtistData>? assignedArtists;
 
   String get fullName => '$firstName $lastName'.trim();
   bool get hasImage => profileImageUrl != null && profileImageUrl!.isNotEmpty;
+  bool get hasAssignedArtists =>
+      assignedArtists != null && assignedArtists!.isNotEmpty;
 
   UserProfileData copyWith({
     int? id,
@@ -238,6 +243,7 @@ class UserProfileData {
     String? profileImageThumbUrl,
     String? caption,
     bool? isOnboarded,
+    List<AssignedArtistData>? assignedArtists,
   }) {
     return UserProfileData(
       id: id ?? this.id,
@@ -248,10 +254,18 @@ class UserProfileData {
       profileImageThumbUrl: profileImageThumbUrl ?? this.profileImageThumbUrl,
       caption: caption ?? this.caption,
       isOnboarded: isOnboarded ?? this.isOnboarded,
+      assignedArtists: assignedArtists ?? this.assignedArtists,
     );
   }
 
   factory UserProfileData.fromJson(Map<String, dynamic> json) {
+    final list = json['assignedArtists'] as List<dynamic>?;
+    List<AssignedArtistData>? artists;
+    if (list != null && list.isNotEmpty) {
+      artists = list
+          .map((e) => AssignedArtistData.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
     return UserProfileData(
       id: (json['id'] as num?)?.toInt() ?? 0,
       email: json['email'] as String? ?? '',
@@ -261,6 +275,42 @@ class UserProfileData {
       profileImageThumbUrl: json['profileImageThumbUrl'] as String?,
       caption: json['caption'] as String?,
       isOnboarded: json['isOnboarded'] as bool? ?? false,
+      assignedArtists: artists,
+    );
+  }
+}
+
+/// One assigned artist from settings profile.assignedArtists.
+class AssignedArtistData {
+  AssignedArtistData({
+    required this.artistId,
+    required this.name,
+    this.imageUrl,
+    this.bio,
+    this.country,
+    this.isActive = true,
+    this.isFeatured = false,
+    this.isRisingStar = false,
+  });
+  final int artistId;
+  final String name;
+  final String? imageUrl;
+  final String? bio;
+  final String? country;
+  final bool isActive;
+  final bool isFeatured;
+  final bool isRisingStar;
+
+  factory AssignedArtistData.fromJson(Map<String, dynamic> json) {
+    return AssignedArtistData(
+      artistId: (json['artistId'] as num?)?.toInt() ?? 0,
+      name: json['name'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      bio: json['bio'] as String?,
+      country: json['country'] as String?,
+      isActive: json['isActive'] as bool? ?? true,
+      isFeatured: json['isFeatured'] as bool? ?? false,
+      isRisingStar: json['isRisingStar'] as bool? ?? false,
     );
   }
 }
