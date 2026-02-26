@@ -8,17 +8,32 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as chat_core;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 
-/// Message screen for chatting with an artist. Uses [flutter_chat_ui] and
-/// Firebase Firestore. Collection: chats/{chatId}/messages.
+/// Builds the Firestore chat document ID for a conversation between an artist and a fan (user).
+/// Format: {artistId}_{fanUserId} so we can query all chats for an artist.
+String chatDocId(int artistId, String fanUserId) => '${artistId}_$fanUserId';
+
+/// Message screen for one conversation between a user (fan) and an artist.
+/// Uses Firestore: chats/{artistId_fanUserId} with fields artistId, userId, lastMessage, lastMessageAt, etc.;
+/// subcollection messages with text, senderId, senderType ('user'|'artist'), createdAt.
 class ArtistMessageView extends StatefulWidget {
   final int? artistId;
+  /// The fan's Firebase UID. When opening as fan, pass null and we use currentUser.uid.
+  final String? otherPartyUserId;
+  final String otherPartyDisplayName;
+  final String? otherPartyImageUrl;
+  /// True when the logged-in user is the artist (sending as artist).
+  final bool isCurrentUserArtist;
   final String artistName;
   final String? artistImageUrl;
 
   const ArtistMessageView({
     super.key,
     this.artistId,
-    required this.artistName,
+    this.otherPartyUserId,
+    required this.otherPartyDisplayName,
+    this.otherPartyImageUrl,
+    this.isCurrentUserArtist = false,
+    this.artistName = '',
     this.artistImageUrl,
   });
 
@@ -34,26 +49,32 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   late chat_core.InMemoryChatController _chatController;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
 
-  String get _chatId {
-    final uid = _user?.uid ?? '';
-    final aid = widget.artistId ?? 0;
-    return 'user_${uid}_artist_$aid';
+  String get _chatDocId => chatDocId(widget.artistId ?? 0, _fanUserId);
+
+  String get _fanUserId {
+    if (widget.isCurrentUserArtist) return widget.otherPartyUserId ?? '';
+    return widget.otherPartyUserId ?? _user?.uid ?? '';
   }
 
-  String get _artistUserId => 'artist_${widget.artistId ?? 0}';
+  /// Other party's senderId in messages: when fan view it's artist_artistId, when artist view it's fan's uid.
+  String get _otherPartySenderId =>
+      widget.isCurrentUserArtist ? (_fanUserId) : 'artist_${widget.artistId ?? 0}';
 
   CollectionReference<Map<String, dynamic>> get _messagesRef =>
       FirebaseFirestore.instance
           .collection(_chatsCollection)
-          .doc(_chatId)
+          .doc(_chatDocId)
           .collection(_messagesSubcollection);
+
+  DocumentReference<Map<String, dynamic>> get _chatDocRef =>
+      FirebaseFirestore.instance.collection(_chatsCollection).doc(_chatDocId);
 
   @override
   void initState() {
     super.initState();
     _user = auth.FirebaseAuth.instance.currentUser;
     _chatController = chat_core.InMemoryChatController(messages: const []);
-    if (_user != null && widget.artistId != null) {
+    if (_user != null && widget.artistId != null && _fanUserId.isNotEmpty) {
       _subscription = _messagesRef
           .orderBy('createdAt', descending: false)
           .snapshots()
@@ -87,14 +108,24 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   }
 
   Future<void> _onMessageSend(String text) async {
-    if (text.trim().isEmpty || _user == null) return;
+    if (text.trim().isEmpty || _user == null || widget.artistId == null) return;
     try {
+      final senderId = widget.isCurrentUserArtist ? 'artist_${widget.artistId}' : _user!.uid;
+      final senderType = widget.isCurrentUserArtist ? 'artist' : 'user';
       await _messagesRef.add({
         'text': text.trim(),
-        'senderId': _user!.uid,
-        'senderType': 'user',
+        'senderId': senderId,
+        'senderType': senderType,
         'createdAt': FieldValue.serverTimestamp(),
       });
+      await _chatDocRef.set({
+        'artistId': widget.artistId,
+        'userId': _fanUserId,
+        'lastMessage': text.trim(),
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'userDisplayName': widget.isCurrentUserArtist ? widget.otherPartyDisplayName : (_user!.displayName ?? _user!.email ?? 'User'),
+        'artistName': widget.artistName.isNotEmpty ? widget.artistName : null,
+      }, SetOptions(merge: true));
     } catch (e) {
       if (mounted) {
         Get.snackbar('Error', 'Could not send message.', snackPosition: SnackPosition.BOTTOM);
@@ -102,19 +133,23 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
     }
   }
 
+  /// For Chat widget: when artist sends, we use senderId 'artist_artistId', so we must tell the UI that "me" is that id.
+  String get _effectiveCurrentUserId =>
+      widget.isCurrentUserArtist ? 'artist_${widget.artistId}' : (_user?.uid ?? '');
+
   Future<chat_core.User?> _resolveUser(chat_core.UserID id) async {
-    if (id == _user?.uid) {
+    if (id == _effectiveCurrentUserId) {
       return chat_core.User(
         id: id,
         name: _user!.displayName,
         imageSource: _user!.photoURL,
       );
     }
-    if (id == _artistUserId) {
+    if (id == _otherPartySenderId) {
       return chat_core.User(
         id: id,
-        name: widget.artistName,
-        imageSource: widget.artistImageUrl,
+        name: widget.otherPartyDisplayName,
+        imageSource: widget.otherPartyImageUrl,
       );
     }
     return null;
@@ -124,7 +159,6 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
     final padding = MediaQuery.paddingOf(context);
 
     if (_user == null) {
@@ -155,7 +189,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
                 color: colors.surface,
                 child: Chat(
                   chatController: _chatController,
-                  currentUserId: _user!.uid,
+                  currentUserId: _effectiveCurrentUserId,
                   resolveUser: _resolveUser,
                   onMessageSend: _onMessageSend,
                   theme: chatTheme,
@@ -169,8 +203,6 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
     );
   }
 
-  /// Builds a [chat_core.ChatTheme] from the app's [ThemeData] so chat UI
-  /// (bubbles, input, background) uses the same colors as the rest of the app.
   chat_core.ChatTheme _buildChatThemeFromAppTheme(ThemeData themeData) {
     final cs = themeData.colorScheme;
     final base = chat_core.ChatTheme.fromThemeData(themeData);
@@ -205,11 +237,11 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
             child: Icon(CupertinoIcons.arrow_left, color: colors.onSurface),
           ),
           const SizedBox(width: 8),
-          if (widget.artistImageUrl != null && widget.artistImageUrl!.isNotEmpty)
+          if (widget.otherPartyImageUrl != null && widget.otherPartyImageUrl!.isNotEmpty)
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: Image.network(
-                widget.artistImageUrl!,
+                widget.otherPartyImageUrl!,
                 width: 40,
                 height: 40,
                 fit: BoxFit.cover,
@@ -224,7 +256,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.artistName,
+                  widget.otherPartyDisplayName,
                   style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -257,7 +289,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Sign in with your account to send messages to ${widget.artistName}.',
+              'Sign in with your account to send messages.',
               textAlign: TextAlign.center,
               style: textTheme.bodySmall?.copyWith(color: colors.onSurface.withOpacity(0.6)),
             ),

@@ -416,7 +416,7 @@ class _ArtistProfileBlock extends StatelessWidget {
   }
 }
 
-/// Messages menu row in same style as Personal data / Announcements, with Firestore message count.
+/// Messages menu row: opens chat list for this artist. Badge = number of conversations (chats).
 class _MessagesMenuItem extends StatelessWidget {
   const _MessagesMenuItem({
     required this.artistId,
@@ -429,24 +429,17 @@ class _MessagesMenuItem extends StatelessWidget {
   final String? artistImageUrl;
 
   static const String _chatsCollection = 'chats';
-  static const String _messagesSubcollection = 'messages';
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final uid = auth.FirebaseAuth.instance.currentUser?.uid;
-    final chatId =
-        uid != null ? 'user_${uid}_artist_$artistId' : 'user__artist_$artistId';
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: uid != null
-          ? FirebaseFirestore.instance
-              .collection(_chatsCollection)
-              .doc(chatId)
-              .collection(_messagesSubcollection)
-              .snapshots()
-          : Stream<QuerySnapshot<Map<String, dynamic>>>.empty(),
+      stream: FirebaseFirestore.instance
+          .collection(_chatsCollection)
+          .where('artistId', isEqualTo: artistId)
+          .snapshots(),
       builder: (context, snapshot) {
         final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
         Widget? trailing;
@@ -472,7 +465,7 @@ class _MessagesMenuItem extends StatelessWidget {
           title: 'Messages',
           onTap: () {
             Get.toNamed(
-              AppRoutes.artistMessage,
+              AppRoutes.artistChatList,
               arguments: {
                 'artistId': artistId,
                 'artistName': artistName,

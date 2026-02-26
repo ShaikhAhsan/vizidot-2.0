@@ -24,6 +24,7 @@ abstract class AppRoutes {
   static const String musicPlayer = '/music-player';
   static const String favourites = '/favourites';
   static const String artistMessage = '/artist-message';
+  static const String artistChatList = '/artist-chat-list';
   static const String language = '/language';
   static const String about = '/about';
 }

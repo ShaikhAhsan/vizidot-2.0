@@ -29,6 +29,7 @@ import '../modules/home/bindings/search_binding.dart';
 import '../modules/home/views/filters_view.dart';
 import '../modules/home/views/favourites_view.dart';
 import '../modules/home/views/artist_message_view.dart';
+import '../modules/home/views/artist_chat_list_view.dart';
 import '../modules/home/views/language_view.dart';
 import '../modules/home/views/about_view.dart';
 import '../modules/home/controllers/favourites_controller.dart';
@@ -223,6 +224,23 @@ class AppPages {
         final args = Get.arguments as Map<String, dynamic>? ?? {};
         return ArtistMessageView(
           artistId: (args['artistId'] as num?)?.toInt(),
+          otherPartyUserId: args['otherPartyUserId'] as String?,
+          otherPartyDisplayName: args['otherPartyDisplayName'] as String? ?? '',
+          otherPartyImageUrl: args['otherPartyImageUrl'] as String?,
+          isCurrentUserArtist: args['isCurrentUserArtist'] as bool? ?? false,
+          artistName: args['artistName'] as String? ?? '',
+          artistImageUrl: args['artistImageUrl'] as String?,
+        );
+      },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.artistChatList,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>? ?? {};
+        final artistId = (args['artistId'] as num?)?.toInt() ?? 0;
+        return ArtistChatListView(
+          artistId: artistId,
           artistName: args['artistName'] as String? ?? '',
           artistImageUrl: args['artistImageUrl'] as String?,
         );

@@ -372,6 +372,9 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                       AppRoutes.artistMessage,
                       arguments: {
                         'artistId': artistId,
+                        'otherPartyDisplayName': artistName,
+                        'otherPartyImageUrl': artistImage.isEmpty ? null : artistImage,
+                        'isCurrentUserArtist': false,
                         'artistName': artistName,
                         'artistImageUrl': artistImage.isEmpty ? null : artistImage,
                       },
