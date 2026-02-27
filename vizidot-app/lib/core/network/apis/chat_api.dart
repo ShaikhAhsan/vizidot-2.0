@@ -46,6 +46,36 @@ class ChatApi extends BaseApi {
       return null;
     }
   }
+
+  /// POST /api/v1/chats/send-message — send message via API (Firestore + push to all recipient devices).
+  Future<SendMessageResult?> sendMessage({ required String chatDocId, required String text }) async {
+    try {
+      final response = await execute(
+        'POST',
+        ApiConstants.chatsSendMessagePath,
+        body: { 'chatDocId': chatDocId, 'text': text },
+        visibility: ApiVisibility.private,
+      );
+      if (response.statusCode != 200) return null;
+      final map = jsonDecode(response.body) as Map<String, dynamic>?;
+      if (map == null || ((map['success'] as bool?) != true)) return null;
+      final data = map['data'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      final createdAt = data['createdAt'];
+      return SendMessageResult(
+        messageId: data['messageId'] as String?,
+        createdAt: createdAt is String ? DateTime.tryParse(createdAt) ?? DateTime.now() : DateTime.now(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class SendMessageResult {
+  SendMessageResult({ this.messageId, required this.createdAt });
+  final String? messageId;
+  final DateTime createdAt;
 }
 
 class ChatMessagesResponse {

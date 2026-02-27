@@ -235,117 +235,24 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   Future<void> _onMessageSend(String text) async {
     if (text.trim().isEmpty || _user == null || widget.artistId == null) return;
     try {
-      final senderId = widget.isCurrentUserArtist ? 'artist_${widget.artistId}' : _user!.uid;
-      final senderType = widget.isCurrentUserArtist ? 'artist' : 'user';
-      await _messagesRef.add({
-        'text': text.trim(),
-        'senderId': senderId,
-        'senderType': senderType,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      final Map<String, dynamic> chatData = {
-        'artistId': widget.artistId,
-        'userId': _fanUserId,
-        'lastMessage': text.trim(),
-        'lastMessageAt': FieldValue.serverTimestamp(),
-        'artistName': widget.artistName.isNotEmpty ? widget.artistName : null,
-      };
-      if (widget.isCurrentUserArtist) {
-        chatData['userDisplayName'] = widget.otherPartyDisplayName;
-      } else {
-        final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
-        final displayName = profile?.fullName?.trim();
-        final authDisplayName = _user!.displayName?.trim();
-        final email = _user!.email;
-        chatData['userDisplayName'] = (displayName != null && displayName.isNotEmpty)
-            ? displayName
-            : (authDisplayName != null && authDisplayName.isNotEmpty)
-                ? authDisplayName
-                : (email ?? 'User');
-        if (email != null) chatData['userEmail'] = email;
-        String? photoUrl = _user!.photoURL;
-        if ((photoUrl == null || photoUrl.isEmpty) && profile?.profileImageUrl != null && profile!.profileImageUrl!.isNotEmpty) {
-          final base = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>().baseUrl : AppConfig.fromEnv().baseUrl;
-          final baseUrl = base.replaceFirst(RegExp(r'/$'), '');
-          photoUrl = profile.profileImageUrl!.startsWith('http')
-              ? profile.profileImageUrl
-              : baseUrl + (profile.profileImageUrl!.startsWith('/') ? profile.profileImageUrl! : '/${profile.profileImageUrl}');
-        }
-        chatData['userPhotoURL'] = photoUrl;
-        chatData['unreadByArtist'] = FieldValue.increment(1);
-        if (widget.artistImageUrl != null) chatData['artistImageUrl'] = widget.artistImageUrl;
+      final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
+      if (token == null) {
+        if (mounted) Get.snackbar('Error', 'Please sign in again.', snackPosition: SnackPosition.BOTTOM);
+        return;
       }
-      if (widget.isCurrentUserArtist) {
-        chatData['unreadByUser'] = FieldValue.increment(1);
+      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final api = ChatApi(baseUrl: baseUrl, authToken: token);
+      final result = await api.sendMessage(chatDocId: _chatDocId, text: text.trim());
+      if (result == null && mounted) {
+        Get.snackbar('Error', 'Could not send message.', snackPosition: SnackPosition.BOTTOM);
       }
-      await _chatDocRef.set(chatData, SetOptions(merge: true));
-      await _sendNotifyAfterMessage();
+      // Message is written to Firestore by the API; the existing snapshot listener will add it to the UI.
     } catch (e) {
       if (mounted) {
         Get.snackbar('Error', 'Could not send message.', snackPosition: SnackPosition.BOTTOM);
       }
     }
-  }
-
-  /// After sending a message, notify the other party (record + push; backend skips push if they're on this chat).
-  Future<void> _sendNotifyAfterMessage() async {
-    if (_user == null || widget.artistId == null) return;
-    try {
-      final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
-      if (token == null) return;
-      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
-      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
-      final api = NotificationsApi(baseUrl: baseUrl, authToken: token);
-      final senderName = widget.isCurrentUserArtist
-          ? widget.artistName
-          : (Get.isRegistered<UserProfileService>()
-                  ? Get.find<UserProfileService>().profile?.fullName?.trim()
-                  : null) ??
-              _user!.displayName?.trim() ??
-              _user!.email ??
-              'User';
-      // Sender image for push: artist image when sending as artist, user image when sending as user.
-      String? senderImageUrl;
-      if (widget.isCurrentUserArtist) {
-        senderImageUrl = widget.artistImageUrl;
-      } else {
-        final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
-        String? photoUrl = _user!.photoURL;
-        if ((photoUrl == null || photoUrl.isEmpty) && profile?.profileImageUrl != null && profile!.profileImageUrl!.isNotEmpty) {
-          photoUrl = profile.profileImageUrl!.startsWith('http')
-              ? profile.profileImageUrl
-              : baseUrl + (profile.profileImageUrl!.startsWith('/') ? profile.profileImageUrl! : '/${profile.profileImageUrl}');
-        }
-        senderImageUrl = photoUrl;
-      }
-      if (senderImageUrl != null && senderImageUrl.isNotEmpty && !senderImageUrl.startsWith('http')) {
-        senderImageUrl = baseUrl + (senderImageUrl.startsWith('/') ? senderImageUrl : '/$senderImageUrl');
-      }
-      final body = 'sent a message';
-      final data = <String, dynamic>{
-        'notificationType': 'message',
-        'userType': widget.isCurrentUserArtist ? 'Artist' : 'user',
-        'name': senderName,
-      };
-      if (widget.isCurrentUserArtist) {
-        data['artistId'] = widget.artistId;
-      } else {
-        data['userId'] = _user!.uid;
-      }
-      data['chatDocId'] = _chatDocId;
-      await api.notify(
-        chatDocId: _chatDocId,
-        isSenderArtist: widget.isCurrentUserArtist,
-        notificationType: 'message',
-        title: senderName,
-        body: body,
-        data: data,
-        senderArtistId: widget.isCurrentUserArtist ? widget.artistId : null,
-        senderUserId: widget.isCurrentUserArtist ? null : null,
-        messageCount: 1,
-        imageUrl: senderImageUrl,
-      );
-    } catch (_) {}
   }
 
   /// For Chat widget: when artist sends, we use senderId 'artist_artistId', so we must tell the UI that "me" is that id.

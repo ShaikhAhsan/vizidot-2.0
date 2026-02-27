@@ -84,6 +84,8 @@ class ApiConstants {
 
   /// Chat history (archived messages from MySQL). GET ?chatDocId=&before=&limit=. Auth required.
   static const String chatsMessagesPath = 'chats/messages';
+  /// Send message via API (writes to Firestore + push). POST body: chatDocId, text. Auth required.
+  static const String chatsSendMessagePath = 'chats/send-message';
 
   /// User notifications: record + push, history, presence. Auth required.
   static const String notificationsPath = 'notifications';
