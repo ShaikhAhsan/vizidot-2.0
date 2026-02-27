@@ -55,6 +55,11 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   List<chat_core.Message> _historyMessages = [];
   List<chat_core.Message> _firebaseMessages = [];
 
+  /// Older messages loaded from MySQL (paginated). Prepend to Firebase for display.
+  String? _mysqlNextBefore;
+  bool _isLoadingOlder = false;
+  bool _mysqlLoadAttempted = false;
+
   String get _chatDocId => chatDocId(widget.artistId ?? 0, _fanUserId);
 
   String get _fanUserId {
@@ -91,23 +96,6 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   }
 
   Future<void> _loadHistoryThenSubscribe() async {
-    final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
-    if (token != null) {
-      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
-      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
-      final api = ChatApi(baseUrl: baseUrl, authToken: token);
-      final before = DateTime.now().subtract(const Duration(hours: 24)).toUtc().toIso8601String();
-      final res = await api.getMessages(chatDocId: _chatDocId, before: before, limit: 50);
-      if (res != null && res.messages.isNotEmpty && mounted) {
-        _historyMessages = res.messages.map((m) => chat_core.Message.text(
-          id: 'hist_${m.id}',
-          authorId: m.senderId,
-          createdAt: m.createdAt,
-          text: m.text,
-        )).toList();
-      }
-      if (mounted) _mergeAndSetMessages(_historyMessages, _firebaseMessages);
-    }
     _subscription = _messagesRef
         .orderBy('createdAt', descending: false)
         .snapshots()
@@ -155,6 +143,45 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
     final combined = <chat_core.Message>[...history, ...firebase];
     combined.sort((a, b) => (a.createdAt ?? DateTime.now()).compareTo(b.createdAt ?? DateTime.now()));
     _chatController.setMessages(combined, animated: false);
+  }
+
+  /// Load older messages from MySQL (pagination). Call when user scrolls to top or taps "Load older".
+  Future<void> _loadOlderFromMysql() async {
+    if (_isLoadingOlder) return;
+    if (_mysqlLoadAttempted && _mysqlNextBefore == null) return;
+    final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token == null) return;
+
+    final combined = <chat_core.Message>[..._historyMessages, ..._firebaseMessages];
+    combined.sort((a, b) => (a.createdAt ?? DateTime.now()).compareTo(b.createdAt ?? DateTime.now()));
+    final String? beforeParam = _mysqlNextBefore ?? (combined.isEmpty ? null : combined.first.createdAt?.toUtc().toIso8601String());
+
+    setState(() => _isLoadingOlder = true);
+    try {
+      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final api = ChatApi(baseUrl: baseUrl, authToken: token);
+      final res = await api.getMessages(
+        chatDocId: _chatDocId,
+        before: beforeParam,
+        limit: 50,
+      );
+      if (!mounted) return;
+      _mysqlLoadAttempted = true;
+      if (res != null && res.messages.isNotEmpty) {
+        final older = res.messages.map((m) => chat_core.Message.text(
+          id: 'hist_${m.id}',
+          authorId: m.senderId,
+          createdAt: m.createdAt,
+          text: m.text,
+        )).toList();
+        _historyMessages = [...older, ..._historyMessages];
+      }
+      _mysqlNextBefore = res?.nextBefore;
+      _mergeAndSetMessages(_historyMessages, _firebaseMessages);
+    } finally {
+      if (mounted) setState(() => _isLoadingOlder = false);
+    }
   }
 
   @override
@@ -269,6 +296,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
         child: Column(
           children: [
             _buildAppBar(colors, textTheme, padding.top),
+            _buildLoadOlderBar(colors, textTheme),
             Expanded(
               child: Material(
                 color: colors.surface,
@@ -283,6 +311,39 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadOlderBar(ColorScheme colors, TextTheme textTheme) {
+    final canLoadMore = !_mysqlLoadAttempted || _mysqlNextBefore != null;
+    if (!canLoadMore && !_isLoadingOlder) return const SizedBox.shrink();
+    return Material(
+      color: colors.surfaceContainerHighest.withOpacity(0.5),
+      child: InkWell(
+        onTap: _isLoadingOlder ? null : _loadOlderFromMysql,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+            child: _isLoadingOlder
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colors.primary,
+                    ),
+                  )
+                : Text(
+                    canLoadMore ? 'Load older messages' : 'All messages loaded',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: canLoadMore ? colors.primary : colors.onSurface.withOpacity(0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+          ),
         ),
       ),
     );
