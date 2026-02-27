@@ -20,7 +20,7 @@ class ChatApi extends BaseApi {
   Future<ChatMessagesResponse?> getMessages({
     required String chatDocId,
     String? before,
-    int limit = 20,
+    int limit = 10,
   }) async {
     try {
       final queryParams = <String, String>{

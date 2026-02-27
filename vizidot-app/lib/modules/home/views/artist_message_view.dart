@@ -59,6 +59,13 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   String? _mysqlNextBefore;
   bool _isLoadingOlder = false;
   bool _mysqlLoadAttempted = false;
+  DateTime? _lastAutoLoadTrigger;
+  bool _initialEmptyLoadTriggered = false;
+  bool _shortListLoadTriggered = false;
+
+  static const double _loadOlderScrollThreshold = 150;
+  static const int _autoLoadDebounceMs = 800;
+  static const double _shortListMaxExtent = 80;
 
   String get _chatDocId => chatDocId(widget.artistId ?? 0, _fanUserId);
 
@@ -137,6 +144,13 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
       );
     }).toList();
     _mergeAndSetMessages(_historyMessages, _firebaseMessages);
+    if (_firebaseMessages.isEmpty &&
+        _historyMessages.isEmpty &&
+        !_initialEmptyLoadTriggered &&
+        !_isLoadingOlder) {
+      _initialEmptyLoadTriggered = true;
+      _loadOlderFromMysql();
+    }
   }
 
   void _mergeAndSetMessages(List<chat_core.Message> history, List<chat_core.Message> firebase) {
@@ -164,7 +178,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
       final res = await api.getMessages(
         chatDocId: _chatDocId,
         before: beforeParam,
-        limit: 50,
+        limit: 10,
       );
       if (!mounted) return;
       _mysqlLoadAttempted = true;
@@ -296,17 +310,53 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
         child: Column(
           children: [
             _buildAppBar(colors, textTheme, padding.top),
+            _buildLoadingOlderIndicator(colors),
             _buildLoadOlderBar(colors, textTheme),
             Expanded(
               child: Material(
                 color: colors.surface,
-                child: Chat(
-                  chatController: _chatController,
-                  currentUserId: _effectiveCurrentUserId,
-                  resolveUser: _resolveUser,
-                  onMessageSend: _onMessageSend,
-                  theme: chatTheme,
-                  backgroundColor: colors.surface,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (ScrollNotification notification) {
+                    if (notification is ScrollUpdateNotification ||
+                        notification is ScrollEndNotification) {
+                      final metrics = notification.metrics;
+                      if (!metrics.hasPixels) return false;
+                      final maxExtent = metrics.maxScrollExtent;
+                      final pixels = metrics.pixels;
+                      bool atTop = false;
+                      if (maxExtent.isFinite) {
+                        if (maxExtent <= _shortListMaxExtent) {
+                          atTop = !_shortListLoadTriggered;
+                        } else {
+                          atTop = pixels >= maxExtent - _loadOlderScrollThreshold ||
+                              pixels <= _loadOlderScrollThreshold;
+                        }
+                      } else {
+                        atTop = pixels <= _loadOlderScrollThreshold;
+                      }
+                      if (atTop) {
+                        final now = DateTime.now();
+                        if (_lastAutoLoadTrigger == null ||
+                            now.difference(_lastAutoLoadTrigger!).inMilliseconds >
+                                _autoLoadDebounceMs) {
+                          _lastAutoLoadTrigger = now;
+                          if (maxExtent.isFinite && maxExtent <= _shortListMaxExtent) {
+                            _shortListLoadTriggered = true;
+                          }
+                          _loadOlderFromMysql();
+                        }
+                      }
+                    }
+                    return false;
+                  },
+                  child: Chat(
+                    chatController: _chatController,
+                    currentUserId: _effectiveCurrentUserId,
+                    resolveUser: _resolveUser,
+                    onMessageSend: _onMessageSend,
+                    theme: chatTheme,
+                    backgroundColor: colors.surface,
+                  ),
                 ),
               ),
             ),
@@ -316,33 +366,41 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
     );
   }
 
+  Widget _buildLoadingOlderIndicator(ColorScheme colors) {
+    if (!_isLoadingOlder) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: colors.primary,
+        ),
+      ),
+    );
+  }
+
   Widget _buildLoadOlderBar(ColorScheme colors, TextTheme textTheme) {
     final canLoadMore = !_mysqlLoadAttempted || _mysqlNextBefore != null;
-    if (!canLoadMore && !_isLoadingOlder) return const SizedBox.shrink();
+    if (!canLoadMore || _isLoadingOlder) return const SizedBox.shrink();
     return Material(
-      color: colors.surfaceContainerHighest.withOpacity(0.5),
+      color: colors.surfaceContainerHighest.withOpacity(0.4),
       child: InkWell(
-        onTap: _isLoadingOlder ? null : _loadOlderFromMysql,
+        onTap: _loadOlderFromMysql,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           child: Center(
-            child: _isLoadingOlder
-                ? SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors.primary,
-                    ),
-                  )
-                : Text(
-                    canLoadMore ? 'Load older messages' : 'All messages loaded',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: canLoadMore ? colors.primary : colors.onSurface.withOpacity(0.6),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+            child: Text(
+              'Load older messages',
+              style: textTheme.labelLarge?.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ),
