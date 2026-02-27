@@ -304,6 +304,23 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
               _user!.displayName?.trim() ??
               _user!.email ??
               'User';
+      // Sender image for push: artist image when sending as artist, user image when sending as user.
+      String? senderImageUrl;
+      if (widget.isCurrentUserArtist) {
+        senderImageUrl = widget.artistImageUrl;
+      } else {
+        final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
+        String? photoUrl = _user!.photoURL;
+        if ((photoUrl == null || photoUrl.isEmpty) && profile?.profileImageUrl != null && profile!.profileImageUrl!.isNotEmpty) {
+          photoUrl = profile.profileImageUrl!.startsWith('http')
+              ? profile.profileImageUrl
+              : baseUrl + (profile.profileImageUrl!.startsWith('/') ? profile.profileImageUrl! : '/${profile.profileImageUrl}');
+        }
+        senderImageUrl = photoUrl;
+      }
+      if (senderImageUrl != null && senderImageUrl.isNotEmpty && !senderImageUrl.startsWith('http')) {
+        senderImageUrl = baseUrl + (senderImageUrl.startsWith('/') ? senderImageUrl : '/$senderImageUrl');
+      }
       final body = 'sent a message';
       final data = <String, dynamic>{
         'notificationType': 'message',
@@ -326,6 +343,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
         senderArtistId: widget.isCurrentUserArtist ? widget.artistId : null,
         senderUserId: widget.isCurrentUserArtist ? null : null,
         messageCount: 1,
+        imageUrl: senderImageUrl,
       );
     } catch (_) {}
   }

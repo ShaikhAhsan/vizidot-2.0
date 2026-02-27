@@ -18,8 +18,8 @@ class AppConfig {
   /// so the app reaches the host machine. For physical device use your machine's IP (e.g. http://192.168.1.x:8000).
   factory AppConfig.fromEnv() {
     String env = 'development';
-    String baseUrl = 'http://localhost:8000';
-    // String baseUrl = 'http://109.106.244.241:9000';
+    // String baseUrl = 'http://localhost:8000';
+    String baseUrl = 'http://109.106.244.241:9000';
 
     String? testToken;
     try {

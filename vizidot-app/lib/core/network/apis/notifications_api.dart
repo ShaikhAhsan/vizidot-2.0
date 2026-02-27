@@ -26,6 +26,7 @@ class NotificationsApi extends BaseApi {
     int? senderUserId,
     String? liveStreamId,
     int messageCount = 1,
+    String? imageUrl,
   }) async {
     try {
       final bodyMap = <String, dynamic>{
@@ -41,6 +42,7 @@ class NotificationsApi extends BaseApi {
       if (senderArtistId != null) bodyMap['sender_artist_id'] = senderArtistId;
       if (senderUserId != null) bodyMap['sender_user_id'] = senderUserId;
       if (liveStreamId != null) bodyMap['live_stream_id'] = liveStreamId;
+      if (imageUrl != null && imageUrl.isNotEmpty) bodyMap['image_url'] = imageUrl;
 
       final response = await execute(
         'POST',
