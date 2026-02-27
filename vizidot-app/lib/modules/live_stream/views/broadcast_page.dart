@@ -215,10 +215,16 @@ class _BroadcastPageState extends State<BroadcastPage> {
       } catch (e) {
         developer.log('⚠️ [Broadcast] Token fetch failed, using empty token: $e', name: 'BroadcastPage');
       }
+
+      // Broadcaster uses UID 0; each audience member uses a unique random UID to avoid collisions.
+      final localUid = widget.isBroadcaster
+          ? 0
+          : DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
+
       await engine.joinChannel(
         token: token,
         channelId: widget.liveStream.channel,
-        uid: 0,
+        uid: localUid,
         options: const ChannelMediaOptions(),
       );
       developer.log('✅ [Broadcast] Join channel request sent', name: 'BroadcastPage');
@@ -322,12 +328,15 @@ class _BroadcastPageState extends State<BroadcastPage> {
   Widget _broadcastView() {
     return Stack(
       children: [
-        // Remote users video (full screen)
-        Center(
-          child: _remoteVideo(),
+        // Main video layout (local + remotes)
+        SizedBox.expand(
+          child: _videoLayout(),
         ),
-        // Local user video (top left corner for broadcaster)
-        if (widget.isBroadcaster && _localUserJoined && _engine != null)
+        // Local user picture-in-picture when broadcaster has remote viewers
+        if (widget.isBroadcaster &&
+            _localUserJoined &&
+            _engine != null &&
+            _remoteUids.isNotEmpty)
           Positioned(
             top: 20,
             left: 20,
@@ -346,14 +355,25 @@ class _BroadcastPageState extends State<BroadcastPage> {
     );
   }
 
-  // Display remote user's video
-  Widget _remoteVideo() {
+  // Layout local + remote videos according to number of participants
+  Widget _videoLayout() {
     if (_engine == null) {
       return const Center(
         child: CircularProgressIndicator(),
       );
     }
-    
+
+    // Broadcaster alone: show local video full screen
+    if (widget.isBroadcaster && _localUserJoined && _remoteUids.isEmpty) {
+      return AgoraVideoView(
+        controller: VideoViewController(
+          rtcEngine: _engine!,
+          canvas: const VideoCanvas(uid: 0),
+        ),
+      );
+    }
+
+    // Audience waiting for broadcaster (or no remotes yet)
     if (_remoteUids.isEmpty) {
       return const Center(
         child: Text(
@@ -364,11 +384,73 @@ class _BroadcastPageState extends State<BroadcastPage> {
       );
     }
 
-    // Display first remote user (can be extended to show multiple)
+    final remotes = List<int>.from(_remoteUids);
+
+    // 1 user → full screen
+    if (remotes.length == 1) {
+      return _remoteTile(remotes[0]);
+    }
+
+    // 2 users → half + half (vertical split)
+    if (remotes.length == 2) {
+      return Column(
+        children: [
+          Expanded(child: _remoteTile(remotes[0])),
+          Expanded(child: _remoteTile(remotes[1])),
+        ],
+      );
+    }
+
+    // 3 users → top row (2 x 1/4) + bottom (1 x 1/2)
+    if (remotes.length == 3) {
+      return Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: _remoteTile(remotes[0])),
+                Expanded(child: _remoteTile(remotes[1])),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _remoteTile(remotes[2]),
+          ),
+        ],
+      );
+    }
+
+    // 4+ users – simple 2x2 grid of first 4 (fallback layout)
+    final visible = remotes.take(4).toList();
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: _remoteTile(visible[0])),
+              if (visible.length > 1) Expanded(child: _remoteTile(visible[1])),
+            ],
+          ),
+        ),
+        if (visible.length > 2)
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: _remoteTile(visible[2])),
+                if (visible.length > 3)
+                  Expanded(child: _remoteTile(visible[3])),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _remoteTile(int uid) {
     return AgoraVideoView(
       controller: VideoViewController.remote(
         rtcEngine: _engine!,
-        canvas: VideoCanvas(uid: _remoteUids[0]),
+        canvas: VideoCanvas(uid: uid),
         connection: RtcConnection(channelId: widget.liveStream.channel),
       ),
     );

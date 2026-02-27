@@ -2,161 +2,162 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../widgets/streamer_profile_card.dart';
 import '../widgets/live_session_card.dart';
 import '../../../routes/app_pages.dart';
+import '../../live_stream/models/live_stream_model.dart';
+import '../../live_stream/views/broadcast_page.dart';
 
 class StreamingView extends StatelessWidget {
   const StreamingView({super.key});
 
-  // Dummy data for streamers
-  final List<Map<String, dynamic>> _streamers = const [
-    {'image': 'assets/artists/Choc B.png', 'name': 'Jane', 'isLive': false},
-    {'image': 'assets/artists/Choc B.png', 'name': 'Kaleb', 'isLive': true},
-    {'image': 'assets/artists/Choc B.png', 'name': 'Simon', 'isLive': true},
-    {'image': 'assets/artists/Choc B.png', 'name': 'Lusy', 'isLive': false},
-    {'image': 'assets/artists/Choc B.png', 'name': 'Kory', 'isLive': false},
-  ];
-
-  // Dummy data for live sessions with dynamic heights
-  final List<Map<String, dynamic>> _liveSessions = const [
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'Live at New York sess...',
-      'artist': '30 Seconds to Mars',
-      'viewers': '1.2K',
-      'height': 117.0,
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'LA live session',
-      'artist': '30 Seconds to Mars',
-      'viewers': '1.2K',
-      'height': 192.0,
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'New York live session',
-      'artist': '30 Seconds to Mars',
-      'viewers': '1.2K',
-      'height': 157.0,
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'Concert hall live',
-      'artist': '30 Seconds to Mars',
-      'viewers': '1.2K',
-      'height': 192.0,
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'Live session',
-      'artist': '30 Seconds to Mars',
-      'viewers': '1.2K',
-      'height': 117.0,
-    },
-    {
-      'image': 'assets/artists/Choc B.png',
-      'title': 'Live session',
-      'artist': '30 Seconds to Mars',
-      'viewers': '1.2K',
-      'height': 192.0,
-    },
-  ];
+  static const String _placeholderAsset = 'assets/artists/Choc B.png';
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
     return CupertinoPageScaffold(
-      child: CustomScrollView(
-        slivers: [
-          // Navigation Bar with Large Title - matching home screen
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Streaming now'),
-            trailing: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(32, 32),
-                onPressed: () {
-                  Get.toNamed(AppRoutes.search);
-                },
-                child: const Icon(
-                  CupertinoIcons.search,
-                  color: Colors.black,
-                  size: 20,
-                ),
-              ),
-            ),
-            backgroundColor: Colors.transparent,
-            border: null,
-            automaticallyImplyTitle: false,
-            automaticallyImplyLeading: false,
-          ),
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const SizedBox(height: 12),
-                  // Streamer Profiles - Horizontal Scroll
-                  SizedBox(
-                    height: 90,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _streamers.length,
-                      itemBuilder: (context, index) {
-                        final streamer = _streamers[index];
-                        return StreamerProfileCard(
-                          imageUrl: streamer['image'] as String,
-                          name: streamer['name'] as String,
-                          isLive: streamer['isLive'] as bool,
-                        );
-                      },
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('LiveStreams')
+            .orderBy('dateUpdated', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+          final liveStreams = docs.map((doc) {
+            final data = doc.data();
+            final model = LiveStreamModel.fromMap(data);
+            model.identifier = doc.id;
+            if (model.channel.isEmpty) {
+              model.channel = doc.id;
+            }
+            return model;
+          }).toList();
+
+          return CustomScrollView(
+            slivers: [
+              // Navigation Bar with Large Title - matching home screen
+              CupertinoSliverNavigationBar(
+                largeTitle: const Text('Streaming now'),
+                trailing: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(32, 32),
+                    onPressed: () {
+                      Get.toNamed(AppRoutes.search);
+                    },
+                    child: const Icon(
+                      CupertinoIcons.search,
+                      color: Colors.black,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                ]),
+                ),
+                backgroundColor: Colors.transparent,
+                border: null,
+                automaticallyImplyTitle: false,
+                automaticallyImplyLeading: false,
               ),
-            ),
-          ),
-          // Live Sessions Grid - using SliverMasonryGrid for 2 columns
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverMasonryGrid.count(
-              crossAxisCount: 2,
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 16,
-              itemBuilder: (context, index) {
-                final session = _liveSessions[index];
-                return LiveSessionCard(
-                  imageUrl: session['image'] as String,
-                  title: session['title'] as String,
-                  artistName: session['artist'] as String,
-                  viewerCount: session['viewers'] as String,
-                  imageHeight: session['height'] as double,
-                  onTap: () {
-                    // TODO: Navigate to live session detail
-                  },
-                );
-              },
-              childCount: _liveSessions.length,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverToBoxAdapter(
-              child: const SizedBox(height: 24),
-            ),
-          ),
-        ],
+              if (liveStreams.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'No one is live right now.\nBe the first to go live!',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: colors.onSurface.withOpacity(0.6),
+                          ),
+                    ),
+                  ),
+                )
+              else ...[
+                SliverSafeArea(
+                  top: false,
+                  sliver: SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const SizedBox(height: 12),
+                        // Streamer Profiles - Horizontal Scroll (unique by name)
+                        SizedBox(
+                          height: 90,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: liveStreams.length,
+                            itemBuilder: (context, index) {
+                              final stream = liveStreams[index];
+                              final name = stream.name.isNotEmpty
+                                  ? stream.name
+                                  : 'Live Stream';
+                              return StreamerProfileCard(
+                                imageUrl: _placeholderAsset,
+                                name: name,
+                                isLive: true,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ]),
+                    ),
+                  ),
+                ),
+                // Live Sessions Grid - using SliverMasonryGrid for 2 columns
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverMasonryGrid.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 16,
+                    itemBuilder: (context, index) {
+                      final stream = liveStreams[index];
+                      const heights = [117.0, 192.0, 157.0, 192.0];
+                      final height = heights[index % heights.length];
+                      final title =
+                          stream.desc.isNotEmpty ? stream.desc : stream.name;
+                      final artistName =
+                          stream.name.isNotEmpty ? stream.name : 'Live Stream';
+                      return LiveSessionCard(
+                        imageUrl: _placeholderAsset,
+                        title: title,
+                        artistName: artistName,
+                        viewerCount: 'Live',
+                        imageHeight: height,
+                        onTap: () {
+                          Get.to(() => BroadcastPage(
+                                isBroadcaster: false,
+                                liveStream: stream,
+                              ));
+                        },
+                      );
+                    },
+                    childCount: liveStreams.length,
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverToBoxAdapter(
+                    child: const SizedBox(height: 24),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
