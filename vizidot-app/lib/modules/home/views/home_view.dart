@@ -50,6 +50,7 @@ class HomeView extends GetView<HomeController> {
           CustomNavBar(
             selectedIndex: controller.selectedIndex,
             onItemTapped: controller.onNavTap,
+            profileTabBadgeCount: controller.messageUnreadCount.value,
             assetNames: const [
               // Order: Home, eLocker, Camera (was Shop), Streaming, Profile
               'tab-home-ic.png',

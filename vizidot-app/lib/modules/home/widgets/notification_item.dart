@@ -6,6 +6,10 @@ class NotificationItem extends StatelessWidget {
   final String notificationText;
   final String timestamp;
   final List<String> boldUsernames;
+  /// Optional network image URL (overrides profileImage when non-null and starts with http).
+  final String? imageUrl;
+  final VoidCallback? onTap;
+  final bool isUnread;
 
   const NotificationItem({
     super.key,
@@ -13,6 +17,9 @@ class NotificationItem extends StatelessWidget {
     required this.notificationText,
     required this.timestamp,
     this.boldUsernames = const [],
+    this.imageUrl,
+    this.onTap,
+    this.isUnread = false,
   });
 
   @override
@@ -20,50 +27,83 @@ class NotificationItem extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Profile/Album Image
-          ClipOval(
-            child: Image.asset(
-              profileImage,
-              width: 48,
-              height: 48,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: colors.onSurface.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    CupertinoIcons.person,
-                    color: colors.onSurface.withOpacity(0.3),
-                    size: 24,
-                  ),
-                );
-              },
+    final useNetworkImage = imageUrl != null && imageUrl!.startsWith('http');
+    Widget leading = ClipOval(
+      child: Image.asset(
+        profileImage,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _placeholder(colors),
+      ),
+    );
+    if (useNetworkImage) {
+      leading = ClipOval(
+        child: Image.network(
+          imageUrl!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _placeholder(colors),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            leading,
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildNotificationText(textTheme, colors),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Notification Text
-          Expanded(
-            child: _buildNotificationText(textTheme, colors),
-          ),
-          const SizedBox(width: 8),
-          // Timestamp
-          Text(
-            timestamp,
-            style: textTheme.bodySmall?.copyWith(
-              color: colors.onSurface.withOpacity(0.5),
-              fontSize: 12,
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isUnread)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(bottom: 4),
+                    decoration: BoxDecoration(
+                      color: colors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                Text(
+                  timestamp,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colors.onSurface.withOpacity(0.5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder(ColorScheme colors) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: colors.onSurface.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        CupertinoIcons.person,
+        color: colors.onSurface.withOpacity(0.3),
+        size: 24,
       ),
     );
   }

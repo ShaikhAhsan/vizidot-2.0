@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/network/apis/music_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/user_profile_service.dart';
 import '../../../core/utils/image_cache.dart';
 
 class MediaItem {
@@ -67,6 +72,12 @@ class HomeController extends GetxController {
   final RxInt selectedIndex = 0.obs;
   final List<String> _prefetchUrls = <String>[];
 
+  /// Total unread message count (Personal + Artist chats) for Profile tab badge.
+  final RxInt messageUnreadCount = 0.obs;
+
+  static const String _chatsCollection = 'chats';
+  List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>? _messageUnreadSubs;
+
   static const String _placeholderAsset = 'assets/artists/Choc B.png';
 
   // TOP AUDIO items — from Home API only (no hardcoded fallback)
@@ -87,6 +98,68 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     loadTopFromApi();
+    _startMessageUnreadSubscription();
+  }
+
+  @override
+  void onClose() {
+    _cancelMessageUnreadSubscription();
+    super.onClose();
+  }
+
+  void _cancelMessageUnreadSubscription() {
+    if (_messageUnreadSubs != null) {
+      for (final s in _messageUnreadSubs!) s.cancel();
+      _messageUnreadSubs = null;
+    }
+    messageUnreadCount.value = 0;
+  }
+
+  void _startMessageUnreadSubscription() {
+    _cancelMessageUnreadSubscription();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
+    final assignedArtistIds = profile?.assignedArtists?.map((a) => a.artistId).toList() ?? <int>[];
+    int personalTotal = 0;
+    final Map<int, int> artistTotals = {};
+
+    void updateCount() {
+      messageUnreadCount.value = personalTotal + artistTotals.values.fold(0, (a, b) => a + b);
+    }
+
+    _messageUnreadSubs = [];
+    if (uid != null) {
+      _messageUnreadSubs!.add(
+        FirebaseFirestore.instance
+            .collection(_chatsCollection)
+            .where('userId', isEqualTo: uid)
+            .snapshots()
+            .listen((snap) {
+          personalTotal = 0;
+          for (final doc in snap.docs) {
+            personalTotal += (doc.data()['unreadByUser'] as num?)?.toInt() ?? 0;
+          }
+          updateCount();
+        }),
+      );
+    }
+    for (final artistId in assignedArtistIds) {
+      _messageUnreadSubs!.add(
+        FirebaseFirestore.instance
+            .collection(_chatsCollection)
+            .where('artistId', isEqualTo: artistId)
+            .snapshots()
+            .listen((snap) {
+          int total = 0;
+          for (final doc in snap.docs) {
+            total += (doc.data()['unreadByArtist'] as num?)?.toInt() ?? 0;
+          }
+          artistTotals[artistId] = total;
+          updateCount();
+        }),
+      );
+    }
+    updateCount();
   }
 
   /// Load top audio and video from Home API (GET /api/v1/music/home). When logged in, favourites come from same response.

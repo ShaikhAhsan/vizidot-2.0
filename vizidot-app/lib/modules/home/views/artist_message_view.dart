@@ -11,6 +11,7 @@ import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/user_profile_service.dart';
 import '../../../core/network/apis/chat_api.dart';
+import '../../../core/network/apis/notifications_api.dart';
 
 /// Builds the Firestore chat document ID for a conversation between an artist and a fan (user).
 /// Format: {artistId}_{fanUserId} so we can query all chats for an artist.
@@ -99,7 +100,32 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
       } else {
         _markChatAsReadForUser();
       }
+      _setPresenceOnChat();
     }
+  }
+
+  /// Tell backend we're on this chat so push is not sent for new messages here.
+  Future<void> _setPresenceOnChat() async {
+    try {
+      final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
+      if (token == null) return;
+      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final api = NotificationsApi(baseUrl: baseUrl, authToken: token);
+      await api.setPresence(screen: 'chat', contextId: _chatDocId);
+    } catch (_) {}
+  }
+
+  /// Clear presence when leaving chat so future pushes are delivered.
+  Future<void> _clearPresence() async {
+    try {
+      final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
+      if (token == null) return;
+      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final api = NotificationsApi(baseUrl: baseUrl, authToken: token);
+      await api.setPresence(screen: 'home', contextId: null);
+    } catch (_) {}
   }
 
   Future<void> _loadHistoryThenSubscribe() async {
@@ -200,6 +226,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
 
   @override
   void dispose() {
+    _clearPresence();
     _subscription?.cancel();
     _chatController.dispose();
     super.dispose();
@@ -252,11 +279,55 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
         chatData['unreadByUser'] = FieldValue.increment(1);
       }
       await _chatDocRef.set(chatData, SetOptions(merge: true));
+      await _sendNotifyAfterMessage();
     } catch (e) {
       if (mounted) {
         Get.snackbar('Error', 'Could not send message.', snackPosition: SnackPosition.BOTTOM);
       }
     }
+  }
+
+  /// After sending a message, notify the other party (record + push; backend skips push if they're on this chat).
+  Future<void> _sendNotifyAfterMessage() async {
+    if (_user == null || widget.artistId == null) return;
+    try {
+      final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
+      if (token == null) return;
+      final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      final api = NotificationsApi(baseUrl: baseUrl, authToken: token);
+      final senderName = widget.isCurrentUserArtist
+          ? widget.artistName
+          : (Get.isRegistered<UserProfileService>()
+                  ? Get.find<UserProfileService>().profile?.fullName?.trim()
+                  : null) ??
+              _user!.displayName?.trim() ??
+              _user!.email ??
+              'User';
+      final body = 'sent a message';
+      final data = <String, dynamic>{
+        'notificationType': 'message',
+        'userType': widget.isCurrentUserArtist ? 'Artist' : 'user',
+        'name': senderName,
+      };
+      if (widget.isCurrentUserArtist) {
+        data['artistId'] = widget.artistId;
+      } else {
+        data['userId'] = _user!.uid;
+      }
+      data['chatDocId'] = _chatDocId;
+      await api.notify(
+        chatDocId: _chatDocId,
+        isSenderArtist: widget.isCurrentUserArtist,
+        notificationType: 'message',
+        title: senderName,
+        body: body,
+        data: data,
+        senderArtistId: widget.isCurrentUserArtist ? widget.artistId : null,
+        senderUserId: widget.isCurrentUserArtist ? null : null,
+        messageCount: 1,
+      );
+    } catch (_) {}
   }
 
   /// For Chat widget: when artist sends, we use senderId 'artist_artistId', so we must tell the UI that "me" is that id.

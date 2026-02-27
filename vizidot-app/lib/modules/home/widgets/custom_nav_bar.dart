@@ -9,13 +9,16 @@ class CustomNavBar extends StatefulWidget {
   final Function(int) onItemTapped;
   final List<String>? assetNames; // Allow overriding filenames to match user's assets
   final Map<int, IconData>? iconOverrides; // Map of index to IconData for items that should use Cupertino icons
+  /// Optional badge count for the Profile tab (index 4). When > 0, shows a count on the icon.
+  final int profileTabBadgeCount;
 
   const CustomNavBar({
-    super.key, 
-    required this.selectedIndex, 
-    required this.onItemTapped, 
+    super.key,
+    required this.selectedIndex,
+    required this.onItemTapped,
     this.assetNames,
     this.iconOverrides,
+    this.profileTabBadgeCount = 0,
   });
 
   @override
@@ -65,6 +68,7 @@ class _CustomNavBarState extends State<CustomNavBar> {
                   iconData: iconOverride,
                   isSelected: isSelected,
                   iconColor: iconColor,
+                  badgeCount: index == 4 ? widget.profileTabBadgeCount : null,
                   onTap: () => widget.onItemTapped(index),
                 );
               }),
@@ -81,6 +85,7 @@ class _NavItem extends StatefulWidget {
   final IconData? iconData;
   final bool isSelected;
   final Color iconColor;
+  final int? badgeCount;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -88,6 +93,7 @@ class _NavItem extends StatefulWidget {
     this.iconData,
     required this.isSelected,
     required this.iconColor,
+    this.badgeCount,
     required this.onTap,
   });
 
@@ -124,27 +130,53 @@ class _NavItemState extends State<_NavItem> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                AnimatedScale(
-                  duration: const Duration(milliseconds: 120),
-                  curve: Curves.easeOut,
-                  scale: _pressed ? 0.92 : 1.0,
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: widget.iconData != null
-                        ? Icon(
-                            widget.iconData,
-                            color: widget.isSelected 
-                                ? const Color(0xFFFF7110) 
-                                : widget.iconColor,
-                            size: 24,
-                          )
-                        : ThemedAssetIcon(
-                            assetPath: widget.assetPath!,
-                            iconColor: widget.iconColor,
-                            size: 24,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    AnimatedScale(
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOut,
+                      scale: _pressed ? 0.92 : 1.0,
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: widget.iconData != null
+                            ? Icon(
+                                widget.iconData,
+                                color: widget.isSelected
+                                    ? const Color(0xFFFF7110)
+                                    : widget.iconColor,
+                                size: 24,
+                              )
+                            : ThemedAssetIcon(
+                                assetPath: widget.assetPath!,
+                                iconColor: widget.iconColor,
+                                size: 24,
+                              ),
+                      ),
+                    ),
+                    if (widget.badgeCount != null && widget.badgeCount! > 0)
+                      Positioned(
+                        top: -4,
+                        right: -6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          constraints: const BoxConstraints(minWidth: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF7110),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                  ),
+                          child: Text(
+                            widget.badgeCount! > 99 ? '99+' : '${widget.badgeCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 AnimatedContainer(

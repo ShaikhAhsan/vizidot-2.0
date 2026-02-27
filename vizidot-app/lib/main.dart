@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/bindings/initial_bindings.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/push_notification_handler.dart';
 import 'routes/app_pages.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -32,6 +33,9 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Handle FCM notification tap (open from quit or from background).
+  setupPushNotificationTapHandler();
   
   // Load environment variables from a .env file.
   try {

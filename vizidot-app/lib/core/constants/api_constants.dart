@@ -84,4 +84,12 @@ class ApiConstants {
 
   /// Chat history (archived messages from MySQL). GET ?chatDocId=&before=&limit=. Auth required.
   static const String chatsMessagesPath = 'chats/messages';
+
+  /// User notifications: record + push, history, presence. Auth required.
+  static const String notificationsPath = 'notifications';
+  static const String notificationsNotifyPath = 'notifications/notify';
+  static const String notificationsPresencePath = 'notifications/presence';
+  static const String notificationsUnreadCountPath = 'notifications/unread-count';
+  static String notificationsMarkReadPath(int id) => 'notifications/$id/read';
+  static String notificationsDeletePath(int id) => 'notifications/$id';
 }
