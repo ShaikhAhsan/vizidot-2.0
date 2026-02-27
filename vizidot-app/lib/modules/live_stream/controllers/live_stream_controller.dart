@@ -65,30 +65,30 @@ class LiveStreamController extends GetxController {
 
       developer.log('👤 [LiveStream] User authenticated: ${user.uid}', name: 'LiveStreamController');
 
-      // Use user data directly from login (no Firestore fetch needed)
-      final artistId = user.uid; // Use user UID as artistId/channel
+      final artistId = user.uid; // Used for display; Agora channel is set after Firestore add (unique per stream)
       final now = DateTime.now().millisecondsSinceEpoch;
 
       developer.log('📺 [LiveStream] Creating live stream model...', name: 'LiveStreamController');
       developer.log('📺 [LiveStream] Channel: $artistId', name: 'LiveStreamController');
       developer.log('📺 [LiveStream] Name: ${user.displayName ?? 'Live Stream'}', name: 'LiveStreamController');
 
-      // Create live stream using user data from login
       final liveStream = LiveStreamModel(
         name: user.displayName ?? 'Live Stream',
         photo: user.photoURL ?? '',
         desc: '',
-        identifier: '',
+        identifier: '', // Set after Firestore add
         dateAdded: now,
-        channel: artistId,
+        channel: '', // Set after Firestore add (unique channel = doc id)
         dateUpdated: now + 30000,
       );
 
-      // Add to Firestore
+      // Add to Firestore (channel and identifier set after we have doc id)
       developer.log('💾 [LiveStream] Adding live stream to Firestore...', name: 'LiveStreamController');
       final docRef = await _firestore.collection('LiveStreams').add(liveStream.toMap());
       liveStream.identifier = docRef.id;
-      developer.log('✅ [LiveStream] Live stream created with ID: ${liveStream.identifier}', name: 'LiveStreamController');
+      liveStream.channel = docRef.id; // Unique Agora channel per stream (max 64 bytes; Firestore id is 20 chars)
+      await docRef.update(liveStream.toMap());
+      developer.log('✅ [LiveStream] Live stream created with ID: ${liveStream.identifier}, channel: ${liveStream.channel}', name: 'LiveStreamController');
 
       // Pause any playing audio before starting live stream
       try {

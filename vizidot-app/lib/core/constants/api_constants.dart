@@ -94,4 +94,7 @@ class ApiConstants {
   static const String notificationsUnreadCountPath = 'notifications/unread-count';
   static String notificationsMarkReadPath(int id) => 'notifications/$id/read';
   static String notificationsDeletePath(int id) => 'notifications/$id';
+
+  /// Live streaming: Agora RTC token. GET ?channelName=&role=publisher|audience&uid=0. No auth required.
+  static const String liveRtcTokenPath = 'live/rtc-token';
 }

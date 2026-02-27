@@ -4,7 +4,7 @@ class LiveStreamModel {
   final String desc;
   late String identifier;
   late int dateAdded;
-  final String channel;
+  late String channel; // Unique per stream (e.g. Firestore doc id)
   late int dateUpdated;
 
   LiveStreamModel({

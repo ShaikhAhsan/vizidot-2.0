@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer' as developer;
 import '../models/live_stream_model.dart';
 import '../../../core/utils/agora.dart';
+import '../../../core/utils/app_config.dart';
+import '../../../core/network/apis/live_api.dart';
 
 class BroadcastPage extends StatefulWidget {
   final bool isBroadcaster;
@@ -192,10 +194,29 @@ class _BroadcastPageState extends State<BroadcastPage> {
         developer.log('✅ [Broadcast] Preview started', name: 'BroadcastPage');
       }
 
-      // Join channel (as per latest Agora example)
+      // Join channel (optionally with token from API when AGORA_APP_CERTIFICATE is set)
       developer.log('🚪 [Broadcast] Joining channel: ${widget.liveStream.channel}...', name: 'BroadcastPage');
+      String token = '';
+      try {
+        final config = AppConfig.fromEnv();
+        final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+        if (baseUrl.isNotEmpty) {
+          final liveApi = LiveApi(baseUrl: baseUrl, debugPrintRequest: false);
+          final result = await liveApi.getRtcToken(
+            channelName: widget.liveStream.channel,
+            role: widget.isBroadcaster ? 'publisher' : 'audience',
+            uid: 0,
+          );
+          if (result?.token != null && result!.token!.isNotEmpty) {
+            token = result.token!;
+            developer.log('🔑 [Broadcast] Using RTC token from API', name: 'BroadcastPage');
+          }
+        }
+      } catch (e) {
+        developer.log('⚠️ [Broadcast] Token fetch failed, using empty token: $e', name: 'BroadcastPage');
+      }
       await engine.joinChannel(
-        token: '', // Empty token for development (use proper token in production)
+        token: token,
         channelId: widget.liveStream.channel,
         uid: 0,
         options: const ChannelMediaOptions(),
