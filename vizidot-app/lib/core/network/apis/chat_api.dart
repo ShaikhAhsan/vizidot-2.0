@@ -48,7 +48,8 @@ class ChatApi extends BaseApi {
   }
 
   /// POST /api/v1/chats/send-message — send message via API (Firestore + push to all recipient devices).
-  Future<SendMessageResult?> sendMessage({ required String chatDocId, required String text }) async {
+  /// Returns [SendMessageResponse] with result on success or error message on failure.
+  Future<SendMessageResponse> sendMessage({ required String chatDocId, required String text }) async {
     try {
       final response = await execute(
         'POST',
@@ -56,20 +57,34 @@ class ChatApi extends BaseApi {
         body: { 'chatDocId': chatDocId, 'text': text },
         visibility: ApiVisibility.private,
       );
-      if (response.statusCode != 200) return null;
       final map = jsonDecode(response.body) as Map<String, dynamic>?;
-      if (map == null || ((map['success'] as bool?) != true)) return null;
-      final data = map['data'] as Map<String, dynamic>?;
-      if (data == null) return null;
-      final createdAt = data['createdAt'];
-      return SendMessageResult(
-        messageId: data['messageId'] as String?,
-        createdAt: createdAt is String ? DateTime.tryParse(createdAt) ?? DateTime.now() : DateTime.now(),
-      );
+      final success = map != null && ((map['success'] as bool?) == true);
+      if (response.statusCode == 200 && success) {
+        final data = map!['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          final createdAt = data['createdAt'];
+          return SendMessageResponse(
+            result: SendMessageResult(
+              messageId: data['messageId'] as String?,
+              createdAt: createdAt is String ? DateTime.tryParse(createdAt) ?? DateTime.now() : DateTime.now(),
+            ),
+          );
+        }
+      }
+      final error = map != null ? map['error'] as String? : null;
+      return SendMessageResponse(error: error ?? 'Could not send message');
     } catch (_) {
-      return null;
+      return SendMessageResponse(error: 'Could not send message');
     }
   }
+}
+
+/// Response from sendMessage: either [result] or [error].
+class SendMessageResponse {
+  SendMessageResponse({ this.result, this.error });
+  final SendMessageResult? result;
+  final String? error;
+  bool get isSuccess => result != null && error == null;
 }
 
 class SendMessageResult {

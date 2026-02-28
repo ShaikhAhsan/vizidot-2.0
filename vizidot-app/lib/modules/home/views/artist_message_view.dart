@@ -70,6 +70,9 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
 
   String get _chatDocId => chatDocId(widget.artistId ?? 0, _fanUserId);
 
+  /// True if we have a valid artist (required for fan chat and for backend chatDocId).
+  bool get _hasValidArtistId => widget.artistId != null && widget.artistId! > 0;
+
   String get _fanUserId {
     if (widget.isCurrentUserArtist) return widget.otherPartyUserId ?? '';
     return widget.otherPartyUserId ?? _user?.uid ?? '';
@@ -93,7 +96,7 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
     super.initState();
     _user = auth.FirebaseAuth.instance.currentUser;
     _chatController = chat_core.InMemoryChatController(messages: const []);
-    if (_user != null && widget.artistId != null && _fanUserId.isNotEmpty) {
+    if (_user != null && _hasValidArtistId && _fanUserId.isNotEmpty) {
       _loadHistoryThenSubscribe();
       if (widget.isCurrentUserArtist) {
         _markChatAsRead();
@@ -233,7 +236,13 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
   }
 
   Future<void> _onMessageSend(String text) async {
-    if (text.trim().isEmpty || _user == null || widget.artistId == null) return;
+    if (text.trim().isEmpty || _user == null) return;
+    if (!_hasValidArtistId) {
+      if (mounted) {
+        Get.snackbar('Error', 'Cannot send message. Please open this conversation from the artist profile again.', snackPosition: SnackPosition.BOTTOM);
+      }
+      return;
+    }
     try {
       final token = await auth.FirebaseAuth.instance.currentUser?.getIdToken();
       if (token == null) {
@@ -243,11 +252,13 @@ class _ArtistMessageViewState extends State<ArtistMessageView> {
       final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
       final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
       final api = ChatApi(baseUrl: baseUrl, authToken: token);
-      final result = await api.sendMessage(chatDocId: _chatDocId, text: text.trim());
-      if (result == null && mounted) {
-        Get.snackbar('Error', 'Could not send message.', snackPosition: SnackPosition.BOTTOM);
+      final response = await api.sendMessage(chatDocId: _chatDocId, text: text.trim());
+      if (!mounted) return;
+      if (response.isSuccess) {
+        // Message is written to Firestore by the API; the existing snapshot listener will add it to the UI.
+        return;
       }
-      // Message is written to Firestore by the API; the existing snapshot listener will add it to the UI.
+      Get.snackbar('Error', response.error ?? 'Could not send message.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       if (mounted) {
         Get.snackbar('Error', 'Could not send message.', snackPosition: SnackPosition.BOTTOM);
