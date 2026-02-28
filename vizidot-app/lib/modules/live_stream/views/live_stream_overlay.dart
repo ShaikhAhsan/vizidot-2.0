@@ -129,6 +129,81 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
     } catch (_) {}
   }
 
+  static const _maxInvites = 4;
+
+  Future<void> _inviteUser(String userId, String userDisplayName, String userPhotoURL) async {
+    if (userId.isEmpty || widget.streamId.isEmpty) return;
+    final me = FirebaseAuth.instance.currentUser?.uid;
+    if (me == null || me == userId) return;
+
+    bool? confirmed;
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    confirmed = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Invite to join?'),
+        content: Text('Invite $userDisplayName to join the live stream?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Invite'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final invitesSnap = await FirebaseFirestore.instance
+          .collection('LiveStreams')
+          .doc(widget.streamId)
+          .collection('invites')
+          .get();
+      final count = invitesSnap.docs.where((doc) {
+        final s = doc.data()['status'] as String?;
+        return s == 'pending' || s == 'accepted';
+      }).length;
+      if (count >= _maxInvites) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Maximum 4 guests can be invited.'), backgroundColor: Colors.orange),
+          );
+        }
+        return;
+      }
+      await FirebaseFirestore.instance
+          .collection('LiveStreams')
+          .doc(widget.streamId)
+          .collection('invites')
+          .doc(userId)
+          .set({
+        'userId': userId,
+        'userDisplayName': userDisplayName,
+        'userPhotoURL': userPhotoURL,
+        'status': 'pending',
+        'invitedAt': FieldValue.serverTimestamp(),
+        'invitedBy': me,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invite sent to $userDisplayName')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send invite'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final streamRef = FirebaseFirestore.instance
@@ -184,6 +259,7 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
                 messageController: _messageController,
                 scrollController: _scrollController,
                 onSend: _sendMessage,
+                onInviteUser: widget.isBroadcaster ? _inviteUser : null,
               ),
             ),
             // Reaction buttons — aligned with text field (same vertical level)
@@ -309,6 +385,7 @@ class _ChatPanel extends StatefulWidget {
   final TextEditingController messageController;
   final ScrollController scrollController;
   final void Function(String) onSend;
+  final void Function(String userId, String userDisplayName, String userPhotoURL)? onInviteUser;
 
   const _ChatPanel({
     required this.streamId,
@@ -317,6 +394,7 @@ class _ChatPanel extends StatefulWidget {
     required this.messageController,
     required this.scrollController,
     required this.onSend,
+    this.onInviteUser,
   });
 
   @override
@@ -435,10 +513,15 @@ class _ChatPanelState extends State<_ChatPanel> {
                       itemCount: docs.length,
                       itemBuilder: (context, i) {
                         final d = docs[i].data();
+                        final userId = d['userId'] as String? ?? '';
                         final userName = d['userDisplayName'] as String? ?? 'User';
                         final photo = d['userPhotoURL'] as String? ?? '';
                         final text = d['text'] as String? ?? '';
-                        return Padding(
+                        final canInvite = widget.isBroadcaster &&
+                            widget.onInviteUser != null &&
+                            userId.isNotEmpty &&
+                            userId != FirebaseAuth.instance.currentUser?.uid;
+                        Widget row = Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,6 +616,13 @@ class _ChatPanelState extends State<_ChatPanel> {
                             ],
                           ),
                         );
+                        if (canInvite) {
+                          row = GestureDetector(
+                            onTap: () => widget.onInviteUser!(userId, userName, photo),
+                            child: row,
+                          );
+                        }
+                        return row;
                       },
                     );
                   },

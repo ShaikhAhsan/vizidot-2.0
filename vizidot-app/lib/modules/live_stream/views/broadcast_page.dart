@@ -9,14 +9,17 @@ import '../../../core/utils/agora.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/network/apis/live_api.dart';
 import 'live_stream_overlay.dart';
+import '../widgets/invite_to_join_popup.dart';
 
 class BroadcastPage extends StatefulWidget {
   final bool isBroadcaster;
+  final bool isInvitedGuest;
   final LiveStreamModel liveStream;
 
   const BroadcastPage({
     super.key,
     required this.isBroadcaster,
+    this.isInvitedGuest = false,
     required this.liveStream,
   });
 
@@ -37,7 +40,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
     developer.log('🧹 [Broadcast] Disposing broadcast page...', name: 'BroadcastPage');
     _removeViewerIfAudience();
     _dispose();
-    if (widget.isBroadcaster) {
+    if (widget.isBroadcaster && !widget.isInvitedGuest) {
       developer.log('🗑️ [Broadcast] Removing live stream from Firestore...', name: 'BroadcastPage');
       removeLiveStream();
     }
@@ -48,7 +51,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
   }
 
   Future<void> _addViewerIfAudience() async {
-    if (widget.isBroadcaster) return;
+    if (widget.isBroadcaster || widget.isInvitedGuest) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || widget.liveStream.identifier.isEmpty) return;
     try {
@@ -62,7 +65,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
   }
 
   Future<void> _removeViewerIfAudience() async {
-    if (widget.isBroadcaster) return;
+    if (widget.isBroadcaster || widget.isInvitedGuest) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || widget.liveStream.identifier.isEmpty) return;
     try {
@@ -205,7 +208,8 @@ class _BroadcastPageState extends State<BroadcastPage> {
       );
 
       // Set client role (as per latest Agora example)
-      if (widget.isBroadcaster) {
+      final joinAsPublisher = widget.isBroadcaster || widget.isInvitedGuest;
+      if (joinAsPublisher) {
         developer.log('🎥 [Broadcast] Setting client role to Broadcaster...', name: 'BroadcastPage');
         await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
       } else {
@@ -219,8 +223,8 @@ class _BroadcastPageState extends State<BroadcastPage> {
       await engine.enableVideo();
       developer.log('✅ [Broadcast] Video enabled', name: 'BroadcastPage');
 
-      // Start preview for broadcaster (as per latest Agora example)
-      if (widget.isBroadcaster) {
+      // Start preview for broadcaster or invited guest
+      if (widget.isBroadcaster || widget.isInvitedGuest) {
         developer.log('📹 [Broadcast] Starting preview...', name: 'BroadcastPage');
         await engine.startPreview();
         developer.log('✅ [Broadcast] Preview started', name: 'BroadcastPage');
@@ -236,7 +240,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
           final liveApi = LiveApi(baseUrl: baseUrl, debugPrintRequest: false);
           final result = await liveApi.getRtcToken(
             channelName: widget.liveStream.channel,
-            role: widget.isBroadcaster ? 'publisher' : 'audience',
+            role: (widget.isBroadcaster || widget.isInvitedGuest) ? 'publisher' : 'audience',
             uid: 0,
           );
           if (result?.token != null && result!.token!.isNotEmpty) {
@@ -248,7 +252,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
         developer.log('⚠️ [Broadcast] Token fetch failed, using empty token: $e', name: 'BroadcastPage');
       }
 
-      // Broadcaster uses UID 0; each audience member uses a unique random UID to avoid collisions.
+      // Broadcaster uses UID 0; invited guest and audience use unique UIDs.
       final localUid = widget.isBroadcaster
           ? 0
           : DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
@@ -293,7 +297,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade400,
       appBar: AppBar(
-        title: const Text('Live Stream'),
+        title: Text(widget.isInvitedGuest ? 'Live with ${widget.liveStream.name}' : 'Live Stream'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -315,12 +319,32 @@ class _BroadcastPageState extends State<BroadcastPage> {
               }
             },
           ),
+          if (!widget.isBroadcaster && !widget.isInvitedGuest)
+            _InviteListener(
+              streamId: widget.liveStream.identifier,
+              artistName: widget.liveStream.name,
+              liveStream: widget.liveStream,
+            ),
         ],
       ),
     );
   }
 
   Widget _toolbar() {
+    if (widget.isInvitedGuest) {
+      return Container(
+        alignment: Alignment.bottomCenter,
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: RawMaterialButton(
+          onPressed: () => Navigator.pop(context),
+          shape: const CircleBorder(),
+          elevation: 2.0,
+          fillColor: Colors.redAccent,
+          padding: const EdgeInsets.all(15.0),
+          child: const Icon(Icons.call_end, color: Colors.white, size: 35.0),
+        ),
+      );
+    }
     return widget.isBroadcaster
         ? Container(
             alignment: Alignment.bottomCenter,
@@ -409,7 +433,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
     }
 
     // Broadcaster alone: show local video full screen
-    if (widget.isBroadcaster && _localUserJoined && _remoteUids.isEmpty) {
+    if ((widget.isBroadcaster || widget.isInvitedGuest) && _localUserJoined && _remoteUids.isEmpty) {
       return AgoraVideoView(
         controller: VideoViewController(
           rtcEngine: _engine!,
@@ -557,5 +581,100 @@ class _BroadcastPageState extends State<BroadcastPage> {
         .catchError((error) {
           developer.log('❌ [Broadcast] Error removing live stream: $error', name: 'BroadcastPage');
         });
+  }
+}
+
+/// Listens to the current user's invite doc and shows [InviteToJoinPopup] when status is pending.
+class _InviteListener extends StatefulWidget {
+  final String streamId;
+  final String artistName;
+  final LiveStreamModel liveStream;
+
+  const _InviteListener({
+    required this.streamId,
+    required this.artistName,
+    required this.liveStream,
+  });
+
+  @override
+  State<_InviteListener> createState() => _InviteListenerState();
+}
+
+class _InviteListenerState extends State<_InviteListener> {
+  bool _showPopup = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || widget.streamId.isEmpty) return const SizedBox.shrink();
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('LiveStreams')
+          .doc(widget.streamId)
+          .collection('invites')
+          .doc(uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final doc = snapshot.data;
+        if (doc == null || !doc.exists) return const SizedBox.shrink();
+        final data = doc.data();
+        if (data == null || data['status'] != 'pending') return const SizedBox.shrink();
+
+        if (!_showPopup) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _showPopup = true);
+          });
+        }
+
+        return _showPopup
+            ? InviteToJoinPopup(
+                artistName: widget.artistName,
+                artistPhotoUrl: widget.liveStream.photo.isNotEmpty ? widget.liveStream.photo : null,
+                onAccept: () => _onAccept(context),
+                onDecline: () => _onDecline(context),
+              )
+            : const SizedBox.shrink();
+      },
+    );
+  }
+
+  Future<void> _onAccept(BuildContext context) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('LiveStreams')
+          .doc(widget.streamId)
+          .collection('invites')
+          .doc(uid)
+          .update({'status': 'accepted'});
+    } catch (_) {}
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BroadcastPage(
+          liveStream: widget.liveStream,
+          isBroadcaster: false,
+          isInvitedGuest: true,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onDecline(BuildContext context) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('LiveStreams')
+          .doc(widget.streamId)
+          .collection('invites')
+          .doc(uid)
+          .update({'status': 'rejected'});
+    } catch (_) {}
+    if (mounted) setState(() => _showPopup = false);
   }
 }
