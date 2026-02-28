@@ -359,7 +359,28 @@ class _ChatPanelState extends State<_ChatPanel> {
             // Message list: fixed height 250px, scrollable, top edge fades transparent into screen
             SizedBox(
               height: 250,
-              child: ShaderMask(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Very minimal background shadow for whole messaging view, faded from all sides
+                  // Positioned.fill(
+                  //   child: DecoratedBox(
+                  //     decoration: BoxDecoration(
+                  //       borderRadius: BorderRadius.circular(12),
+                  //       gradient: RadialGradient(
+                  //         center: Alignment.center,
+                  //         radius: 0.85,
+                  //         colors: [
+                  //           Colors.black.withOpacity(0.08),
+                  //           Colors.black.withOpacity(0.03),
+                  //           Colors.transparent,
+                  //         ],
+                  //         stops: const [0.0, 0.5, 1.0],
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
+                  ShaderMask(
                 blendMode: BlendMode.dstIn,
                 shaderCallback: (bounds) => LinearGradient(
                   begin: Alignment.topCenter,
@@ -398,19 +419,55 @@ class _ChatPanelState extends State<_ChatPanel> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircleAvatar(
-                                radius: 14,
-                                backgroundColor: Colors.white24,
-                                backgroundImage: photo.isNotEmpty
-                                    ? CachedNetworkImageProvider(photo)
-                                    : null,
-                                child: photo.isEmpty
-                                    ? const Icon(Icons.person, size: 16, color: Colors.white70)
-                                    : null,
+                              // Avatar with minimal ring so it's visible on light background
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.black.withOpacity(0.25),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.15),
+                                      blurRadius: 2,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                child: CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: photo.isNotEmpty
+                                      ? Colors.white24
+                                      : Colors.black.withOpacity(0.12),
+                                  backgroundImage: photo.isNotEmpty
+                                      ? CachedNetworkImageProvider(photo)
+                                      : null,
+                                  child: photo.isEmpty
+                                      ? Icon(Icons.person, size: 16, color: Colors.black.withOpacity(0.5))
+                                      : null,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Flexible(
-                                child: Column(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -421,8 +478,8 @@ class _ChatPanelState extends State<_ChatPanel> {
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         shadows: [
-                                          Shadow(color: Colors.black54, blurRadius: 4),
-                                          Shadow(color: Colors.black38, blurRadius: 2),
+                                          Shadow(color: Colors.black45, blurRadius: 2),
+                                          Shadow(color: Colors.black26, blurRadius: 1),
                                         ],
                                       ),
                                       maxLines: 1,
@@ -436,8 +493,8 @@ class _ChatPanelState extends State<_ChatPanel> {
                                         fontSize: 14,
                                         height: 1.25,
                                         shadows: [
-                                          Shadow(color: Colors.black54, blurRadius: 4),
-                                          Shadow(color: Colors.black38, blurRadius: 2),
+                                          Shadow(color: Colors.black45, blurRadius: 2),
+                                          Shadow(color: Colors.black26, blurRadius: 1),
                                         ],
                                       ),
                                       maxLines: 3,
@@ -446,6 +503,7 @@ class _ChatPanelState extends State<_ChatPanel> {
                                   ],
                                 ),
                               ),
+                            ),
                             ],
                           ),
                         );
@@ -454,6 +512,8 @@ class _ChatPanelState extends State<_ChatPanel> {
                   },
                 ),
               ),
+            ],
+            ),
             ),
             if (canSend) ...[
               // Expanded input accessory (full-width bar above keyboard)

@@ -291,7 +291,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade400,
       appBar: AppBar(
         title: const Text('Live Stream'),
         leading: IconButton(
