@@ -2,9 +2,13 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
+import '../../../core/utils/user_profile_service.dart';
+import '../../../core/utils/app_config.dart';
 
 /// Viewer count, live chat, and reactions overlay for BroadcastPage.
 /// Uses Firestore: LiveStreams/{streamId}/viewers, /messages, /reactions.
@@ -66,6 +70,27 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
     if (t.isEmpty) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+
+    String displayName = user.displayName ?? 'User';
+    String photoUrl = user.photoURL ?? '';
+    if (Get.isRegistered<UserProfileService>()) {
+      final profile = Get.find<UserProfileService>().profile;
+      if (profile != null) {
+        final name = profile.fullName;
+        if (name.isNotEmpty) displayName = name;
+        final profileImageUrl = profile.profileImageUrl;
+        if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+          if (profileImageUrl.startsWith('http')) {
+            photoUrl = profileImageUrl;
+          } else {
+            final config = Get.isRegistered<AppConfig>() ? Get.find<AppConfig>() : AppConfig.fromEnv();
+            final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+            photoUrl = baseUrl + (profileImageUrl.startsWith('/') ? profileImageUrl : '/$profileImageUrl');
+          }
+        }
+      }
+    }
+
     try {
       await FirebaseFirestore.instance
           .collection('LiveStreams')
@@ -73,8 +98,8 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
           .collection('messages')
           .add({
         'userId': user.uid,
-        'userDisplayName': user.displayName ?? 'User',
-        'userPhotoURL': user.photoURL ?? '',
+        'userDisplayName': displayName,
+        'userPhotoURL': photoUrl,
         'text': t,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -429,12 +454,8 @@ class _ChatPanelState extends State<_ChatPanel> {
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: Colors.grey.withOpacity(0.25),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.5),
-                                        width: 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
+                                      boxShadow: [ 
+                                        BoxShadow(  
                                           color: Colors.black.withOpacity(0.06),
                                           blurRadius: 2,
                                           offset: const Offset(0, 1),
@@ -462,16 +483,12 @@ class _ChatPanelState extends State<_ChatPanel> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
+                                    color: Colors.white.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.2),
-                                      width: 0.5,
-                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 6,
+                                        color: Colors.black.withOpacity(0.03),
+                                        blurRadius: 2,
                                         offset: const Offset(0, 1),
                                       ),
                                     ],
@@ -487,7 +504,7 @@ class _ChatPanelState extends State<_ChatPanel> {
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         shadows: [
-                                          Shadow(color: Colors.black45, blurRadius: 2),
+                                          Shadow(color: Colors.black38, blurRadius: 2),
                                           Shadow(color: Colors.black26, blurRadius: 1),
                                         ],
                                       ),
@@ -502,7 +519,7 @@ class _ChatPanelState extends State<_ChatPanel> {
                                         fontSize: 14,
                                         height: 1.25,
                                         shadows: [
-                                          Shadow(color: Colors.black45, blurRadius: 2),
+                                          Shadow(color: Colors.black38, blurRadius: 2),
                                           Shadow(color: Colors.black26, blurRadius: 1),
                                         ],
                                       ),
