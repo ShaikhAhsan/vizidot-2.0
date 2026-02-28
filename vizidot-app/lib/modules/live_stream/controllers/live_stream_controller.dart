@@ -8,6 +8,7 @@ import '../views/broadcast_page.dart';
 import '../../music_player/controllers/music_player_controller.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/selected_artist_service.dart';
+import '../../../core/network/apis/notifications_api.dart';
 
 class LiveStreamController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -137,6 +138,14 @@ class LiveStreamController extends GetxController {
       await docRef.update(liveStream.toMap());
       developer.log('✅ [LiveStream] Live stream created with ID: ${liveStream.identifier}, channel: ${liveStream.channel}', name: 'LiveStreamController');
 
+      // Notify everyone except the broadcaster (push + save to notification history); fire-and-forget
+      _notifyLiveStreamStarted(
+        liveStreamId: liveStream.identifier,
+        artistId: streamArtistId,
+        artistName: streamArtistName,
+        imageUrl: imageUrl,
+      );
+
       // Pause any playing audio before starting live stream
       try {
         final musicController = Get.find<MusicPlayerController>();
@@ -164,5 +173,30 @@ class LiveStreamController extends GetxController {
     }
   }
 
+  /// Calls API to send live stream push to everyone except the artist and record in notification history.
+  void _notifyLiveStreamStarted({
+    required String liveStreamId,
+    required int artistId,
+    required String artistName,
+    required String imageUrl,
+  }) {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    user.getIdToken().then((token) async {
+      if (token == null || token.isEmpty) return;
+      final config = AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      if (baseUrl.isEmpty) return;
+      try {
+        final api = NotificationsApi(baseUrl: baseUrl, authToken: token, debugPrintRequest: false);
+        await api.notifyLiveStream(
+          liveStreamId: liveStreamId,
+          artistId: artistId,
+          artistName: artistName,
+          imageUrl: imageUrl.isEmpty ? null : imageUrl,
+        );
+      } catch (_) {}
+    });
+  }
 }
 

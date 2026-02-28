@@ -66,6 +66,40 @@ class NotificationsApi extends BaseApi {
     }
   }
 
+  /// POST /api/v1/notifications/notify-live-stream — notify everyone except the broadcaster when artist goes live.
+  /// Records in notification history and sends FCM; tap opens the live stream.
+  Future<NotifyLiveStreamResult?> notifyLiveStream({
+    required String liveStreamId,
+    required int artistId,
+    required String artistName,
+    String? imageUrl,
+  }) async {
+    try {
+      final response = await execute(
+        'POST',
+        ApiConstants.notificationsNotifyLiveStreamPath,
+        body: {
+          'live_stream_id': liveStreamId,
+          'artist_id': artistId,
+          'artist_name': artistName,
+          if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+        },
+        visibility: ApiVisibility.private,
+      );
+      if (response.statusCode != 200) return null;
+      final map = jsonDecode(response.body) as Map<String, dynamic>?;
+      final dataObj = map?['data'] as Map<String, dynamic>?;
+      if (dataObj == null) return null;
+      return NotifyLiveStreamResult(
+        notifiedCount: dataObj['notifiedCount'] as int? ?? 0,
+        recordedCount: dataObj['recordedCount'] as int? ?? 0,
+        sentCount: dataObj['sentCount'] as int? ?? 0,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// PUT /api/v1/notifications/presence — set current screen for skip-push logic.
   Future<bool> setPresence({required String screen, String? contextId}) async {
     try {
@@ -183,6 +217,17 @@ class NotifyResult {
     required this.sent,
     this.reason,
     required this.successCount,
+  });
+}
+
+class NotifyLiveStreamResult {
+  final int notifiedCount;
+  final int recordedCount;
+  final int sentCount;
+  NotifyLiveStreamResult({
+    required this.notifiedCount,
+    required this.recordedCount,
+    required this.sentCount,
   });
 }
 

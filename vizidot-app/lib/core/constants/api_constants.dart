@@ -90,6 +90,7 @@ class ApiConstants {
   /// User notifications: record + push, history, presence. Auth required.
   static const String notificationsPath = 'notifications';
   static const String notificationsNotifyPath = 'notifications/notify';
+  static const String notificationsNotifyLiveStreamPath = 'notifications/notify-live-stream';
   static const String notificationsPresencePath = 'notifications/presence';
   static const String notificationsUnreadCountPath = 'notifications/unread-count';
   static String notificationsMarkReadPath(int id) => 'notifications/$id/read';
