@@ -109,6 +109,7 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
     final streamRef = FirebaseFirestore.instance
         .collection('LiveStreams')
         .doc(widget.streamId);
+    final safeBottom = MediaQuery.of(context).padding.bottom;
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: streamRef.snapshots(),
@@ -164,7 +165,7 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
             if (!widget.isBroadcaster)
               Positioned(
                 right: 12,
-                bottom: 52,
+                bottom: safeBottom,
                 child: _ReactionButtons(
                   streamEnded: streamEnded,
                   onHeart: () => _sendReaction(type: 'heart'),
@@ -493,7 +494,7 @@ class _ChatPanelState extends State<_ChatPanel> {
               else
                 // Collapsed: pill "Type comment here..." only (no gift button)
                 Padding(
-                  padding: EdgeInsets.fromLTRB(12, 4, 12, 8 + safeBottom),
+                  padding: EdgeInsets.fromLTRB(12, 4, 12, 3 + safeBottom),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -521,13 +522,7 @@ class _ChatPanelState extends State<_ChatPanel> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                Text(
-                                  '😊',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    color: Colors.white.withOpacity(0.9),
-                                  ),
-                                ),
+
                               ],
                             ),
                           ),
