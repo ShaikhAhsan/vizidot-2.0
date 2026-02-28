@@ -3,10 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../widgets/streamer_profile_card.dart';
 import '../widgets/live_session_card.dart';
 import '../../../routes/app_pages.dart';
+import '../../../core/utils/selected_artist_service.dart';
 import '../../live_stream/models/live_stream_model.dart';
 import '../../live_stream/views/broadcast_page.dart';
 
@@ -18,6 +20,10 @@ class StreamingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final firebaseUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentBroadcasterUid = Get.isRegistered<SelectedArtistService>()
+        ? Get.find<SelectedArtistService>().broadcasterUidOrNull(firebaseUid)
+        : firebaseUid;
 
     return CupertinoPageScaffold(
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -31,7 +37,7 @@ class StreamingView extends StatelessWidget {
           }
 
           final docs = snapshot.data?.docs ?? [];
-          final liveStreams = docs.map((doc) {
+          var liveStreams = docs.map((doc) {
             final data = doc.data();
             final model = LiveStreamModel.fromMap(data);
             model.identifier = doc.id;
@@ -40,6 +46,12 @@ class StreamingView extends StatelessWidget {
             }
             return model;
           }).toList();
+
+          // Don't show the broadcaster their own stream in the list
+          if (currentBroadcasterUid != null && currentBroadcasterUid.isNotEmpty) {
+            liveStreams =
+                liveStreams.where((s) => s.broadcasterUid != currentBroadcasterUid).toList();
+          }
 
           return CustomScrollView(
             slivers: [
@@ -103,8 +115,11 @@ class StreamingView extends StatelessWidget {
                               final name = stream.name.isNotEmpty
                                   ? stream.name
                                   : 'Live Stream';
+                              final imageUrl = stream.photo.isNotEmpty
+                                  ? stream.photo
+                                  : _placeholderAsset;
                               return StreamerProfileCard(
-                                imageUrl: _placeholderAsset,
+                                imageUrl: imageUrl,
                                 name: name,
                                 isLive: true,
                               );
@@ -131,8 +146,11 @@ class StreamingView extends StatelessWidget {
                           stream.desc.isNotEmpty ? stream.desc : stream.name;
                       final artistName =
                           stream.name.isNotEmpty ? stream.name : 'Live Stream';
+                      final imageUrl = stream.photo.isNotEmpty
+                          ? stream.photo
+                          : _placeholderAsset;
                       return LiveSessionCard(
-                        imageUrl: _placeholderAsset,
+                        imageUrl: imageUrl,
                         title: title,
                         artistName: artistName,
                         viewerCount: 'Live',

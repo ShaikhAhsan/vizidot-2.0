@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:developer' as developer;
 import '../models/live_stream_model.dart';
 import '../../../core/utils/agora.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/network/apis/live_api.dart';
+import 'live_stream_overlay.dart';
 
 class BroadcastPage extends StatefulWidget {
   final bool isBroadcaster;
@@ -33,6 +35,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
   @override
   void dispose() {
     developer.log('🧹 [Broadcast] Disposing broadcast page...', name: 'BroadcastPage');
+    _removeViewerIfAudience();
     _dispose();
     if (widget.isBroadcaster) {
       developer.log('🗑️ [Broadcast] Removing live stream from Firestore...', name: 'BroadcastPage');
@@ -42,6 +45,34 @@ class _BroadcastPageState extends State<BroadcastPage> {
     timer?.cancel();
     developer.log('✅ [Broadcast] Broadcast page disposed', name: 'BroadcastPage');
     super.dispose();
+  }
+
+  Future<void> _addViewerIfAudience() async {
+    if (widget.isBroadcaster) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || widget.liveStream.identifier.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('LiveStreams')
+          .doc(widget.liveStream.identifier)
+          .collection('viewers')
+          .doc(uid)
+          .set({'joinedAt': FieldValue.serverTimestamp()});
+    } catch (_) {}
+  }
+
+  Future<void> _removeViewerIfAudience() async {
+    if (widget.isBroadcaster) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || widget.liveStream.identifier.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('LiveStreams')
+          .doc(widget.liveStream.identifier)
+          .collection('viewers')
+          .doc(uid)
+          .delete();
+    } catch (_) {}
   }
 
   Future<void> _dispose() async {
@@ -128,6 +159,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
               setState(() {
                 _localUserJoined = true;
               });
+              _addViewerIfAudience();
             }
           },
           onLeaveChannel: (RtcConnection connection, RtcStats stats) {
@@ -259,6 +291,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text('Live Stream'),
         leading: IconButton(
@@ -270,6 +303,18 @@ class _BroadcastPageState extends State<BroadcastPage> {
         children: <Widget>[
           _broadcastView(),
           _toolbar(),
+          LiveStreamOverlay(
+            streamId: widget.liveStream.identifier,
+            isBroadcaster: widget.isBroadcaster,
+            onStreamEnded: () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Stream ended')),
+                );
+                Navigator.of(context).pop();
+              }
+            },
+          ),
         ],
       ),
     );

@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/utils/auth_service.dart';
 import '../../../core/utils/user_profile_service.dart';
+import '../../../core/utils/selected_artist_service.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/network/apis/settings_api.dart';
 import '../../../routes/app_pages.dart';
@@ -51,10 +52,13 @@ class _ProfileViewState extends State<ProfileView> {
   Widget build(BuildContext context) {
     return Obx(() {
       final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
+      final artistService = Get.isRegistered<SelectedArtistService>() ? Get.find<SelectedArtistService>() : null;
       final name = profile?.fullName ?? 'User';
       final role = profile?.caption?.trim().isNotEmpty == true ? profile!.caption! : 'Artist / Musician / Writer';
       final profileImageUrl = _fullProfileImageUrl(profile?.profileImageUrl);
-      final hasArtists = profile?.hasAssignedArtists == true;
+      final hasArtists = artistService != null && artistService.assignedArtists.isNotEmpty;
+      final assignedArtistIds = artistService?.assignedArtists.map((a) => a.artistId).toList() ?? const [];
+      final artists = artistService?.assignedArtists ?? const [];
 
       return CupertinoPageScaffold(
         child: CustomScrollView(
@@ -88,7 +92,7 @@ class _ProfileViewState extends State<ProfileView> {
                   onTabChanged: (tab) => setState(() => _selectedTab = tab),
                   hasArtists: hasArtists,
                   currentUserUid: auth.FirebaseAuth.instance.currentUser?.uid,
-                  assignedArtistIds: profile?.assignedArtists?.map((a) => a.artistId).toList() ?? const [],
+                  assignedArtistIds: assignedArtistIds,
                 ),
               ),
             ],
@@ -99,7 +103,7 @@ class _ProfileViewState extends State<ProfileView> {
                 sliver: hasArtists
                     ? (_selectedTab == ProfileTab.personal
                         ? _sliverPersonalTab(profileImageUrl: profileImageUrl, name: name, role: role, extraTopPadding: 20)
-                        : _sliverArtistTab(profile))
+                        : _sliverArtistTab(artists: artists))
                     : _sliverPersonalTab(profileImageUrl: profileImageUrl, name: name, role: role, extraTopPadding: 0),
               ),
             ),
@@ -157,8 +161,8 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _sliverArtistTab(UserProfileData? profile) {
-    if (profile?.hasAssignedArtists != true) {
+  Widget _sliverArtistTab({required List<AssignedArtistData> artists}) {
+    if (artists.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
         child: _ArtistTabEmptyState(),
@@ -168,7 +172,7 @@ class _ProfileViewState extends State<ProfileView> {
       delegate: SliverChildListDelegate([
         const SizedBox(height: 30),
         _ProfileArtistSection(
-          artists: profile!.assignedArtists!,
+          artists: artists,
           fullProfileImageUrl: _fullProfileImageUrl,
         ),
         const SizedBox(height: 24),

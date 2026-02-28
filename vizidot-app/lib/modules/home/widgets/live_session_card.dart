@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
+
 class LiveSessionCard extends StatelessWidget {
+  /// Asset path or network image URL; network URL shows broadcaster's real image.
   final String imageUrl;
   final String title;
   final String artistName;
@@ -20,6 +23,9 @@ class LiveSessionCard extends StatelessWidget {
     this.onTap,
   });
 
+  static bool _isNetworkUrl(String url) =>
+      url.startsWith('http://') || url.startsWith('https://');
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -34,27 +40,24 @@ class LiveSessionCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  imageUrl,
-                  width: double.infinity,
-                  height: imageHeight,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: double.infinity,
-                      height: imageHeight,
-                      decoration: BoxDecoration(
-                        color: colors.onSurface.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
+                child: _isNetworkUrl(imageUrl)
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        width: double.infinity,
+                        height: imageHeight,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _placeholderBox(context, imageHeight, colors),
+                        errorWidget: (_, __, ___) =>
+                            _placeholderBox(context, imageHeight, colors),
+                      )
+                    : Image.asset(
+                        imageUrl,
+                        width: double.infinity,
+                        height: imageHeight,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _placeholderBox(context, imageHeight, colors),
                       ),
-                      child: Icon(
-                        CupertinoIcons.play_circle,
-                        color: colors.onSurface.withOpacity(0.3),
-                        size: 48,
-                      ),
-                    );
-                  },
-                ),
               ),
               // Live icon and viewer count in top right
               Positioned(
@@ -192,6 +195,23 @@ class LiveSessionCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _placeholderBox(
+      BuildContext context, double height, ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        color: colors.onSurface.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Icon(
+        CupertinoIcons.play_circle,
+        color: colors.onSurface.withOpacity(0.3),
+        size: 48,
       ),
     );
   }

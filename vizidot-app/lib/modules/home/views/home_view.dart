@@ -13,6 +13,7 @@ import 'streaming_view.dart';
 import 'camera_scanning_view.dart';
 import '../../music_player/widgets/mini_player.dart';
 import '../../live_stream/widgets/live_stream_fab.dart';
+import '../../../core/utils/selected_artist_service.dart';
 import '../bindings/elocker_binding.dart';
 import '../controllers/elocker_controller.dart';
 
@@ -41,7 +42,13 @@ class HomeView extends GetView<HomeController> {
       //     ? null
       //     : const HomeAppBar(title: 'Vizidot'),
       body: pages[controller.selectedIndex.value],
-      floatingActionButton: const LiveStreamFAB(),
+      floatingActionButton: Get.isRegistered<SelectedArtistService>()
+          ? Obx(() {
+              final hasArtist =
+                  Get.find<SelectedArtistService>().selectedArtistRx.value != null;
+              return hasArtist ? const LiveStreamFAB() : const SizedBox.shrink();
+            })
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,

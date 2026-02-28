@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../network/apis/settings_api.dart';
 import 'app_config.dart';
 import 'auth_service.dart';
+import 'selected_artist_service.dart';
 
 /// Singleton holding the current user profile. Fetched on splash when user is logged in.
 /// Use across the app: Get.find<UserProfileService>().profile
@@ -32,6 +33,9 @@ class UserProfileService extends GetxService {
       final response = await api.getSettings(useAuth: true);
       final p = response?.profile;
       _profile.value = p;
+      if (Get.isRegistered<SelectedArtistService>()) {
+        Get.find<SelectedArtistService>().updateFromProfile(p?.assignedArtists);
+      }
       return p;
     } catch (_) {
       _profile.value = null;
@@ -42,10 +46,16 @@ class UserProfileService extends GetxService {
   /// Clears the stored profile (e.g. on logout).
   void clearProfile() {
     _profile.value = null;
+    if (Get.isRegistered<SelectedArtistService>()) {
+      Get.find<SelectedArtistService>().clear();
+    }
   }
 
   /// Updates the stored profile (e.g. after completing onboarding or editing profile).
   void setProfile(UserProfileData? p) {
     _profile.value = p;
+    if (Get.isRegistered<SelectedArtistService>()) {
+      Get.find<SelectedArtistService>().updateFromProfile(p?.assignedArtists);
+    }
   }
 }

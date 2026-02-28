@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/network/apis/music_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
-import '../../../core/utils/user_profile_service.dart';
+import '../../../core/utils/selected_artist_service.dart';
 import '../../../core/utils/image_cache.dart';
 
 class MediaItem {
@@ -118,8 +118,9 @@ class HomeController extends GetxController {
   void _startMessageUnreadSubscription() {
     _cancelMessageUnreadSubscription();
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    final profile = Get.isRegistered<UserProfileService>() ? Get.find<UserProfileService>().profile : null;
-    final assignedArtistIds = profile?.assignedArtists?.map((a) => a.artistId).toList() ?? <int>[];
+    final assignedArtistIds = Get.isRegistered<SelectedArtistService>()
+        ? Get.find<SelectedArtistService>().assignedArtists.map((a) => a.artistId).toList()
+        : <int>[];
     int personalTotal = 0;
     final Map<int, int> artistTotals = {};
 
