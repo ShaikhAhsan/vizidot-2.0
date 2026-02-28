@@ -556,6 +556,7 @@ class _ChatPanelState extends State<_ChatPanel> {
                             controller: widget.messageController,
                             focusNode: _inputFocusNode,
                             autofocus: true,
+                            textCapitalization: TextCapitalization.sentences,
                             textInputAction: TextInputAction.send,
                             style: const TextStyle(color: Colors.white, fontSize: 16),
                             decoration: InputDecoration(
