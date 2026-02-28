@@ -420,33 +420,42 @@ class _ChatPanelState extends State<_ChatPanel> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               // Avatar with minimal ring so it's visible on light background
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.black.withOpacity(0.25),
-                                    width: 1.2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      blurRadius: 2,
-                                      offset: const Offset(0, 1),
+                              Column(
+                                children: [
+                                  SizedBox(height: 12),
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.grey.withOpacity(0.25),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.5),
+                                        width: 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.06),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                child: CircleAvatar(
-                                  radius: 14,
-                                  backgroundColor: photo.isNotEmpty
-                                      ? Colors.white24
-                                      : Colors.black.withOpacity(0.12),
-                                  backgroundImage: photo.isNotEmpty
-                                      ? CachedNetworkImageProvider(photo)
-                                      : null,
-                                  child: photo.isEmpty
-                                      ? Icon(Icons.person, size: 16, color: Colors.black.withOpacity(0.5))
-                                      : null,
-                                ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: ClipOval(
+                                      child: photo.isNotEmpty
+                                          ? Image(
+                                              image: CachedNetworkImageProvider(photo),
+                                              width: 28,
+                                              height: 28,
+                                              fit: BoxFit.cover,
+                                            )
+                                          : Center(
+                                              child: Icon(Icons.person, size: 16, color: Colors.grey.shade600),
+                                            ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(width: 8),
                               Flexible(
