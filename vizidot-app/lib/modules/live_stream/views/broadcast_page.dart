@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,6 +35,11 @@ class _BroadcastPageState extends State<BroadcastPage> {
   bool _localUserJoined = false;
   bool _isInitializing = false;
   bool muted = false;
+  /// Local Agora UID (0 for host; set from onJoinChannelSuccess for guest).
+  int? _localUid;
+
+  /// In debug mode (e.g. simulator) show a placeholder instead of black local video so you can test the flow.
+  static bool get _useSimulatorPlaceholder => kDebugMode;
 
   @override
   void dispose() {
@@ -161,6 +167,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
             if (mounted) {
               setState(() {
                 _localUserJoined = true;
+                _localUid = connection.localUid;
               });
               _addViewerIfAudience();
             }
@@ -310,6 +317,7 @@ class _BroadcastPageState extends State<BroadcastPage> {
           LiveStreamOverlay(
             streamId: widget.liveStream.identifier,
             isBroadcaster: widget.isBroadcaster,
+            isInvitedGuest: widget.isInvitedGuest,
             onStreamEnded: () {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -397,32 +405,16 @@ class _BroadcastPageState extends State<BroadcastPage> {
   Widget _broadcastView() {
     return Stack(
       children: [
-        // Main video layout (local + remotes)
+        // Main video layout (local + remotes in one grid when there are participants)
         SizedBox.expand(
           child: _videoLayout(),
         ),
-        // Local user picture-in-picture when broadcaster has remote viewers
-        if (widget.isBroadcaster &&
-            _localUserJoined &&
-            _engine != null &&
-            _remoteUids.isNotEmpty)
-          Positioned(
-            top: 20,
-            left: 20,
-            child: SizedBox(
-              width: 100,
-              height: 150,
-              child: AgoraVideoView(
-                controller: VideoViewController(
-                  rtcEngine: _engine!,
-                  canvas: const VideoCanvas(uid: 0),
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }
+
+  /// Current user's Agora UID (host = 0, guest = from join).
+  int get _myUid => widget.isBroadcaster ? 0 : (_localUid ?? 0);
 
   // Layout local + remote videos according to number of participants
   Widget _videoLayout() {
@@ -432,14 +424,14 @@ class _BroadcastPageState extends State<BroadcastPage> {
       );
     }
 
-    // Broadcaster alone: show local video full screen
-    if ((widget.isBroadcaster || widget.isInvitedGuest) && _localUserJoined && _remoteUids.isEmpty) {
-      return AgoraVideoView(
-        controller: VideoViewController(
-          rtcEngine: _engine!,
-          canvas: const VideoCanvas(uid: 0),
-        ),
-      );
+    final isPublisher = widget.isBroadcaster || widget.isInvitedGuest;
+
+    // Publisher alone: show local video full screen
+    if (isPublisher && _localUserJoined && _remoteUids.isEmpty) {
+      if (_useSimulatorPlaceholder) {
+        return _buildLocalVideoPlaceholder();
+      }
+      return _localVideoTile();
     }
 
     // Audience waiting for broadcaster (or no remotes yet)
@@ -453,64 +445,81 @@ class _BroadcastPageState extends State<BroadcastPage> {
       );
     }
 
-    final remotes = List<int>.from(_remoteUids);
+    // All streams on same screen: for publisher include local + remotes; for audience only remotes
+    final List<int> allUids = isPublisher && _localUserJoined
+        ? [_myUid, ..._remoteUids]
+        : List<int>.from(_remoteUids);
 
-    // 1 user → full screen
-    if (remotes.length == 1) {
-      return _remoteTile(remotes[0]);
+    return _buildGrid(allUids);
+  }
+
+  Widget _localVideoTile() {
+    return AgoraVideoView(
+      controller: VideoViewController(
+        rtcEngine: _engine!,
+        canvas: VideoCanvas(uid: _myUid),
+      ),
+    );
+  }
+
+  Widget _videoTile(int uid) {
+    if (uid == _myUid) {
+      if (_useSimulatorPlaceholder) return _buildLocalVideoPlaceholder();
+      return _localVideoTile();
     }
+    return _remoteTile(uid);
+  }
 
-    // 2 users → half + half (vertical split)
-    if (remotes.length == 2) {
+  Widget _buildGrid(List<int> uids) {
+    if (uids.isEmpty) {
+      return const Center(child: Text('Waiting...', style: TextStyle(fontSize: 16)));
+    }
+    if (uids.length == 1) {
+      return _videoTile(uids[0]);
+    }
+    if (uids.length == 2) {
       return Column(
         children: [
-          Expanded(child: _remoteTile(remotes[0])),
-          Expanded(child: _remoteTile(remotes[1])),
+          Expanded(child: _videoTile(uids[0])),
+          Expanded(child: _videoTile(uids[1])),
         ],
       );
     }
-
-    // 3 users → top row (2 x 1/4) + bottom (1 x 1/2)
-    if (remotes.length == 3) {
+    if (uids.length == 3) {
       return Column(
         children: [
           Expanded(
             child: Row(
               children: [
-                Expanded(child: _remoteTile(remotes[0])),
-                Expanded(child: _remoteTile(remotes[1])),
+                Expanded(child: _videoTile(uids[0])),
+                Expanded(child: _videoTile(uids[1])),
               ],
             ),
           ),
-          Expanded(
-            child: _remoteTile(remotes[2]),
-          ),
+          Expanded(child: _videoTile(uids[2])),
         ],
       );
     }
-
-    // 4+ users – simple 2x2 grid of first 4 (fallback layout)
-    final visible = remotes.take(4).toList();
+    // 4+ tiles: 2x2 grid (show first 4 if more)
+    final visible = uids.take(4).toList();
     return Column(
       children: [
         Expanded(
           child: Row(
             children: [
-              Expanded(child: _remoteTile(visible[0])),
-              if (visible.length > 1) Expanded(child: _remoteTile(visible[1])),
+              Expanded(child: _videoTile(visible[0])),
+              Expanded(child: _videoTile(visible[1])),
             ],
           ),
         ),
-        if (visible.length > 2)
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(child: _remoteTile(visible[2])),
-                if (visible.length > 3)
-                  Expanded(child: _remoteTile(visible[3])),
-              ],
-            ),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: _videoTile(visible[2])),
+              Expanded(child: _videoTile(visible.length > 3 ? visible[3] : visible[2])),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -521,6 +530,33 @@ class _BroadcastPageState extends State<BroadcastPage> {
         rtcEngine: _engine!,
         canvas: VideoCanvas(uid: uid),
         connection: RtcConnection(channelId: widget.liveStream.channel),
+      ),
+    );
+  }
+
+  /// Placeholder for local video when running in debug (e.g. simulator) so the screen isn't black.
+  Widget _buildLocalVideoPlaceholder() {
+    return Container(
+      color: Colors.grey.shade800,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.videocam_off, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              'Preview (Simulator)',
+              style: TextStyle(color: Colors.grey.shade300, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Camera not available in debug',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

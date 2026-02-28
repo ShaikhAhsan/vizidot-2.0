@@ -15,12 +15,15 @@ import '../../../core/utils/app_config.dart';
 class LiveStreamOverlay extends StatefulWidget {
   final String streamId;
   final bool isBroadcaster;
+  /// When true (invited guest who joined the stream), chat and reactions are hidden.
+  final bool isInvitedGuest;
   final VoidCallback? onStreamEnded;
 
   const LiveStreamOverlay({
     super.key,
     required this.streamId,
     required this.isBroadcaster,
+    this.isInvitedGuest = false,
     this.onStreamEnded,
   });
 
@@ -246,24 +249,25 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
               left: 12,
               child: _ViewerCountBadge(streamId: widget.streamId),
             ),
-            // Chat panel — for viewer extends to bottom (input flush); for broadcaster above toolbar
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: widget.isBroadcaster ? 100 : 0,
-              child: _ChatPanel(
-                streamId: widget.streamId,
-                streamEnded: streamEnded,
-                isBroadcaster: widget.isBroadcaster,
-                messageController: _messageController,
-                scrollController: _scrollController,
-                onSend: _sendMessage,
-                onInviteUser: widget.isBroadcaster ? _inviteUser : null,
+            // Chat panel — hidden for invited guest; for viewer extends to bottom; for broadcaster above toolbar
+            if (!widget.isInvitedGuest)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: widget.isBroadcaster ? 100 : 0,
+                child: _ChatPanel(
+                  streamId: widget.streamId,
+                  streamEnded: streamEnded,
+                  isBroadcaster: widget.isBroadcaster,
+                  messageController: _messageController,
+                  scrollController: _scrollController,
+                  onSend: _sendMessage,
+                  onInviteUser: widget.isBroadcaster ? _inviteUser : null,
+                ),
               ),
-            ),
-            // Reaction buttons — aligned with text field (same vertical level)
-            if (!widget.isBroadcaster)
+            // Reaction buttons — hidden for invited guest
+            if (!widget.isBroadcaster && !widget.isInvitedGuest)
               Positioned(
                 right: 12,
                 bottom: safeBottom,
