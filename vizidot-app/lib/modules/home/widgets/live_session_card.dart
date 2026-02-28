@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class LiveSessionCard extends StatelessWidget {
@@ -9,7 +10,10 @@ class LiveSessionCard extends StatelessWidget {
   final String imageUrl;
   final String title;
   final String artistName;
+  /// Shown when [streamId] is null; otherwise viewer count is streamed from Firestore.
   final String viewerCount;
+  /// When set, viewer count is read from LiveStreams/{streamId}/viewers. Ignored if null/empty.
+  final String? streamId;
   final double imageHeight;
   final VoidCallback? onTap;
 
@@ -19,6 +23,7 @@ class LiveSessionCard extends StatelessWidget {
     required this.title,
     required this.artistName,
     required this.viewerCount,
+    this.streamId,
     this.imageHeight = 117,
     this.onTap,
   });
@@ -135,14 +140,34 @@ class LiveSessionCard extends StatelessWidget {
                                 size: 12,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                viewerCount,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                              if (streamId != null && streamId!.isNotEmpty)
+                                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('LiveStreams')
+                                      .doc(streamId)
+                                      .collection('viewers')
+                                      .snapshots(),
+                                  builder: (context, snap) {
+                                    final count = snap.data?.docs.length ?? 0;
+                                    return Text(
+                                      count.toString(),
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                Text(
+                                  viewerCount,
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),

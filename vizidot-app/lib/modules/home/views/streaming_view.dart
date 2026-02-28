@@ -154,6 +154,7 @@ class StreamingView extends StatelessWidget {
                         title: title,
                         artistName: artistName,
                         viewerCount: 'Live',
+                        streamId: stream.identifier,
                         imageHeight: height,
                         onTap: () {
                           Get.to(() => BroadcastPage(
