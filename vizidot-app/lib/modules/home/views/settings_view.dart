@@ -3,8 +3,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
 import '../../../core/utils/app_config.dart';
-import 'link_web_view.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/user_profile_service.dart';
+import 'link_web_view.dart';
 import '../../../core/network/apis/settings_api.dart';
 import '../../../routes/app_pages.dart';
 import '../widgets/section_header.dart';
@@ -57,6 +58,9 @@ class _SettingsViewState extends State<SettingsView> {
           _loading = false;
           _loadError = null;
         });
+        if (Get.isRegistered<UserProfileService>()) {
+          Get.find<UserProfileService>().setProfile(response.profile);
+        }
       } else {
         setState(() {
           _loading = false;
@@ -84,6 +88,9 @@ class _SettingsViewState extends State<SettingsView> {
       enableNotifications: enableNotifications,
       messageNotifications: messageNotifications,
     );
+    if (Get.isRegistered<UserProfileService>()) {
+      await Get.find<UserProfileService>().loadFromApi();
+    }
   }
 
   void _openLinkInApp(String? url, String screenTitle) {

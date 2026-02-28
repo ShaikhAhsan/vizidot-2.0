@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/user_profile_service.dart';
 import '../../../core/network/apis/settings_api.dart';
 import 'link_web_view.dart';
 
@@ -64,6 +65,9 @@ class _AboutViewState extends State<AboutView> {
           _loading = false;
           _error = null;
         });
+        if (Get.isRegistered<UserProfileService>()) {
+          Get.find<UserProfileService>().setProfile(response.profile);
+        }
       } else {
         setState(() {
           _loading = false;
