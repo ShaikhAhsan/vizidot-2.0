@@ -123,7 +123,10 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
           });
         }
 
-        return Stack(
+        return GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.deferToChild,
+          child: Stack(
           children: [
             // Broadcaster avatar + name (from stream doc) — top-left
             if (exists && streamSnap.data != null) ...[
@@ -173,6 +176,7 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
               child: _FloatingReactions(streamId: widget.streamId),
             ),
           ],
+        ),
         );
       },
     );
@@ -294,10 +298,8 @@ class _ChatPanel extends StatefulWidget {
 }
 
 class _ChatPanelState extends State<_ChatPanel> {
-  bool _showEmojiBar = false;
   bool _inputExpanded = false;
   late FocusNode _inputFocusNode;
-  static const _quickEmojis = ['❤️', '😂', '🔥', '👏', '😍', '👍', '🎉', '💕', '✨', '😊', '🥳', '💯'];
 
   @override
   void initState() {
@@ -345,7 +347,10 @@ class _ChatPanelState extends State<_ChatPanel> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Column(
+        final rightPadding = widget.isBroadcaster ? 0.0 : 56.0;
+        return Padding(
+          padding: EdgeInsets.only(right: rightPadding),
+          child: Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -450,32 +455,8 @@ class _ChatPanelState extends State<_ChatPanel> {
               ),
             ),
             if (canSend) ...[
-              // Expanded input accessory (full-width bar above keyboard) — like messaging apps
+              // Expanded input accessory (full-width bar above keyboard)
               if (_inputExpanded) ...[
-                if (_showEmojiBar)
-                  _frostedCapsule(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: _quickEmojis
-                            .map((e) => Padding(
-                                  padding: const EdgeInsets.only(right: 10),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      widget.messageController.text += e;
-                                      widget.messageController.selection = TextSelection.fromPosition(
-                                        TextPosition(offset: widget.messageController.text.length),
-                                      );
-                                      setState(() {});
-                                    },
-                                    child: Text(e, style: const TextStyle(fontSize: 28)),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
-                    ),
-                  ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(12, 6, 12, 8 + keyboardBottom + safeBottom),
                   child: Row(
@@ -502,21 +483,6 @@ class _ChatPanelState extends State<_ChatPanel> {
                             maxLines: 4,
                             minLines: 1,
                             onSubmitted: widget.onSend,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => setState(() => _showEmojiBar = !_showEmojiBar),
-                        child: _frostedCapsule(
-                          padding: const EdgeInsets.all(10),
-                          borderRadius: BorderRadius.circular(999),
-                          child: Text(
-                            '😊',
-                            style: TextStyle(
-                              fontSize: 22,
-                              color: _showEmojiBar ? Colors.amber : Colors.white,
-                            ),
                           ),
                         ),
                       ),
@@ -584,6 +550,7 @@ class _ChatPanelState extends State<_ChatPanel> {
                 ),
               ),
           ],
+        ),
         );
       },
     );
