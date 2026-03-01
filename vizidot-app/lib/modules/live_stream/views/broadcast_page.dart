@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -37,9 +36,6 @@ class _BroadcastPageState extends State<BroadcastPage> {
   bool muted = false;
   /// Local Agora UID (0 for host; set from onJoinChannelSuccess for guest).
   int? _localUid;
-
-  /// In debug mode (e.g. simulator) show a placeholder instead of black local video so you can test the flow.
-  static bool get _useSimulatorPlaceholder => kDebugMode;
 
   @override
   void dispose() {
@@ -428,9 +424,6 @@ class _BroadcastPageState extends State<BroadcastPage> {
 
     // Publisher alone: show local video full screen
     if (isPublisher && _localUserJoined && _remoteUids.isEmpty) {
-      if (_useSimulatorPlaceholder) {
-        return _buildLocalVideoPlaceholder();
-      }
       return _localVideoTile();
     }
 
@@ -464,7 +457,6 @@ class _BroadcastPageState extends State<BroadcastPage> {
 
   Widget _videoTile(int uid) {
     if (uid == _myUid) {
-      if (_useSimulatorPlaceholder) return _buildLocalVideoPlaceholder();
       return _localVideoTile();
     }
     return _remoteTile(uid);
@@ -530,33 +522,6 @@ class _BroadcastPageState extends State<BroadcastPage> {
         rtcEngine: _engine!,
         canvas: VideoCanvas(uid: uid),
         connection: RtcConnection(channelId: widget.liveStream.channel),
-      ),
-    );
-  }
-
-  /// Placeholder for local video when running in debug (e.g. simulator) so the screen isn't black.
-  Widget _buildLocalVideoPlaceholder() {
-    return Container(
-      color: Colors.grey.shade800,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.videocam_off, size: 48, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            Text(
-              'Preview (Simulator)',
-              style: TextStyle(color: Colors.grey.shade300, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Camera not available in debug',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }
