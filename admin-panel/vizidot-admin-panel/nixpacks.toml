@@ -1,0 +1,11 @@
+# Use npm install instead of npm ci so lock file drift (e.g. missing transitive deps like yaml@2.8.2) doesn't break the build.
+[phases.install]
+cmds = ["npm install"]
+
+# Build the production bundle
+[phases.build]
+cmds = ["npm run build"]
+
+# Serve the built app (not the dev server)
+[start]
+cmd = "npm run start:prod"
