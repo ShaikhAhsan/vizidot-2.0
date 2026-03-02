@@ -17,7 +17,9 @@ class HomeContentView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      child: CustomScrollView(
+      child: Directionality(
+        textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+        child: CustomScrollView(
         slivers: <Widget>[
           CupertinoSliverNavigationBar(
             largeTitle: const Text('Best of the week'),
@@ -316,6 +318,7 @@ class HomeContentView extends GetView<HomeController> {
           ),
         ],
       ),
+    ),
     );
   }
 

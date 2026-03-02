@@ -15,3 +15,18 @@ String get appId {
   return 'd712240792a64c689a1a7cd748681ff2';
 }
 
+/// When true, app joins with empty token (for testing when Agora project is in "testing mode").
+/// Set AGORA_EMPTY_TOKEN=true in app .env to verify guest join works; then fix certificate and remove this.
+bool get agoraUseEmptyToken {
+  try {
+    final v = dotenv.env['AGORA_EMPTY_TOKEN']?.trim().toLowerCase();
+    return v == 'true' || v == '1';
+  } catch (_) {
+    return false;
+  }
+}
+
+
+String get appIdAppCertificate {
+  return '45ceab6ba69b4576a4cd5cc30c726b40';
+}

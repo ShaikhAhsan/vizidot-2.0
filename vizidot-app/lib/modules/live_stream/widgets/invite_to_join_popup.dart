@@ -74,7 +74,10 @@ class InviteToJoinPopup extends StatelessWidget {
                         const SizedBox(width: 12),
                         _ActionButton(
                           label: 'Accept',
-                          onPressed: onAccept,
+                          onPressed: () {
+                            debugPrint('[InviteToJoinPopup] Accept button pressed');
+                            onAccept();
+                          },
                           isPrimary: true,
                         ),
                       ],

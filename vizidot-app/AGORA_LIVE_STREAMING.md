@@ -108,10 +108,27 @@ If you do **not** set `AGORA_APP_CERTIFICATE`, the API still responds with `toke
 - **“Waiting for remote users to join”**  
   Viewer and broadcaster must use the **exact same channel name** (the stream’s doc id). Check that `liveStream.channel` and `liveStream.identifier` match the Firestore doc.
 
+- **Error -17 (ERR_JOIN_CHANNEL_REJECTED)**  
+  Your Agora project has **token authentication** enabled, but the app is joining with an **empty token** (API returned no token), or the **certificate does not match the project**.  
+  - Set **AGORA_APP_CERTIFICATE** in `api/vizidot-app-api/.env` to the **Primary Certificate** from Agora Console (same project as your App ID).  
+  - **App ID and Certificate must be exactly 32 hex characters** each; no spaces or newlines. If the API returns 503 "Invalid Agora config", fix the length/format in `.env`.  
+  - If you **still** get -17 **with** a token (app logs "Using RTC token from API"): the certificate does not match the project. In Agora Console open the project for this App ID → **Project Management** → **Primary Certificate**, copy again (no spaces), and replace `AGORA_APP_CERTIFICATE`. If you ever clicked **Reset Certificate**, you must use the new certificate.  
+   - Restart the API after changing `.env`.  
+   - Ensure the app’s `BASE_URL` points to that API so the app requests the token from it.  
+   - **Test token on the server:** In `api/vizidot-app-api` run `npm run verify-agora` (or `node scripts/verify-agora-token.js`). It checks that `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` are 32 hex chars and that a test token can be built. If that passes but the app still gets -17, the certificate is for a different Agora project — copy the Primary Certificate again from the project that has this App ID.
+  - **Confirm -17 is certificate (test with empty token):** In Agora Console set the project to **testing mode** (disable App Certificate / token auth). In the Flutter app’s `vizidot-app/.env` add `AGORA_EMPTY_TOKEN=true`. Rebuild and run; as viewer, accept the invite. If the guest joins and sees the host, the only issue is the certificate. Remove `AGORA_EMPTY_TOKEN`, re-enable token auth in Console, then copy the **Primary Certificate** again from that project into `api/vizidot-app-api/.env` as `AGORA_APP_CERTIFICATE` (32 hex chars, no spaces).
+
 - **Token errors (e.g. 109/110)**  
   - Ensure App Certificate is enabled in Agora Console and `AGORA_APP_CERTIFICATE` is set in the API.  
   - Ensure `AGORA_APP_ID` on the API matches the app and Agora project.  
   - Use correct `role`: `publisher` for broadcaster, `audience` for viewer.
+
+- **errInvalidToken (invalid token)**  
+  - The token was built with an App Certificate that **does not match** the Agora project for your App ID.  
+  - In Agora Console: open your project (same App ID as in the app), go to **Project Management** → **Primary Certificate**, and copy the certificate **exactly**.  
+  - In the **Flutter app**: set `AGORA_APP_CERTIFICATE` in `vizidot-app/.env` to that value (no extra spaces).  
+  - Or use the **API** for tokens: set the same certificate in `api/vizidot-app-api/.env` as `AGORA_APP_CERTIFICATE` so the API returns a valid token; the app will use it and not build a token locally.  
+  - Do not use a certificate from another project or a placeholder; it must be the Primary Certificate for this App ID.
 
 - **Permissions**  
   See `AGORA_PERMISSIONS.md` for required Android/iOS permissions. If the app crashes on start, consider lazy-initializing Agora only when entering the live flow (see `CRASH_DIAGNOSIS.md`).

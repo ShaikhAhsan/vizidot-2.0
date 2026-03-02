@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/api_constants.dart';
@@ -135,8 +136,10 @@ class BaseApi {
   flutter: $bodyStr
   ''';
 
-      // ignore: avoid_print
-      print(fullLog);
+      if (kDebugMode && debugPrintRequest) {
+        // ignore: avoid_print
+        print(fullLog);
+      }
     }
 
   String _formatBody(String body) {

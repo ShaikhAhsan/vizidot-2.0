@@ -34,6 +34,8 @@ class LiveStreamOverlay extends StatefulWidget {
 class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  /// Only treat stream as ended after we've seen the doc exist and then it's gone (avoids false "ended" on first cache snapshot).
+  bool _hasSeenStreamExist = false;
 
   @override
   void dispose() {
@@ -219,8 +221,9 @@ class _LiveStreamOverlayState extends State<LiveStreamOverlay> {
       builder: (context, streamSnap) {
         final hasData = streamSnap.hasData;
         final exists = streamSnap.data?.exists ?? false;
-        // Only "ended" when we have received a snapshot and the doc is missing
-        final streamEnded = hasData && !exists;
+        if (exists) _hasSeenStreamExist = true;
+        // Only "ended" when we have received a snapshot, doc is missing, AND we had seen it exist before (avoids closing on first cache snapshot when doc appears "missing").
+        final streamEnded = hasData && !exists && _hasSeenStreamExist;
         if (streamEnded && widget.onStreamEnded != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             widget.onStreamEnded!();

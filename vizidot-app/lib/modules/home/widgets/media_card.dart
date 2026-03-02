@@ -175,9 +175,6 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       onTap:
           () async {
 
-          print("widget.trackId  ${widget.videoUrl}");
-          print("widget.trackId  ${widget.videoUrl}");
-
           if ( widget.trackId != null) {
             final played = await playTrack(
               title: widget.title,
