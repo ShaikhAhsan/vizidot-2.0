@@ -1,4 +1,5 @@
 #!/bin/bash
+# Vizidot Admin Panel - start script
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
