@@ -7,15 +7,15 @@ Your IP address changed from `31.187.78.19` to `31.187.78.20`, so the database c
 
 ### Option 1: Enable the new IP address in MySQL
 1. Access your MySQL server
-2. Run this SQL command to allow the new IP:
+2. Run this SQL command (use the **DB_NAME**, **DB_USER**, and **DB_PASSWORD** from your `.env` / `app-api/env.example`):
 ```sql
-GRANT ALL PRIVILEGES ON dbvwnuu5gdchot.* TO 'u84b1oa3bdbvu'@'31.187.78.20' IDENTIFIED BY 'oi_-DR!b1GCh2qsip4';
+GRANT ALL PRIVILEGES ON <DB_NAME>.* TO '<DB_USER>'@'<YOUR_IP>' IDENTIFIED BY '<DB_PASSWORD>';
 FLUSH PRIVILEGES;
 ```
 
 ### Option 2: Run SQL file manually
 1. Access your database through phpMyAdmin, MySQL Workbench, or any MySQL client
-2. Select the database: `dbvwnuu5gdchot`
+2. Select the database (same as **DB_NAME** in `app-api/.env`, e.g. `u5gdchot-vizidot` from env.example)
 3. Execute the SQL file: `backend/scripts/createMusicPlatformTables.sql`
 
 ### Option 3: Use the backend server (if still connected)

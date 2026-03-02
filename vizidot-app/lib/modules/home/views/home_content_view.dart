@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+
+import '../../../core/utils/auth_service.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/section_header.dart';
 import '../widgets/media_card.dart';
@@ -14,7 +17,9 @@ class HomeContentView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      child: CustomScrollView(
+      child: Directionality(
+        textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+        child: CustomScrollView(
         slivers: <Widget>[
           CupertinoSliverNavigationBar(
             largeTitle: const Text('Best of the week'),
@@ -29,10 +34,10 @@ class HomeContentView extends GetView<HomeController> {
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(32, 32),
                 onPressed: () {
-                  // TODO: Show options menu
+                  Get.toNamed(AppRoutes.search);
                 },
                 child: const Icon(
-                  CupertinoIcons.ellipsis_vertical,
+                  CupertinoIcons.search,
                   color: Colors.black,
                   size: 20,
                 ),
@@ -43,98 +48,277 @@ class HomeContentView extends GetView<HomeController> {
             automaticallyImplyTitle: false,
             automaticallyImplyLeading: false,
           ),
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const SizedBox(height: 12),
-                  // TOP AUDIO Section
-                  const SectionHeader(title: 'TOP AUDIO'),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 178,
-                    child: Obx(() => ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: controller.topAudioItems.length,
-                          itemBuilder: (context, index) {
-                            final item = controller.topAudioItems[index];
-                            return MediaCard(
-                              title: item.title,
-                              artist: item.artist,
-                              asset: item.asset,
-                              isHorizontal: true,
-                              audioUrl: item.audioUrl,
-                              artistId: item.artistId,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(30),
-                                topRight: Radius.circular(12),
-                                bottomLeft: Radius.circular(12),
-                                bottomRight: Radius.circular(30),
-                              ),
-                            );
-                          },
-                        )),
-                  ),
-                  const SizedBox(height: 20),
-                  // TOP VIDEO Section
-                  const SectionHeader(title: 'TOP VIDEO'),
-                  const SizedBox(height: 16),
-                ]),
-              ),
-            ),
-          ),
-          // TOP VIDEO Grid Section - using SliverMasonryGrid
-          SliverSafeArea(
-            top: false,
-            sliver: SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: Obx(() => SliverMasonryGrid.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    itemBuilder: (context, index) {
-                      final item = controller.topVideoItems[index];
-                      return MediaCard(
-                        title: item.title,
-                        artist: item.artist,
-                        asset: item.asset,
-                        isHorizontal: false,
-                        imageHeight: item.imageHeight,
-                        artistId: item.artistId,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(15),
-                          bottomLeft: Radius.circular(15),
-                          bottomRight: Radius.circular(40),
-                        ),
-                        onTap: () {
-                          // Generate dummy playlist tracks based on the video item
-                          final playlistTracks = _generatePlaylistTracks(item);
-                          Get.toNamed(
-                            AppRoutes.playlistDetail,
-                            arguments: {
-                              'playlistName': item.title,
-                              'playlistImage': item.asset,
-                              'artistName': item.artist,
-                              'likes': 1235,
-                              'duration': '1h25min',
-                              'tracks': playlistTracks,
-                            },
+          Obx(() {
+            if (controller.isLoadingTop.value) {
+              return const SliverFillRemaining(
+                child: Center(child: CupertinoActivityIndicator(radius: 14)),
+              );
+            }
+            return SliverSafeArea(
+              top: false,
+              sliver: SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 12),
+                    // Favourites Albums section (when logged in)
+                    Obx(() {
+                      final isLoggedIn = Get.isRegistered<AuthService>() &&
+                          Get.find<AuthService>().isLoggedIn.value;
+                      final hasAlbums = controller.favouriteAlbumItems.isNotEmpty;
+                      if (!isLoggedIn || !hasAlbums) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SectionHeader(
+                            title: 'Favourites Albums',
+                            onViewAllTap: () => Get.toNamed(
+                              AppRoutes.favourites,
+                              arguments: <String, dynamic>{
+                                'totalTracks': controller.favouriteAudioItems.length,
+                                'totalVideos': controller.favouriteVideoItems.length,
+                                'totalAlbums': controller.favouriteAlbumItems.length,
+                                'totalArtists': controller.favouriteArtistItems.length,
+                                'initialTab': 'album',
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 140,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: controller.favouriteAlbumItems.length,
+                              itemBuilder: (context, index) {
+                                final album = controller.favouriteAlbumItems[index];
+                                return GestureDetector(
+                                  onTap: album.albumId != null
+                                      ? () => Get.toNamed(
+                                            AppRoutes.albumDetail,
+                                            arguments: {'albumId': album.albumId},
+                                          )
+                                      : null,
+                                  child: Container(
+                                    width: 107,
+                                    margin: const EdgeInsets.only(right: 16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            topRight: Radius.circular(12),
+                                            bottomLeft: Radius.circular(12),
+                                            bottomRight: Radius.circular(30),
+                                          ),
+                                          child: assetOrNetworkImage(
+                                            src: album.imageUrl ?? '',
+                                            width: 90,
+                                            height: 90,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          album.title,
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          album.artist,
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                fontSize: 11,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    }),
+                    // Favourites Artists section (when logged in)
+                    Obx(() {
+                      final isLoggedIn = Get.isRegistered<AuthService>() &&
+                          Get.find<AuthService>().isLoggedIn.value;
+                      final hasArtists = controller.favouriteArtistItems.isNotEmpty;
+                      if (!isLoggedIn || !hasArtists) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SectionHeader(
+                            title: 'Favourites Artists',
+                            onViewAllTap: () => Get.toNamed(
+                              AppRoutes.favourites,
+                              arguments: <String, dynamic>{
+                                'totalTracks': controller.favouriteAudioItems.length,
+                                'totalVideos': controller.favouriteVideoItems.length,
+                                'totalAlbums': controller.favouriteAlbumItems.length,
+                                'totalArtists': controller.favouriteArtistItems.length,
+                                'initialTab': 'artist',
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 140,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: controller.favouriteArtistItems.length,
+                              itemBuilder: (context, index) {
+                                final artist = controller.favouriteArtistItems[index];
+                                return GestureDetector(
+                                  onTap: () => Get.toNamed(
+                                    AppRoutes.artistDetail,
+                                    arguments: {'artistId': artist.artistId},
+                                  ),
+                                  child: Container(
+                                    width: 107,
+                                    margin: const EdgeInsets.only(right: 16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(30),
+                                            topRight: Radius.circular(12),
+                                            bottomLeft: Radius.circular(12),
+                                            bottomRight: Radius.circular(30),
+                                          ),
+                                          child: assetOrNetworkImage(
+                                            src: artist.imageUrl ?? '',
+                                            width: 90,
+                                            height: 90,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          artist.name,
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                    // TOP AUDIO Section (from Home API)
+                    const SectionHeader(title: 'TOP AUDIO'),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 178,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: controller.topAudioItems.length,
+                        itemBuilder: (context, index) {
+                          final item = controller.topAudioItems[index];
+                          return MediaCard(
+                            title: item.title,
+                            artist: item.artist,
+                            asset: item.asset,
+                            isHorizontal: true,
+                            audioUrl: item.audioUrl,
+                            artistId: item.artistId,
+                            imageUrl: item.imageUrl,
+                            trackId: item.trackId,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(30),
+                              topRight: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
+                              bottomRight: Radius.circular(30),
+                            ),
                           );
                         },
-                      );
-                    },
-                    childCount: controller.topVideoItems.length,
-                  )),
-            ),
-          ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // TOP VIDEO Section (from Home API)
+                    const SectionHeader(title: 'TOP VIDEO'),
+                    const SizedBox(height: 16),
+                  ]),
+                ),
+              ),
+            );
+          }),
+          Obx(() {
+            if (controller.isLoadingTop.value) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return SliverSafeArea(
+              top: false,
+              sliver: SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverMasonryGrid.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  itemBuilder: (context, index) {
+                    final item = controller.topVideoItems[index];
+                    return MediaCard(
+                      title: item.title,
+                      artist: item.artist,
+                      asset: item.asset,
+                      isHorizontal: false,
+                      imageHeight: item.imageHeight,
+                      artistId: item.artistId,
+                      imageUrl: item.imageUrl,
+                      videoUrl: item.videoUrl,
+                      videoId: item.videoId,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(15),
+                        bottomLeft: Radius.circular(15),
+                        bottomRight: Radius.circular(40),
+                      ),
+                      onTap: item.videoUrl == null || item.videoUrl!.isEmpty
+                          ? () {
+                              final playlistTracks = _generatePlaylistTracks(item);
+                              Get.toNamed(
+                                AppRoutes.playlistDetail,
+                                arguments: {
+                                  'playlistName': item.title,
+                                  'playlistImage': item.imageUrl ?? item.asset,
+                                  'artistName': item.artist,
+                                  'likes': 1235,
+                                  'duration': '1h25min',
+                                  'tracks': playlistTracks,
+                                },
+                              );
+                            }
+                          : null,
+                    );
+                  },
+                  childCount: controller.topVideoItems.length,
+                ),
+              ),
+            );
+          }),
           const SliverPadding(
             padding: EdgeInsets.only(bottom: 24),
           ),
         ],
       ),
+    ),
     );
   }
 

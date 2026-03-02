@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:math' as math;
+import '../../../core/widgets/asset_or_network_image.dart';
 
 class CdAlbumArt extends StatefulWidget {
   final String imageUrl;
@@ -97,7 +98,7 @@ class _CdAlbumArtState extends State<CdAlbumArt>
                     ),
                   ),
                 ),
-                // Inner image area
+                // Inner image area (asset or network)
                 Container(
                   width: widget.size - 1,
                   height: widget.size - 1,
@@ -106,19 +107,11 @@ class _CdAlbumArtState extends State<CdAlbumArt>
                     color: Colors.white,
                   ),
                   child: ClipOval(
-                    child: Image.asset(
-                      widget.imageUrl,
+                    child: assetOrNetworkImage(
+                      src: widget.imageUrl,
+                      width: widget.size - 1,
+                      height: widget.size - 1,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
-                          child: Icon(
-                            CupertinoIcons.music_note,
-                            size: widget.size * 0.3,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                          ),
-                        );
-                      },
                     ),
                   ),
                 ),

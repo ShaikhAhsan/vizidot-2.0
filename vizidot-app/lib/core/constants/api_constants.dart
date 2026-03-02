@@ -17,8 +17,16 @@ class ApiConstants {
   static String artistByIdPath(int artistId) =>
       '$musicSegment/artists/$artistId';
 
-  /// List artists (private).
+  /// E-locker: featured + rising star artists. Public.
+  static const String elockerPath = '$musicSegment/elocker';
+
+  /// List artists with pagination. Public. Query: limit, offset.
   static const String artistsPath = '$musicSegment/artists';
+  static String artistsListPath(int limit, int offset) =>
+      '$musicSegment/artists?limit=$limit&offset=$offset';
+
+  /// Save logged-in user's selected artist ids (follow). Auth required. POST body: artistIds.
+  static const String artistsSelectedPath = '$musicSegment/artists/selected';
 
   /// Follow artist (auth required). Replace :id with artist id.
   static String artistFollowPath(int artistId) =>
@@ -28,6 +36,66 @@ class ApiConstants {
   static String artistUnfollowPath(int artistId) =>
       '$musicSegment/artists/$artistId/follow';
 
+  /// Album detail (public). Replace :id with album id.
+  static String albumDetailPath(int albumId) => '$musicSegment/albums/$albumId';
+
+  /// Favourites (auth required).
+  static const String favouritesPath = '$musicSegment/favourites';
+  static String favouriteCheckPath() => '$musicSegment/favourites/check';
+  static String favouriteRemovePath(String type, int id) => '$musicSegment/favourites/$type/$id';
+
+  /// Followed artists (auth required). Query: limit, offset.
+  static const String followedArtistsPath = '$musicSegment/followed-artists';
+
+  /// Music categories (genres). Public.
+  static const String categoriesPath = '$musicSegment/categories';
+
+  /// Save logged-in user's selected category ids. Auth required. POST body: categoryIds.
+  static const String categoriesSelectedPath = '$musicSegment/categories/selected';
+
+  /// Search: artists, albums, music, videos. Query: q, type (all|artists|albums|music|videos), limit. Public.
+  static const String searchPath = '$musicSegment/search';
+
+  /// Home API: top audios + top videos (from play history). Public.
+  static String homePath([int limit = 10]) => '$musicSegment/home?limit=$limit';
+
+  /// Play history (record play = POST). Auth optional for record.
+  static const String playHistoryPath = '$musicSegment/play-history';
+  static String playHistoryTopPath(String type, [int limit = 10]) =>
+      '$musicSegment/play-history/top?type=$type&limit=$limit';
+
   /// Health check (no version prefix on backend).
   static const String healthPath = 'health';
+
+  /// Settings (user toggles + app config). GET = load, PATCH = update user settings. Auth optional for GET, required for PATCH.
+  static const String settingsPath = 'settings';
+  /// Upload profile image. POST multipart. Auth required.
+  static const String settingsProfileImagePath = 'settings/profile-image';
+
+  /// Delete current user account (Firebase + backend). DELETE. Auth required.
+  static const String accountDeletePath = 'auth/account';
+
+  /// Device/FCM: register device on login. POST. Auth required.
+  static const String deviceRegisterPath = 'device/register';
+  /// Device/FCM: de-register device on logout. POST. Auth required.
+  static const String deviceLogoutPath = 'device/logout';
+  /// Device/FCM: get tokens for user IDs (e.g. for sending push). GET ?userIds=1,2,3. Auth required.
+  static const String deviceTokensPath = 'device/tokens';
+
+  /// Chat history (archived messages from MySQL). GET ?chatDocId=&before=&limit=. Auth required.
+  static const String chatsMessagesPath = 'chats/messages';
+  /// Send message via API (writes to Firestore + push). POST body: chatDocId, text. Auth required.
+  static const String chatsSendMessagePath = 'chats/send-message';
+
+  /// User notifications: record + push, history, presence. Auth required.
+  static const String notificationsPath = 'notifications';
+  static const String notificationsNotifyPath = 'notifications/notify';
+  static const String notificationsNotifyLiveStreamPath = 'notifications/notify-live-stream';
+  static const String notificationsPresencePath = 'notifications/presence';
+  static const String notificationsUnreadCountPath = 'notifications/unread-count';
+  static String notificationsMarkReadPath(int id) => 'notifications/$id/read';
+  static String notificationsDeletePath(int id) => 'notifications/$id';
+
+  /// Live streaming: Agora RTC token. GET ?channelName=&role=publisher|audience&uid=0. No auth required.
+  static const String liveRtcTokenPath = 'live/rtc-token';
 }

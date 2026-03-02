@@ -8,6 +8,8 @@ class CustomTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool isPassword;
+  final bool readOnly;
+  final bool enabled;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
@@ -21,6 +23,8 @@ class CustomTextField extends StatefulWidget {
     this.keyboardType,
     this.textInputAction,
     this.isPassword = false,
+    this.readOnly = false,
+    this.enabled = true,
     this.validator,
     this.onChanged,
     this.onSubmitted,
@@ -46,6 +50,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
         textInputAction: widget.textInputAction ?? TextInputAction.next,
         textCapitalization: widget.textCapitalization,
         obscureText: widget.isPassword ? _obscure : false,
+        readOnly: widget.readOnly,
+        enabled: widget.enabled,
         validator: widget.validator,
         onChanged: widget.onChanged,
         onFieldSubmitted: widget.onSubmitted,
@@ -53,6 +59,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
           labelText: widget.label,
           hintText: widget.hint,
           enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: colors.onSurface.withOpacity(0.6)),
+          ),
+          disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: colors.onSurface.withOpacity(0.6)),
           ),

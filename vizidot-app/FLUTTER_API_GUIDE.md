@@ -35,7 +35,7 @@ This document defines **structure, constants, and rules** for all API usage in t
 ## 2. Base URL & Environment
 
 - **Source**: Use `AppConfig.fromEnv().baseUrl` (from `lib/core/utils/app_config.dart`). This reads `BASE_URL` from `.env` (via `flutter_dotenv`).
-- **.env**: Define `BASE_URL` and `ENV` (e.g. `BASE_URL=http://localhost:8000`, `ENV=development`). Do not commit real production URLs or secrets.
+- **.env**: Define `BASE_URL` and `ENV` (e.g. `BASE_URL=http://localhost:8000`, `ENV=development`). Optional: `TEST_ACCESS_TOKEN` for a non-expiring token used when not logged in (dev only; default `test-token-no-expire`). Do not commit real production URLs or secrets.
 - **No hardcoded hosts**: Never put `http://192.168.x.x` or production URLs in code; use constants or env.
 
 ---
@@ -127,6 +127,7 @@ This document defines **structure, constants, and rules** for all API usage in t
 ## 8. Auth Token for Private APIs
 
 - **Token source**: Firebase Auth current user ID token: e.g. `AuthService.getIdToken()` (from `lib/core/utils/auth_service.dart`).
+- **Testing fallback**: In non-production, when the user is not logged in, use `AppConfig.fromEnv().testAccessToken` (default `test-token-no-expire`) so private APIs (e.g. follow artist) work without signing in. Set `TEST_ACCESS_TOKEN` in `.env` to override; production ignores this.
 - **When to refresh**: Call `getIdToken(true)` when making a private request if you want to force refresh; otherwise use cached token and handle 401 by refreshing once and retrying.
 - **Where to store**: Do not store the token in plain text in persistent storage. Get it when needed from Firebase, or cache in memory for the session.
 - **Header format**: `Authorization: Bearer <token>` (exactly as in backend API_GUIDE).

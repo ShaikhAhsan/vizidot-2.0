@@ -5,12 +5,15 @@ class ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback? onTap;
+  /// Optional widget shown after the title (e.g. counter badge). Shown before the chevron.
+  final Widget? trailing;
 
   const ProfileMenuItem({
     super.key,
     required this.icon,
     required this.title,
     this.onTap,
+    this.trailing,
   });
 
   @override
@@ -52,6 +55,10 @@ class ProfileMenuItem extends StatelessWidget {
                 ),
               ),
             ),
+            if (trailing != null) ...[
+              trailing!,
+              const SizedBox(width: 8),
+            ],
             // Chevron arrow
             Icon(
               CupertinoIcons.chevron_right,

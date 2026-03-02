@@ -4,7 +4,10 @@ import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class ShopView extends StatefulWidget {
-  const ShopView({super.key});
+  /// When set, loads this URL (e.g. artist's shop). Otherwise loads a default placeholder.
+  final String? initialUrl;
+
+  const ShopView({super.key, this.initialUrl});
 
   @override
   State<ShopView> createState() => _ShopViewState();
@@ -17,23 +20,18 @@ class _ShopViewState extends State<ShopView> {
   @override
   void initState() {
     super.initState();
+    final url = (widget.initialUrl != null && widget.initialUrl!.trim().isNotEmpty)
+        ? widget.initialUrl!.trim()
+        : 'https://www.google.com';
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-            });
-          },
-          onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
-            });
-          },
+          onPageStarted: (String _) => setState(() => _isLoading = true),
+          onPageFinished: (String _) => setState(() => _isLoading = false),
         ),
       )
-      ..loadRequest(Uri.parse('https://www.google.com'));
+      ..loadRequest(Uri.parse(url));
   }
 
   @override
@@ -48,7 +46,6 @@ class _ShopViewState extends State<ShopView> {
             const Center(
               child: CircularProgressIndicator(),
             ),
-          // Back button overlay
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -65,7 +62,7 @@ class _ShopViewState extends State<ShopView> {
                       child: Container(
                         width: 35,
                         height: 35,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                         ),
@@ -77,7 +74,7 @@ class _ShopViewState extends State<ShopView> {
                       ),
                     ),
                   ),
-                  Spacer()
+                  const Spacer(),
                 ],
               ),
             ),

@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:get/get.dart';
 import 'dart:ui';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
 import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/device_registration_service.dart';
+import '../../../core/utils/user_profile_service.dart';
 import '../../../routes/app_pages.dart';
 
 class LogoutDialog extends StatelessWidget {
@@ -107,7 +111,15 @@ class LogoutDialog extends StatelessWidget {
                     color: colors.onSurface,
                     onPressed: () async {
                       Navigator.of(context).pop();
+                      if (Get.isRegistered<DeviceRegistrationService>()) {
+                        try {
+                          await Get.find<DeviceRegistrationService>().logoutDevice();
+                        } catch (_) {}
+                      }
                       await Get.find<AuthService>().signOut();
+                      if (Get.isRegistered<UserProfileService>()) {
+                        Get.find<UserProfileService>().clearProfile();
+                      }
                       Get.offAllNamed(AppRoutes.landing);
                     },
                     child: const Text(

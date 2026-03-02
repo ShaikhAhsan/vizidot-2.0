@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 import '../../../core/widgets/asset_or_network_image.dart';
+import '../../../routes/app_pages.dart';
 import '../../music_player/utils/play_track_helper.dart';
+import '../../music_player/utils/record_play_helper.dart';
 import '../../music_player/models/track_model.dart';
 import 'section_header.dart';
 
@@ -36,22 +39,21 @@ class TracksSection extends StatelessWidget {
           itemBuilder: (context, index) {
             final track = tracks[index];
             return GestureDetector(
-              onTap: () {
+              onTap: () async {
                 onTrackTap?.call();
-                // Play the track
-                final trackModel = TrackModel(
-                  id: '${track.title}_${track.artist}',
+                final played = await playTrack(
                   title: track.title,
                   artist: track.artist,
                   albumArt: track.albumArt,
                   duration: _parseDuration(track.duration),
+                  audioUrl: track.audioUrl,
                 );
-                playTrack(
-                  title: track.title,
-                  artist: track.artist,
-                  albumArt: track.albumArt,
-                  duration: _parseDuration(track.duration),
-                );
+                if (played) {
+                  if (track.trackId != null) {
+                    recordPlayIfPossible('audio', track.trackId!);
+                  }
+                  Get.toNamed(AppRoutes.musicPlayer);
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 16),
@@ -141,12 +143,16 @@ class TrackItem {
   final String artist;
   final String albumArt;
   final String duration;
+  final String? audioUrl;
+  final int? trackId;
 
   TrackItem({
     required this.title,
     required this.artist,
     required this.albumArt,
     required this.duration,
+    this.audioUrl,
+    this.trackId,
   });
 }
 

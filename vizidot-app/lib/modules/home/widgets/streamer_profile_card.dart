@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
+
 class StreamerProfileCard extends StatelessWidget {
+  /// Asset path (e.g. assets/artists/Choc B.png) or network image URL.
   final String imageUrl;
   final String name;
   final bool isLive;
@@ -14,6 +17,9 @@ class StreamerProfileCard extends StatelessWidget {
     this.isLive = false,
   });
 
+  static bool _isNetworkUrl(String url) =>
+      url.startsWith('http://') || url.startsWith('https://');
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -24,27 +30,23 @@ class StreamerProfileCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  imageUrl,
-                  width: 62,
-                  height: 62,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 62,
-                      height: 62,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                child: _isNetworkUrl(imageUrl)
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        width: 62,
+                        height: 62,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _placeholderBox(context),
+                        errorWidget: (_, __, ___) => _placeholderBox(context),
+                      )
+                    : Image.asset(
+                        imageUrl,
+                        width: 62,
+                        height: 62,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _placeholderBox(context),
                       ),
-                      child: Icon(
-                        CupertinoIcons.person,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                        size: 24,
-                      ),
-                    );
-                  },
-                ),
               ),
               if (isLive)
                 Positioned(
@@ -108,6 +110,22 @@ class StreamerProfileCard extends StatelessWidget {
                 ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _placeholderBox(BuildContext context) {
+    return Container(
+      width: 62,
+      height: 62,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        CupertinoIcons.person,
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+        size: 24,
       ),
     );
   }

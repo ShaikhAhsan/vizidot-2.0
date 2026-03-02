@@ -1,12 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
+/// Search filter: All (default), Artists, Albums, Music, Videos. iOS-style.
 enum SearchCategory {
-  bestResults,
-  songs,
-  playlists,
+  all,
+  artists,
   albums,
-  podcasts,
+  music,
+  videos,
+}
+
+extension SearchCategoryX on SearchCategory {
+  String get label {
+    switch (this) {
+      case SearchCategory.all:
+        return 'All';
+      case SearchCategory.artists:
+        return 'Artists';
+      case SearchCategory.albums:
+        return 'Albums';
+      case SearchCategory.music:
+        return 'Music';
+      case SearchCategory.videos:
+        return 'Videos';
+    }
+  }
+
+  String get apiType {
+    switch (this) {
+      case SearchCategory.all:
+        return 'all';
+      case SearchCategory.artists:
+        return 'artists';
+      case SearchCategory.albums:
+        return 'albums';
+      case SearchCategory.music:
+        return 'music';
+      case SearchCategory.videos:
+        return 'videos';
+    }
+  }
 }
 
 class SearchCategoryTabs extends StatelessWidget {
@@ -28,37 +61,17 @@ class SearchCategoryTabs extends StatelessWidget {
       height: 36,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        children: [
-          _CategoryTab(
-            label: 'best results',
-            isSelected: selectedCategory == SearchCategory.bestResults,
-            onTap: () => onCategoryChanged(SearchCategory.bestResults),
-          ),
-          const SizedBox(width: 8),
-          _CategoryTab(
-            label: 'songs',
-            isSelected: selectedCategory == SearchCategory.songs,
-            onTap: () => onCategoryChanged(SearchCategory.songs),
-          ),
-          const SizedBox(width: 8),
-          _CategoryTab(
-            label: 'playlists',
-            isSelected: selectedCategory == SearchCategory.playlists,
-            onTap: () => onCategoryChanged(SearchCategory.playlists),
-          ),
-          const SizedBox(width: 8),
-          _CategoryTab(
-            label: 'albums',
-            isSelected: selectedCategory == SearchCategory.albums,
-            onTap: () => onCategoryChanged(SearchCategory.albums),
-          ),
-          const SizedBox(width: 8),
-          _CategoryTab(
-            label: 'podcasts',
-            isSelected: selectedCategory == SearchCategory.podcasts,
-            onTap: () => onCategoryChanged(SearchCategory.podcasts),
-          ),
-        ],
+        children: SearchCategory.values.map((cat) {
+          final isSelected = selectedCategory == cat;
+          return Padding(
+            padding: EdgeInsets.only(right: cat == SearchCategory.videos ? 0 : 8),
+            child: _CategoryTab(
+              label: cat.label,
+              isSelected: isSelected,
+              onTap: () => onCategoryChanged(cat),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -106,4 +119,3 @@ class _CategoryTab extends StatelessWidget {
     );
   }
 }
-

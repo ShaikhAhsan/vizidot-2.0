@@ -1,4 +1,13 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../core/network/apis/music_api.dart';
+import '../../../core/utils/app_config.dart';
+import '../../../core/utils/auth_service.dart';
+import '../../../core/utils/selected_artist_service.dart';
 import '../../../core/utils/image_cache.dart';
 
 class MediaItem {
@@ -8,6 +17,13 @@ class MediaItem {
   final double? imageHeight; // For dynamic heights in masonry grid
   final String? audioUrl; // Audio URL for playback
   final int? artistId; // Optional: when set, artist detail uses API and follow works
+  /// Network image URL (when set, displayed instead of [asset]).
+  final String? imageUrl;
+  /// Audio track id for play history (top audio from API).
+  final int? trackId;
+  /// Video URL and id for video cards (top video from API).
+  final String? videoUrl;
+  final int? videoId;
 
   MediaItem({
     required this.title,
@@ -16,6 +32,38 @@ class MediaItem {
     this.imageHeight,
     this.audioUrl,
     this.artistId,
+    this.imageUrl,
+    this.trackId,
+    this.videoUrl,
+    this.videoId,
+  });
+}
+
+class FavouriteAlbumItem {
+  final String title;
+  final String artist;
+  final String? imageUrl;
+  final int? albumId;
+  final int? artistId;
+
+  FavouriteAlbumItem({
+    required this.title,
+    required this.artist,
+    this.imageUrl,
+    this.albumId,
+    this.artistId,
+  });
+}
+
+class FavouriteArtistItem {
+  final int artistId;
+  final String name;
+  final String? imageUrl;
+
+  FavouriteArtistItem({
+    required this.artistId,
+    required this.name,
+    this.imageUrl,
   });
 }
 
@@ -24,83 +72,259 @@ class HomeController extends GetxController {
   final RxInt selectedIndex = 0.obs;
   final List<String> _prefetchUrls = <String>[];
 
-  // TOP AUDIO items (artistId so follow button uses API on artist detail)
-  final topAudioItems = <MediaItem>[
-    MediaItem(
-      title: 'Beating on my heart',
-      artist: 'Choc B',
-      asset: 'assets/artists/Choc B.png',
-      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
-      artistId: 1,
-    ),
-    MediaItem(
-      title: 'Fear of the water',
-      artist: 'Doja cat',
-      asset: 'assets/artists/Halsey.png',
-      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
-      artistId: 2,
-    ),
-    MediaItem(
-      title: 'Girls just wanna have...',
-      artist: 'Tigerclub',
-      asset: 'assets/artists/Blair.png',
-      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
-      artistId: 3,
-    ),
-    MediaItem(
-      title: 'Stop beating on my heart',
-      artist: 'Cindi lauper',
-      asset: 'assets/artists/Aalyah.png',
-      audioUrl: 'https://firebasestorage.googleapis.com/v0/b/vizidot-4b492.appspot.com/o/audio-tracks%2Faa29a735-082e-4518-aa20-d80290559c93-1763845362989.mp3?alt=media',
-      artistId: 4,
-    ),
-  ].obs;
+  /// Total unread message count (Personal + Artist chats) for Profile tab badge.
+  final RxInt messageUnreadCount = 0.obs;
 
-  // TOP VIDEO items with dynamic heights
-  final topVideoItems = <MediaItem>[
-    MediaItem(
-      title: 'Stop beating on my heart',
-      artist: 'Cindi lauper',
-      asset: 'assets/artists/Aalyah.png',
-      imageHeight: 200.0,
-      artistId: 4,
-    ),
-    MediaItem(
-      title: 'Girls just wanna have fun',
-      artist: 'Cindi lauper',
-      asset: 'assets/artists/Julia Styles.png',
-      imageHeight: 280.0,
-      artistId: 4,
-    ),
-    MediaItem(
-      title: 'Beating on my heart',
-      artist: 'Choc B',
-      asset: 'assets/artists/Choc B.png',
-      imageHeight: 240.0,
-      artistId: 1,
-    ),
-    MediaItem(
-      title: 'Fear of the water',
-      artist: 'Doja cat',
-      asset: 'assets/artists/Halsey.png',
-      imageHeight: 220.0,
-      artistId: 2,
-    ),
-    MediaItem(
-      title: 'Best friend',
-      artist: 'Luna bay',
-      asset: 'assets/artists/Blair.png',
-      imageHeight: 260.0,
-      artistId: 3,
-    ),
-    MediaItem(
-      title: 'Desert Rose',
-      artist: 'TVORHI',
-      asset: 'assets/artists/Betty Daniels.png',
-      imageHeight: 230.0,
-      artistId: 5,
-    ),
-  ].obs;
+  static const String _chatsCollection = 'chats';
+  List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>? _messageUnreadSubs;
+
+  static const String _placeholderAsset = 'assets/artists/Choc B.png';
+
+  // TOP AUDIO items — from Home API only (no hardcoded fallback)
+  final topAudioItems = <MediaItem>[].obs;
+  // TOP VIDEO items — from Home API only (no hardcoded fallback)
+  final topVideoItems = <MediaItem>[].obs;
+  /// True while loading Home API.
+  final isLoadingTop = true.obs;
+
+  // Favourites (when logged in): top 10 per type
+  final favouriteAudioItems = <MediaItem>[].obs;
+  final favouriteVideoItems = <MediaItem>[].obs;
+  final favouriteAlbumItems = <FavouriteAlbumItem>[].obs;
+  final favouriteArtistItems = <FavouriteArtistItem>[].obs;
+  final isLoadingFavourites = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadTopFromApi();
+    _startMessageUnreadSubscription();
+  }
+
+  @override
+  void onClose() {
+    _cancelMessageUnreadSubscription();
+    super.onClose();
+  }
+
+  void _cancelMessageUnreadSubscription() {
+    if (_messageUnreadSubs != null) {
+      for (final s in _messageUnreadSubs!) s.cancel();
+      _messageUnreadSubs = null;
+    }
+    messageUnreadCount.value = 0;
+  }
+
+  void _startMessageUnreadSubscription() {
+    _cancelMessageUnreadSubscription();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final assignedArtistIds = Get.isRegistered<SelectedArtistService>()
+        ? Get.find<SelectedArtistService>().assignedArtists.map((a) => a.artistId).toList()
+        : <int>[];
+    int personalTotal = 0;
+    final Map<int, int> artistTotals = {};
+
+    void updateCount() {
+      messageUnreadCount.value = personalTotal + artistTotals.values.fold(0, (a, b) => a + b);
+    }
+
+    _messageUnreadSubs = [];
+    if (uid != null) {
+      _messageUnreadSubs!.add(
+        FirebaseFirestore.instance
+            .collection(_chatsCollection)
+            .where('userId', isEqualTo: uid)
+            .snapshots()
+            .listen((snap) {
+          personalTotal = 0;
+          for (final doc in snap.docs) {
+            personalTotal += (doc.data()['unreadByUser'] as num?)?.toInt() ?? 0;
+          }
+          updateCount();
+        }),
+      );
+    }
+    for (final artistId in assignedArtistIds) {
+      _messageUnreadSubs!.add(
+        FirebaseFirestore.instance
+            .collection(_chatsCollection)
+            .where('artistId', isEqualTo: artistId)
+            .snapshots()
+            .listen((snap) {
+          int total = 0;
+          for (final doc in snap.docs) {
+            total += (doc.data()['unreadByArtist'] as num?)?.toInt() ?? 0;
+          }
+          artistTotals[artistId] = total;
+          updateCount();
+        }),
+      );
+    }
+    updateCount();
+  }
+
+  /// Load top audio and video from Home API (GET /api/v1/music/home). When logged in, favourites come from same response.
+  Future<void> loadTopFromApi() async {
+    isLoadingTop.value = true;
+    topAudioItems.clear();
+    topVideoItems.clear();
+    favouriteAudioItems.clear();
+    favouriteVideoItems.clear();
+    favouriteAlbumItems.clear();
+    favouriteArtistItems.clear();
+    try {
+      final config = AppConfig.fromEnv();
+      final token = Get.isRegistered<AuthService>()
+          ? await Get.find<AuthService>().getIdToken()
+          : null;
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
+      final home = await api.getHomeTop(limit: 10);
+
+      if (home != null) {
+        if (home.topAudios.isNotEmpty) {
+          topAudioItems.assignAll(
+            home.topAudios.map((m) {
+              final title = m['title'] as String? ?? '';
+              final artist = m['artistName'] as String? ?? '';
+              return MediaItem(
+                title: title,
+                artist: artist,
+                asset: _placeholderAsset,
+                imageUrl: m['albumArt'] as String?,
+                audioUrl: m['audioUrl'] as String?,
+                artistId: (m['artistId'] as num?)?.toInt(),
+                trackId: (m['id'] as num?)?.toInt(),
+              );
+            }),
+          );
+        }
+        if (home.topVideos.isNotEmpty) {
+          final heights = [200.0, 280.0, 240.0, 220.0, 260.0, 230.0];
+          topVideoItems.assignAll(
+            home.topVideos.asMap().entries.map((e) {
+              final m = e.value;
+              final i = e.key;
+              final title = m['title'] as String? ?? '';
+              final artist = m['artistName'] as String? ?? '';
+              return MediaItem(
+                title: title,
+                artist: artist,
+                asset: _placeholderAsset,
+                imageHeight: heights[i % heights.length],
+                imageUrl: m['albumArt'] as String?,
+                videoUrl: m['videoUrl'] as String?,
+                artistId: (m['artistId'] as num?)?.toInt(),
+                videoId: (m['id'] as num?)?.toInt(),
+              );
+            }),
+          );
+        }
+        // Favourites from Home API (only when logged in)
+        for (final m in home.favouriteAudios) {
+          favouriteAudioItems.add(MediaItem(
+            title: m['title'] as String? ?? '',
+            artist: m['artistName'] as String? ?? '',
+            asset: _placeholderAsset,
+            imageUrl: m['albumArt'] as String?,
+            audioUrl: m['audioUrl'] as String?,
+            artistId: (m['artistId'] as num?)?.toInt(),
+            trackId: (m['entityId'] as num?)?.toInt(),
+          ));
+        }
+        final heights = [200.0, 280.0, 240.0, 220.0, 260.0, 230.0];
+        for (var i = 0; i < home.favouriteVideos.length; i++) {
+          final m = home.favouriteVideos[i];
+          favouriteVideoItems.add(MediaItem(
+            title: m['title'] as String? ?? '',
+            artist: m['artistName'] as String? ?? '',
+            asset: _placeholderAsset,
+            imageHeight: heights[i % heights.length],
+            imageUrl: m['albumArt'] as String?,
+            videoUrl: m['videoUrl'] as String?,
+            artistId: (m['artistId'] as num?)?.toInt(),
+            videoId: (m['entityId'] as num?)?.toInt(),
+          ));
+        }
+        for (final m in home.favouriteAlbums) {
+          favouriteAlbumItems.add(FavouriteAlbumItem(
+            title: m['title'] as String? ?? '',
+            artist: m['artistName'] as String? ?? '',
+            imageUrl: m['albumArt'] as String?,
+            albumId: (m['entityId'] as num?)?.toInt(),
+            artistId: (m['artistId'] as num?)?.toInt(),
+          ));
+        }
+        for (final m in home.favouriteArtists) {
+          final id = (m['artistId'] as num?)?.toInt();
+          if (id != null) {
+            favouriteArtistItems.add(FavouriteArtistItem(
+              artistId: id,
+              name: m['name'] as String? ?? '',
+              imageUrl: m['imageUrl'] as String?,
+            ));
+          }
+        }
+      }
+    } catch (_) {
+      // Leave lists empty on error
+    } finally {
+      isLoadingTop.value = false;
+    }
+  }
+
+  /// Load top 10 favourites per type (audio, video, album) when user is logged in.
+  Future<void> loadFavourites() async {
+    if (!Get.isRegistered<AuthService>()) return;
+    final auth = Get.find<AuthService>();
+    final token = await auth.getIdToken();
+    if (token == null || token.isEmpty) return;
+    isLoadingFavourites.value = true;
+    favouriteAudioItems.clear();
+    favouriteVideoItems.clear();
+    favouriteAlbumItems.clear();
+    try {
+      final config = AppConfig.fromEnv();
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
+      final heights = [200.0, 280.0, 240.0, 220.0, 260.0, 230.0];
+      final audioRes = await api.getFavourites(type: 'track', limit: 10, enrich: true);
+      final videoRes = await api.getFavourites(type: 'video', limit: 10, enrich: true);
+      final albumRes = await api.getFavourites(type: 'album', limit: 10, enrich: true);
+      for (final m in audioRes.favourites) {
+        favouriteAudioItems.add(MediaItem(
+          title: m['title'] as String? ?? '',
+          artist: m['artistName'] as String? ?? '',
+          asset: _placeholderAsset,
+          imageUrl: m['albumArt'] as String?,
+          audioUrl: m['audioUrl'] as String?,
+          artistId: (m['artistId'] as num?)?.toInt(),
+          trackId: (m['entityId'] as num?)?.toInt(),
+        ));
+      }
+      for (var i = 0; i < videoRes.favourites.length; i++) {
+        final m = videoRes.favourites[i];
+        favouriteVideoItems.add(MediaItem(
+          title: m['title'] as String? ?? '',
+          artist: m['artistName'] as String? ?? '',
+          asset: _placeholderAsset,
+          imageHeight: heights[i % heights.length],
+          imageUrl: m['albumArt'] as String?,
+          videoUrl: m['videoUrl'] as String?,
+          artistId: (m['artistId'] as num?)?.toInt(),
+          videoId: (m['entityId'] as num?)?.toInt(),
+        ));
+      }
+      for (final m in albumRes.favourites) {
+        favouriteAlbumItems.add(FavouriteAlbumItem(
+          title: m['title'] as String? ?? '',
+          artist: m['artistName'] as String? ?? '',
+          imageUrl: m['albumArt'] as String?,
+          albumId: (m['entityId'] as num?)?.toInt(),
+          artistId: (m['artistId'] as num?)?.toInt(),
+        ));
+      }
+    } catch (_) {}
+    isLoadingFavourites.value = false;
+  }
 
   void increment() {
     counter.value++;

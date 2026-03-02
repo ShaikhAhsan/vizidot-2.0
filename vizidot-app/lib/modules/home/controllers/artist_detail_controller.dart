@@ -5,8 +5,10 @@ import '../../../core/network/apis/music_api.dart';
 import '../../../core/utils/app_config.dart';
 import '../../../core/utils/auth_service.dart';
 import '../../../data/models/artist_profile_response.dart';
+import 'home_controller.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
+import '../widgets/videos_section.dart';
 
 /// Controller for artist detail screen. Uses [MusicApi] for profile and
 /// follow/unfollow; [AppConfig] for base URL; [AuthService] for token when needed.
@@ -34,11 +36,16 @@ class ArtistDetailController extends GetxController {
   bool get hasShop =>
       profile.value?.artist.shop != null;
 
+  /// Artist shop URL from profile; null if no shop.
+  String? get shopUrl =>
+      profile.value?.artist.shop?.shopUrl;
+
   List<AlbumItem> get albums {
     final list = profile.value?.albums ?? [];
     final name = artistName;
     return list
         .map((a) => AlbumItem(
+              id: a.id,
               title: a.title,
               artist: name,
               coverImage: a.coverImageUrl ?? '',
@@ -55,6 +62,36 @@ class ArtistDetailController extends GetxController {
               artist: name,
               albumArt: t.albumArt ?? '',
               duration: t.durationFormatted ?? '0:00',
+              audioUrl: t.audioUrl,
+              trackId: t.id,
+            ))
+        .toList();
+  }
+
+  List<AlbumItem> get videoAlbums {
+    final list = profile.value?.videoAlbums ?? [];
+    final name = artistName;
+    return list
+        .map((a) => AlbumItem(
+              id: a.id,
+              title: a.title,
+              artist: name,
+              coverImage: a.coverImageUrl ?? '',
+            ))
+        .toList();
+  }
+
+  List<VideoItem> get videos {
+    final list = profile.value?.videos ?? [];
+    final name = artistName;
+    return list
+        .map((v) => VideoItem(
+              title: v.title,
+              artist: name,
+              thumbnail: v.albumArt ?? '',
+              duration: v.durationFormatted ?? '0:00',
+              videoUrl: v.videoUrl ?? '',
+              videoId: v.id,
             ))
         .toList();
   }
@@ -69,7 +106,7 @@ class ArtistDetailController extends GetxController {
     super.onReady();
   }
 
-  /// Fetches artist profile via [MusicApi].getArtistProfile (public API).
+  /// Fetches artist profile via [MusicApi].getArtistProfile. Uses auth when available so API returns isFollowing.
   Future<void> fetchProfile() async {
     if (artistId == null) {
       isLoading.value = false;
@@ -79,10 +116,15 @@ class ArtistDetailController extends GetxController {
     errorMessage.value = '';
     try {
       final config = AppConfig.fromEnv();
-      final api = MusicApi(baseUrl: config.baseUrl);
-      final result = await api.getArtistProfile(artistId!);
+      final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+      final token = await auth?.getIdToken();
+      final effectiveToken = (token != null && token.isNotEmpty) ? token : config.testAccessToken;
+      final useAuth = effectiveToken != null && effectiveToken.isNotEmpty;
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: effectiveToken);
+      final result = await api.getArtistProfile(artistId!, useAuth: useAuth);
       if (result != null) {
         profile.value = result;
+        isFollowing.value = result.artist.isFollowing;
       } else {
         errorMessage.value = 'Could not load artist';
       }
@@ -94,19 +136,20 @@ class ArtistDetailController extends GetxController {
   }
 
   /// Toggle follow state via [MusicApi] (auth required). Refreshes profile on success.
-  /// If not logged in, shows snackbar and returns without calling the API.
+  /// In development, uses [AppConfig.testAccessToken] when not logged in so APIs work for testing.
   Future<void> toggleFollow() async {
     if (artistId == null) return;
+    final config = AppConfig.fromEnv();
     final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
     final token = await auth?.getIdToken();
-    if (token == null || token.isEmpty) {
+    final effectiveToken = (token != null && token.isNotEmpty) ? token : config.testAccessToken;
+    if (effectiveToken == null || effectiveToken.isEmpty) {
       Get.snackbar('Sign in to follow', 'Sign in to follow artists');
       return;
     }
     isFollowLoading.value = true;
     try {
-      final config = AppConfig.fromEnv();
-      final api = MusicApi(baseUrl: config.baseUrl, authToken: token);
+      final api = MusicApi(baseUrl: config.baseUrl, authToken: effectiveToken);
       final currentlyFollowing = isFollowing.value;
       final success = currentlyFollowing
           ? await api.unfollowArtist(artistId!)
@@ -114,6 +157,7 @@ class ArtistDetailController extends GetxController {
       if (success) {
         isFollowing.value = !currentlyFollowing;
         await fetchProfile();
+        _reloadHomeIfNeeded();
       } else {
         Get.snackbar('Error', 'Could not update follow');
       }
@@ -121,6 +165,12 @@ class ArtistDetailController extends GetxController {
       Get.snackbar('Error', 'Something went wrong');
     } finally {
       isFollowLoading.value = false;
+    }
+  }
+
+  void _reloadHomeIfNeeded() {
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().loadTopFromApi();
     }
   }
 }

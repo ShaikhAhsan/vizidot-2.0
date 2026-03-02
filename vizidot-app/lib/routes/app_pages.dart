@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
 import '../modules/home/views/home_view.dart';
@@ -13,6 +14,7 @@ import '../modules/onboarding/views/categories_view.dart';
 import '../modules/onboarding/bindings/categories_binding.dart';
 import '../modules/onboarding/views/artists_view.dart';
 import '../modules/onboarding/bindings/artists_binding.dart';
+import '../modules/home/controllers/album_detail_controller.dart';
 import '../modules/home/controllers/artist_detail_controller.dart';
 import '../modules/home/views/artist_detail_view.dart';
 import '../modules/home/views/album_detail_view.dart';
@@ -23,7 +25,15 @@ import '../modules/home/views/change_password_view.dart';
 import '../modules/home/views/upload_view.dart';
 import '../modules/home/views/notifications_view.dart';
 import '../modules/home/views/search_view.dart';
+import '../modules/home/bindings/search_binding.dart';
 import '../modules/home/views/filters_view.dart';
+import '../modules/home/views/favourites_view.dart';
+import '../modules/home/views/artist_message_view.dart';
+import '../modules/home/views/artist_chat_list_view.dart';
+import '../modules/home/views/personal_chat_list_view.dart';
+import '../modules/home/views/language_view.dart';
+import '../modules/home/views/about_view.dart';
+import '../modules/home/controllers/favourites_controller.dart';
 import '../modules/music_player/views/music_player_view.dart';
 import '../modules/music_player/bindings/music_player_binding.dart';
 import '../modules/home/widgets/tracks_section.dart';
@@ -90,7 +100,12 @@ class AppPages {
       name: AppRoutes.artistDetail,
       page: () {
         final args = Get.arguments as Map<String, dynamic>? ?? {};
-        final artistId = args['artistId'] as int?;
+        final idFromArgs = args['artistId'];
+        final idFromParams = Get.parameters['id'];
+        int? artistId = idFromArgs is int ? idFromArgs : (idFromArgs is num ? idFromArgs.toInt() : null);
+        if (artistId == null && idFromParams != null) {
+          artistId = int.tryParse(idFromParams.toString());
+        }
         if (artistId != null) {
           Get.put(ArtistDetailController(artistId: artistId));
         }
@@ -108,30 +123,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.albumDetail,
       page: () {
-        final args = Get.arguments as Map<String, dynamic>;
-        final tracksList = args['tracks'] as List?;
-        final tracks = tracksList?.map((t) {
-          if (t is TrackItem) {
-            return t;
-          } else if (t is Map) {
-            return TrackItem(
-              title: t['title'] ?? '',
-              artist: t['artist'] ?? '',
-              albumArt: t['albumArt'] ?? '',
-              duration: t['duration'] ?? '',
-            );
-          }
-          throw ArgumentError('Invalid track item type');
-        }).toList().cast<TrackItem>() ?? [];
-        
-        return AlbumDetailView(
-          albumTitle: args['albumTitle'] ?? '',
-          albumImage: args['albumImage'] ?? '',
-          releaseYear: args['releaseYear'],
-          songCount: args['songCount'],
-          totalDuration: args['totalDuration'],
-          tracks: tracks,
-        );
+        final args = Get.arguments as Map<String, dynamic>? ?? {};
+        final albumId = args['albumId'] as int?;
+        if (albumId == null) {
+          Get.back();
+          return const SizedBox.shrink();
+        }
+        Get.put(AlbumDetailController(albumId: albumId));
+        return const AlbumDetailView();
       },
       transition: Transition.cupertino,
     ),
@@ -170,6 +169,16 @@ class AppPages {
       transition: Transition.cupertino,
     ),
     GetPage(
+      name: AppRoutes.language,
+      page: () => const LanguageView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.about,
+      page: () => const AboutView(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
       name: AppRoutes.personalData,
       page: () => const PersonalDataView(),
       transition: Transition.cupertino,
@@ -192,6 +201,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.search,
       page: () => const SearchView(),
+      binding: SearchBinding(),
       transition: Transition.cupertino,
     ),
     GetPage(
@@ -200,9 +210,51 @@ class AppPages {
       transition: Transition.cupertino,
     ),
     GetPage(
+      name: AppRoutes.favourites,
+      page: () {
+        Get.put(FavouritesController());
+        return const FavouritesView();
+      },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
       name: AppRoutes.musicPlayer,
       page: () => const MusicPlayerView(),
       binding: MusicPlayerBinding(),
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.artistMessage,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>? ?? {};
+        return ArtistMessageView(
+          artistId: (args['artistId'] as num?)?.toInt(),
+          otherPartyUserId: args['otherPartyUserId'] as String?,
+          otherPartyDisplayName: args['otherPartyDisplayName'] as String? ?? '',
+          otherPartyImageUrl: args['otherPartyImageUrl'] as String?,
+          isCurrentUserArtist: args['isCurrentUserArtist'] as bool? ?? false,
+          artistName: args['artistName'] as String? ?? '',
+          artistImageUrl: args['artistImageUrl'] as String?,
+        );
+      },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.artistChatList,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>? ?? {};
+        final artistId = (args['artistId'] as num?)?.toInt() ?? 0;
+        return ArtistChatListView(
+          artistId: artistId,
+          artistName: args['artistName'] as String? ?? '',
+          artistImageUrl: args['artistImageUrl'] as String?,
+        );
+      },
+      transition: Transition.cupertino,
+    ),
+    GetPage(
+      name: AppRoutes.personalChatList,
+      page: () => const PersonalChatListView(),
       transition: Transition.cupertino,
     ),
   ];

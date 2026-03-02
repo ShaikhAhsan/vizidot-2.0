@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
+import '../../../core/widgets/asset_or_network_image.dart';
 import '../../music_player/utils/play_track_helper.dart';
+import '../../music_player/utils/record_play_helper.dart';
+import '../views/video_web_view.dart';
 
 class MediaCard extends StatefulWidget {
   final String title;
@@ -13,6 +16,10 @@ class MediaCard extends StatefulWidget {
   final double? imageHeight; // For dynamic heights in masonry grid
   final String? audioUrl; // Audio URL for playback
   final int? artistId; // When set, artist detail loads from API and follow works
+  final String? imageUrl; // Network image URL (overrides asset when set)
+  final int? trackId; // For play history (top audio)
+  final String? videoUrl; // For video cards (top video)
+  final int? videoId; // For play history (top video)
 
   const MediaCard({
     super.key,
@@ -25,6 +32,10 @@ class MediaCard extends StatefulWidget {
     this.imageHeight,
     this.audioUrl,
     this.artistId,
+    this.imageUrl,
+    this.trackId,
+    this.videoUrl,
+    this.videoId,
   });
 
   @override
@@ -70,24 +81,50 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
 
+    final useNetworkImage = widget.imageUrl != null && widget.imageUrl!.isNotEmpty;
+    final imageSrc = useNetworkImage ? widget.imageUrl! : widget.asset;
+    final imageHeight = widget.imageHeight ?? 200.0;
+
+    // Horizontal card must fit in ~174px: use smaller image so title + artist fit
+    final horizontalImageHeight = 88.0;
     Widget imageWidget = ClipRRect(
       borderRadius: widget.borderRadius,
       child: widget.isHorizontal
-          ? Image.asset(
-              widget.asset,
-              fit: BoxFit.cover,
+          ? SizedBox(
               width: double.infinity,
-              height: 100,
+              height: horizontalImageHeight,
+              child: useNetworkImage
+                  ? assetOrNetworkImage(
+                      src: imageSrc,
+                      width: double.infinity,
+                      height: horizontalImageHeight,
+                      fit: BoxFit.cover,
+                      borderRadius: widget.borderRadius,
+                    )
+                  : Image.asset(
+                      widget.asset,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: horizontalImageHeight,
+                    ),
             )
           : SizedBox(
               width: double.infinity,
-              height: widget.imageHeight ?? 200,
-              child: Image.asset(
-                widget.asset,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: widget.imageHeight ?? 200,
-              ),
+              height: imageHeight,
+              child: useNetworkImage
+                  ? assetOrNetworkImage(
+                      src: imageSrc,
+                      width: double.infinity,
+                      height: imageHeight,
+                      fit: BoxFit.cover,
+                      borderRadius: widget.borderRadius,
+                    )
+                  : Image.asset(
+                      widget.asset,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: imageHeight,
+                    ),
             ),
     );
 
@@ -95,9 +132,9 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       widget.title,
       style: textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.bold,
-        fontSize: 14,
+        fontSize: widget.isHorizontal ? 13 : 14,
       ),
-      maxLines: 2,
+      maxLines: widget.isHorizontal ? 1 : 2,
       overflow: TextOverflow.ellipsis,
     );
 
@@ -109,7 +146,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
           arguments: {
             if (widget.artistId != null) 'artistId': widget.artistId,
             'artistName': widget.artist,
-            'artistImage': widget.asset,
+            'artistImage': widget.imageUrl ?? widget.asset,
             'description': 'Artist / Musician / Writer',
             'followers': 321000,
             'following': 125,
@@ -117,7 +154,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        padding: const EdgeInsets.symmetric(vertical: 0.0),
         child: Text(
           widget.artist,
           style: textTheme.bodySmall?.copyWith(
@@ -135,18 +172,28 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,
-      onTap: () {
-        widget.onTap?.call();
-        // If it's an audio card (horizontal), play the track
-        if (widget.isHorizontal) {
-          playTrack(
-            title: widget.title,
-            artist: widget.artist,
-            albumArt: widget.asset,
-            audioUrl: widget.audioUrl,
-            duration: const Duration(minutes: 3, seconds: 30),
-          );
-        }
+      onTap:
+          () async {
+
+          if ( widget.trackId != null) {
+            final played = await playTrack(
+              title: widget.title,
+              artist: widget.artist,
+              albumArt: widget.imageUrl ?? widget.asset,
+              audioUrl: widget.audioUrl,
+              duration: const Duration(minutes: 3, seconds: 30),
+            );
+            recordPlayIfPossible('audio', widget.trackId!);
+          }
+        else if (widget.videoUrl != null && widget.videoUrl!.isNotEmpty) {
+          if (widget.videoId != null) {
+            recordPlayIfPossible('video', widget.videoId!);
+          }
+          Get.to(() => VideoWebView(url: widget.videoUrl!));
+          return;
+        } else {
+            widget.onTap?.call();
+          }
       },
       behavior: HitTestBehavior.deferToChild,
       child: AnimatedBuilder(
@@ -183,7 +230,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
             mainAxisSize: MainAxisSize.min,
             children: [
               animatedImage,
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               animatedTitle,
             ],
           )
@@ -201,7 +248,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
       mainAxisSize: widget.isHorizontal ? MainAxisSize.min : MainAxisSize.max,
       children: [
         imageAndTitle,
-        const SizedBox(height: 10),
+        SizedBox(height: widget.isHorizontal ? 6 : 10),
         artistNameWidget,
       ],
     );

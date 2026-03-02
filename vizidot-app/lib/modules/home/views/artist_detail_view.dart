@@ -7,7 +7,11 @@ import '../widgets/follow_message_buttons.dart';
 import '../widgets/content_tabs.dart';
 import '../widgets/albums_section.dart';
 import '../widgets/tracks_section.dart';
+import '../widgets/videos_section.dart';
+import '../../music_player/utils/record_play_helper.dart';
 import 'shop_view.dart';
+import 'video_web_view.dart';
+import '../../../routes/app_pages.dart';
 
 class ArtistDetailView extends StatefulWidget {
   /// When set, profile is fetched from API (public artist profile endpoint).
@@ -35,6 +39,7 @@ class ArtistDetailView extends StatefulWidget {
 class _ArtistDetailViewState extends State<ArtistDetailView> {
   bool _isFollowing = false;
   ContentTab _selectedTab = ContentTab.music;
+  bool _bioExpanded = false;
 
   /// Dummy data when not loading from API
   final List<AlbumItem> _dummyAlbums = [
@@ -129,6 +134,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 context,
                 statusBarHeight,
                 navBarHeight,
+                artistId: controller.artistId,
                 artistName: controller.artistName,
                 artistImage: controller.artistImage,
                 description: controller.description,
@@ -136,7 +142,10 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                 following: controller.following,
                 albums: controller.albums,
                 tracks: controller.tracks,
+                videoAlbums: controller.videoAlbums,
+                videos: controller.videos,
                 hasShop: controller.hasShop,
+                shopUrl: controller.shopUrl,
                 isFollowing: controller.isFollowing.value,
                 isFollowLoading: controller.isFollowLoading.value,
                 onFollowTap: controller.toggleFollow,
@@ -146,6 +155,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               context,
               statusBarHeight,
               navBarHeight,
+              artistId: widget.artistId,
               artistName: widget.artistName,
               artistImage: widget.artistImage,
               description: widget.description,
@@ -153,7 +163,10 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               following: widget.following,
               albums: _dummyAlbums,
               tracks: _dummyTracks,
-              hasShop: true,
+              videoAlbums: [],
+              videos: [],
+              hasShop: false,
+              shopUrl: null,
               isFollowing: _isFollowing,
               isFollowLoading: false,
               onFollowTap: () => setState(() => _isFollowing = !_isFollowing),
@@ -161,10 +174,34 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     );
   }
 
+  Widget assetOrNetworkImage({
+    required String src,
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    if (src.startsWith('http')) {
+      return Image.network(
+        src,
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    } else {
+      return Image.asset(
+        src,
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    }
+  }
+
   Widget _buildContent(
     BuildContext context,
     double statusBarHeight,
     double navBarHeight, {
+    required int? artistId,
     required String artistName,
     required String artistImage,
     required String? description,
@@ -172,13 +209,27 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
     required int? following,
     required List<AlbumItem> albums,
     required List<TrackItem> tracks,
+    required List<AlbumItem> videoAlbums,
+    required List<VideoItem> videos,
     required bool hasShop,
+    String? shopUrl,
     required bool isFollowing,
     required bool isFollowLoading,
     required VoidCallback onFollowTap,
   }) {
+    final hasValidShop = shopUrl != null && shopUrl.trim().isNotEmpty;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    final hasVideoContent = videoAlbums.isNotEmpty || videos.isNotEmpty;
+    final effectiveTab = (_selectedTab == ContentTab.video && !hasVideoContent)
+        ? ContentTab.music
+        : _selectedTab;
+    if (!hasVideoContent && _selectedTab == ContentTab.video) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedTab = ContentTab.music);
+      });
+    }
 
     return CustomScrollView(
       slivers: [
@@ -192,9 +243,7 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
           ),
         ),
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10, left: 10, right: 10),
-            child: Column(
+          child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -210,46 +259,34 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                       ),
                     ),
                     const SizedBox(width: 40),
-                    Column(
-                      children: [
-                        Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: colors.surface,
-                            borderRadius: BorderRadius.circular(24),
+                    // Container(
+                    //   width: 80,
+                    //   height: 80,
+                    //   decoration: BoxDecoration(
+                    //     color: colors.surfaceContainerHighest,
+                    //     borderRadius: BorderRadius.circular(20),
+                    //   ),
+                    //   clipBehavior: Clip.antiAlias,
+                    //   child:
+                      artistImage.isEmpty
+                          ? Icon(
+                        CupertinoIcons.person_fill,
+                        size: 36,
+                        color: colors.onSurfaceVariant,
+                      )
+                          : SizedBox(
+                        width: 120,
+                            height: 100,
+                            child: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    child: assetOrNetworkImage(
+                            src: artistImage,
+                            fit: BoxFit.cover,
+                                                    ),
+                                                  ),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: artistImage.isEmpty
-                              ? const Icon(CupertinoIcons.person_fill)
-                              : assetOrNetworkImage(
-                                  src: artistImage,
-                                  width: 70,
-                                  height: 70,
-                                  fit: BoxFit.cover,
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          artistName,
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          description ?? 'Artist / Musician / Writer',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colors.onSurface.withOpacity(0.6),
-                            fontSize: 13,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                    // ),
+
                     const SizedBox(width: 40),
                     Padding(
                       padding: const EdgeInsets.only(top: 40),
@@ -262,39 +299,141 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  artistName,
+                  style: textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 6),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final bioText = description ?? 'Artist / Musician / Writer';
+                    final bioStyle = textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurface.withOpacity(0.6),
+                      fontSize: 13,
+                    );
+                    final painter = TextPainter(
+                      text: TextSpan(text: bioText, style: bioStyle),
+                      textDirection: TextDirection.ltr,
+                      maxLines: 2,
+                    )..layout(maxWidth: constraints.maxWidth - 20);
+                    final exceedsTwoLines = painter.didExceedMaxLines;
+
+                    return Container(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      width: double.infinity,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: exceedsTwoLines
+                                ? () => setState(() => _bioExpanded = !_bioExpanded)
+                                : null,
+                            child: Text(
+                              bioText,
+                              style: bioStyle,
+                              textAlign: TextAlign.center,
+                              softWrap: true,
+                              maxLines: _bioExpanded ? 50 : 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (exceedsTwoLines) ...[
+                            const SizedBox(height: 4),
+                            GestureDetector(
+                              onTap: () => setState(() => _bioExpanded = !_bioExpanded),
+                              child: Text(
+                                _bioExpanded ? 'Show less' : 'Read more',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colors.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
                 FollowMessageButtons(
                   isFollowing: isFollowing,
                   isFollowLoading: isFollowLoading,
+                  showShop: hasValidShop,
                   onFollowTap: onFollowTap,
-                  onMessageTap: () {},
-                  onShopTap: () {
-                    Get.to(() => const ShopView());
+                  onMessageTap: () {
+                    Get.toNamed(
+                      AppRoutes.artistMessage,
+                      arguments: {
+                        'artistId': artistId,
+                        'otherPartyDisplayName': artistName,
+                        'otherPartyImageUrl': artistImage.isEmpty ? null : artistImage,
+                        'isCurrentUserArtist': false,
+                        'artistName': artistName,
+                        'artistImageUrl': artistImage.isEmpty ? null : artistImage,
+                      },
+                    );
                   },
+                  onShopTap: hasValidShop
+                      ? () {
+                          Get.to(() => ShopView(initialUrl: shopUrl!.trim()));
+                        }
+                      : null,
                 ),
                 ContentTabs(
                   selectedTab: _selectedTab,
                   onTabChanged: (tab) => setState(() => _selectedTab = tab),
+                  showVideoTab: hasVideoContent,
                 ),
                 const SizedBox(height: 24),
-                if (_selectedTab == ContentTab.music) ...[
-                  AlbumsSection(albums: albums),
-                  const SizedBox(height: 24),
-                  TracksSection(
-                    tracks: tracks,
-                    onTrackTap: () {},
-                  ),
-                ] else if (_selectedTab == ContentTab.video) ...[
-                    // TODO: Add video content
+                if (effectiveTab == ContentTab.music) ...[
+                  if (albums.isNotEmpty) AlbumsSection(albums: albums),
+                  if (tracks.isNotEmpty)
+                    TracksSection(
+                      tracks: tracks,
+                      onTrackTap: () {},
+                    ),
+                  if (albums.isEmpty && tracks.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(20),
                       child: Text(
-                        'Video content coming soon',
+                        'No music yet',
                         style: textTheme.bodyMedium?.copyWith(
                           color: colors.onSurface.withOpacity(0.6),
                         ),
                       ),
                     ),
-                ] else if (_selectedTab == ContentTab.about) ...[
+                ] else if (effectiveTab == ContentTab.video) ...[
+                  if (videoAlbums.isNotEmpty) AlbumsSection(albums: videoAlbums),
+                  if (videos.isNotEmpty)
+                    VideosSection(
+                      videos: videos,
+                      onVideoTap: (video) {
+                        if (video.videoUrl.isNotEmpty) {
+                          if (video.videoId != null) {
+                            recordPlayIfPossible('video', video.videoId!);
+                          }
+                          Get.to(() => VideoWebView(url: video.videoUrl));
+                        }
+                      },
+                    ),
+                  if (videoAlbums.isEmpty && videos.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'No videos yet',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ),
+                ] else if (effectiveTab == ContentTab.about) ...[
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Text(
@@ -309,7 +448,6 @@ class _ArtistDetailViewState extends State<ArtistDetailView> {
               ],
             ),
           ),
-        ),
       ],
     );
   }

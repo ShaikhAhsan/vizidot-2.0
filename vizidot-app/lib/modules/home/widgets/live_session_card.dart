@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 class LiveSessionCard extends StatelessWidget {
+  /// Asset path or network image URL; network URL shows broadcaster's real image.
   final String imageUrl;
   final String title;
   final String artistName;
+  /// Shown when [streamId] is null; otherwise viewer count is streamed from Firestore.
   final String viewerCount;
+  /// When set, viewer count is read from LiveStreams/{streamId}/viewers. Ignored if null/empty.
+  final String? streamId;
   final double imageHeight;
   final VoidCallback? onTap;
 
@@ -16,9 +23,13 @@ class LiveSessionCard extends StatelessWidget {
     required this.title,
     required this.artistName,
     required this.viewerCount,
+    this.streamId,
     this.imageHeight = 117,
     this.onTap,
   });
+
+  static bool _isNetworkUrl(String url) =>
+      url.startsWith('http://') || url.startsWith('https://');
 
   @override
   Widget build(BuildContext context) {
@@ -34,27 +45,24 @@ class LiveSessionCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  imageUrl,
-                  width: double.infinity,
-                  height: imageHeight,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: double.infinity,
-                      height: imageHeight,
-                      decoration: BoxDecoration(
-                        color: colors.onSurface.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
+                child: _isNetworkUrl(imageUrl)
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        width: double.infinity,
+                        height: imageHeight,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _placeholderBox(context, imageHeight, colors),
+                        errorWidget: (_, __, ___) =>
+                            _placeholderBox(context, imageHeight, colors),
+                      )
+                    : Image.asset(
+                        imageUrl,
+                        width: double.infinity,
+                        height: imageHeight,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _placeholderBox(context, imageHeight, colors),
                       ),
-                      child: Icon(
-                        CupertinoIcons.play_circle,
-                        color: colors.onSurface.withOpacity(0.3),
-                        size: 48,
-                      ),
-                    );
-                  },
-                ),
               ),
               // Live icon and viewer count in top right
               Positioned(
@@ -132,14 +140,34 @@ class LiveSessionCard extends StatelessWidget {
                                 size: 12,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                viewerCount,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                              if (streamId != null && streamId!.isNotEmpty)
+                                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('LiveStreams')
+                                      .doc(streamId)
+                                      .collection('viewers')
+                                      .snapshots(),
+                                  builder: (context, snap) {
+                                    final count = snap.data?.docs.length ?? 0;
+                                    return Text(
+                                      count.toString(),
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                Text(
+                                  viewerCount,
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
@@ -192,6 +220,23 @@ class LiveSessionCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _placeholderBox(
+      BuildContext context, double height, ColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        color: colors.onSurface.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Icon(
+        CupertinoIcons.play_circle,
+        color: colors.onSurface.withOpacity(0.3),
+        size: 48,
       ),
     );
   }

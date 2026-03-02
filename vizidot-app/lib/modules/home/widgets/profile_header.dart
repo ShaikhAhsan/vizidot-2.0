@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
+/// Header with profile image, name, and caption/role. Image from [profileImageUrl] (network) or [fallbackAssetPath] (asset).
 class ProfileHeader extends StatelessWidget {
-  final String profileImage;
+  final String? profileImageUrl;
+  final String? fallbackAssetPath;
   final String name;
   final String role;
 
   const ProfileHeader({
     super.key,
-    required this.profileImage,
+    this.profileImageUrl,
+    this.fallbackAssetPath,
     required this.name,
     required this.role,
   });
@@ -16,11 +20,11 @@ class ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
+    final hasNetworkImage = profileImageUrl != null && profileImageUrl!.trim().isNotEmpty;
 
     return Center(
       child: Column(
         children: [
-          // Profile Image - using the same border radius design as other images
           ClipRRect(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(30),
@@ -28,15 +32,25 @@ class ProfileHeader extends StatelessWidget {
               bottomLeft: Radius.circular(12),
               bottomRight: Radius.circular(30),
             ),
-            child: Image.asset(
-              profileImage,
-              width: 70,
-              height: 70,
-              fit: BoxFit.cover,
-            ),
+            child: hasNetworkImage
+                ? CachedNetworkImage(
+                    imageUrl: profileImageUrl!,
+                    width: 70,
+                    height: 70,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _placeholderBox(),
+                    errorWidget: (_, __, ___) => _placeholderBox(),
+                  )
+                : fallbackAssetPath != null && fallbackAssetPath!.isNotEmpty
+                    ? Image.asset(
+                        fallbackAssetPath!,
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                      )
+                    : _placeholderBox(),
           ),
           const SizedBox(height: 16),
-          // Name
           Text(
             name,
             style: textTheme.headlineMedium?.copyWith(
@@ -45,7 +59,6 @@ class ProfileHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          // Role
           Text(
             role,
             style: textTheme.bodyMedium?.copyWith(
@@ -57,5 +70,13 @@ class ProfileHeader extends StatelessWidget {
       ),
     );
   }
-}
 
+  Widget _placeholderBox() {
+    return Container(
+      width: 70,
+      height: 70,
+      color: Colors.grey.shade300,
+      child: const Icon(Icons.person, size: 36, color: Colors.grey),
+    );
+  }
+}

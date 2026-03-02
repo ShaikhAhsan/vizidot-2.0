@@ -28,6 +28,27 @@ class AuthService extends GetxService {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
+  /// Changes the current user's password. Requires reauth with [currentPassword].
+  /// Throws [FirebaseAuthException] on failure (e.g. wrong current password, weak new password).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(code: 'no-user', message: 'You must be signed in to change password.');
+    }
+    if (user.email == null || user.email!.isEmpty) {
+      throw FirebaseAuthException(code: 'no-email', message: 'Email/password account required to change password.');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
   Future<UserCredential> signInWithGoogle() async {
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
     if (googleUser == null) {
@@ -66,6 +87,14 @@ class AuthService extends GetxService {
     }
     final fbCred = FacebookAuthProvider.credential(result.accessToken!.tokenString);
     return await _auth.signInWithCredential(fbCred);
+  }
+
+  /// True if the current user can change password (signed in with email/password).
+  /// False for Google, Apple, Facebook or when not logged in.
+  bool get canChangePassword {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    return user.providerData.any((p) => p.providerId == 'password');
   }
 
   /// Returns the current Firebase ID token for API auth, or null if not logged in.

@@ -1,115 +1,60 @@
 import 'package:get/get.dart';
 
-class Artist {
+import '../../../core/network/apis/music_api.dart';
+import '../../../core/utils/app_config.dart';
+
+class ElockerArtist {
+  final int id;
   final String name;
   final String genre;
-  final String asset;
-  final bool isBookmarked;
+  final String? imageUrl;
 
-  Artist({
+  ElockerArtist({
+    required this.id,
     required this.name,
-    required this.genre,
-    required this.asset,
-    this.isBookmarked = false,
+    this.genre = 'Artist',
+    this.imageUrl,
   });
 }
 
 class ELockerController extends GetxController {
-  // Featured artists - horizontal scroll
-  final featuredArtists = <Artist>[
-    Artist(
-      name: 'Baynk',
-      genre: 'Pop / Chill',
-      asset: 'assets/artists/Aalyah.png',
-    ),
-    Artist(
-      name: 'Hozier',
-      genre: 'Chill / Techno',
-      asset: 'assets/artists/Blair.png',
-    ),
-    Artist(
-      name: 'Baynk',
-      genre: 'Pop / Chill',
-      asset: 'assets/artists/Choc B.png',
-    ),
-    Artist(
-      name: 'Hozier',
-      genre: 'Chill / Techno',
-      asset: 'assets/artists/Halsey.png',
-    ),
-    Artist(
-      name: 'Jason Derulo',
-      genre: 'Pop / Chill',
-      asset: 'assets/artists/Jason Derulo.png',
-    ),
-  ].obs;
+  final featuredArtists = <ElockerArtist>[].obs;
+  final risingStars = <ElockerArtist>[].obs;
+  final isLoading = true.obs;
 
-  // Rising stars - vertical list
-  final risingStars = <Artist>[
-    Artist(
-      name: 'Natalie',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Aalyah.png',
-    ),
-    Artist(
-      name: 'Jonnathan Bear',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Blair.png',
-    ),
-    Artist(
-      name: 'Damon Layer',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Choc B.png',
-    ),
-    Artist(
-      name: 'Anna Leinz',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Halsey.png',
-    ),
-    Artist(
-      name: 'Mainate',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Jason Derulo.png',
-    ),
-    Artist(
-      name: 'Coleco',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Julia Styles.png',
-    ),
-    Artist(
-      name: 'Betty Daniels',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Betty Daniels.png',
-    ),
-    Artist(
-      name: 'Martina',
-      genre: 'Pop / Chill / Techno',
-      asset: 'assets/artists/Martina.png',
-    ),
-  ].obs;
+  @override
+  void onInit() {
+    super.onInit();
+    loadElocker();
+  }
 
-  void toggleBookmark(int index, {bool isRisingStar = false}) {
-    if (isRisingStar) {
-      if (index < risingStars.length) {
-        final artist = risingStars[index];
-        risingStars[index] = Artist(
-          name: artist.name,
-          genre: artist.genre,
-          asset: artist.asset,
-          isBookmarked: !artist.isBookmarked,
+  /// Fetches featured and rising star artists from GET /api/v1/music/elocker.
+  Future<void> loadElocker() async {
+    isLoading.value = true;
+    try {
+      final config = AppConfig.fromEnv();
+      final api = MusicApi(baseUrl: config.baseUrl);
+      final resp = await api.getElocker();
+      if (resp != null) {
+        featuredArtists.assignAll(
+          resp.featuredArtists
+              .map((a) => ElockerArtist(id: a.id, name: a.name, genre: 'Artist', imageUrl: a.imageUrl))
+              .toList(),
         );
-      }
-    } else {
-      if (index < featuredArtists.length) {
-        final artist = featuredArtists[index];
-        featuredArtists[index] = Artist(
-          name: artist.name,
-          genre: artist.genre,
-          asset: artist.asset,
-          isBookmarked: !artist.isBookmarked,
+        risingStars.assignAll(
+          resp.risingStarArtists
+              .map((a) => ElockerArtist(id: a.id, name: a.name, genre: 'Artist', imageUrl: a.imageUrl))
+              .toList(),
         );
+      } else {
+        featuredArtists.clear();
+        risingStars.clear();
       }
+    } catch (_) {
+      featuredArtists.clear();
+      risingStars.clear();
+    } finally {
+      isLoading.value = false;
     }
   }
 }
-

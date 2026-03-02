@@ -13,13 +13,15 @@
     <!-- For Android 12 (API 31) and above devices, the following permission is also required -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     
+    <!-- FCM / Push notifications (Android 13+ requires POST_NOTIFICATIONS for runtime) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- App-specific permissions -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     
     <application
-        android:label="vizidot_flutter"
+        android:label="Vizidot"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -49,6 +51,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- image_cropper: UCrop activity for cropping images -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -59,6 +66,15 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Required for url_launcher to open https/http links in browser -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
         </intent>
     </queries>
 </manifest>

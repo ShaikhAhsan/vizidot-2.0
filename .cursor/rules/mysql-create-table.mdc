@@ -1,0 +1,24 @@
+---
+description: Generate MySQL CREATE TABLE statements for this project (app-api)
+globs: "**/*.sql,**/scripts/*.js,app-api/models/**/*.js"
+alwaysApply: false
+---
+
+# MySQL CREATE TABLE for this project
+
+When asked to "create MySQL table", "create table statement", or "SQL schema" for the app-api backend:
+
+1. **File location**: Prefer `app-api/scripts/` with a descriptive name, e.g. `createXxxTables.sql` or `addXxxToYyy.sql`.
+
+2. **Conventions**:
+   - Use `CREATE TABLE IF NOT EXISTS` for new tables.
+   - Primary key: `id INT NOT NULL AUTO_INCREMENT PRIMARY KEY` (match existing `users` and other app-api tables).
+   - Foreign keys: `INT NOT NULL` to match referenced `id` columns; add `REFERENCES parent_table(id) ON DELETE CASCADE` (or RESTRICT) as needed.
+   - Timestamps: `created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`, `updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`.
+   - Use `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`.
+   - Add `UNIQUE KEY` / `INDEX` as needed; use short names like `uk_table_column` for unique, `idx_table_column` for index.
+   - Comment columns where useful: `COMMENT '...'`.
+
+3. **Output**: Emit runnable SQL only (no extra markdown code-fence labels unless the user asks for a full file). If creating a new file, write the full script including a short header comment.
+
+4. **Existing patterns**: See `app-api/scripts/createDevicesAndUserDevices.sql`, `createSettingsTables.sql`, `createMusicPlatformTables.sql` for style.

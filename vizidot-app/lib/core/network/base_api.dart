@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/api_constants.dart';
@@ -8,9 +10,11 @@ import 'api_client.dart';
 /// Flag for whether an API requires auth token.
 /// - [public]: no token (e.g. artist profile, health).
 /// - [private]: use token (e.g. follow artist, user profile).
+/// - [optional]: use token if available (e.g. record play history).
 enum ApiVisibility {
   public,
   private,
+  optional,
 }
 
 /// Base class for all API calls. Logs each request as cURL and response.
@@ -58,7 +62,8 @@ class BaseApi {
     Map<String, dynamic>? body,
     ApiVisibility visibility = ApiVisibility.public,
   }) async {
-    final useAuth = visibility == ApiVisibility.private;
+    final useAuth = visibility == ApiVisibility.private ||
+        (visibility == ApiVisibility.optional && authToken != null && authToken!.isNotEmpty);
     var uri = Uri.parse('$_apiBase/$path');
     if (queryParams != null && queryParams.isNotEmpty) {
       uri = uri.replace(queryParameters: queryParams);
@@ -81,6 +86,9 @@ class BaseApi {
       case 'PUT':
         future = _client.put(path, body: body, useAuth: useAuth);
         break;
+      case 'PATCH':
+        future = _client.patch(path, body: body, useAuth: useAuth);
+        break;
       case 'DELETE':
         future = _client.delete(path, useAuth: useAuth);
         break;
@@ -95,34 +103,44 @@ class BaseApi {
     return response;
   }
 
-  void _printCurl(String method, String url, Map<String, String> headers, String? bodyStr) {
-    // Print one line at a time so the full curl is visible (debugPrint truncates).
-    final parts = <String>[
-      "curl -X $method '$url'",
-      ...headers.entries.map((e) => "-H '${e.key}: ${e.value}'"),
-    ];
+  void _printCurl(
+      String method,
+      String url,
+      Map<String, String> headers,
+      String? bodyStr,
+      ) {
+    final buffer = StringBuffer();
+
+    buffer.write("curl -X $method '$url'");
+
+    for (final entry in headers.entries) {
+      buffer.write(" -H '${entry.key}: ${entry.value}'");
+    }
+
     if (bodyStr != null && bodyStr.isNotEmpty) {
       final escaped = bodyStr.replaceAll("'", r"'\''");
-      parts.add("-d '$escaped'");
+      buffer.write(" -d '$escaped'");
     }
-    for (var i = 0; i < parts.length; i++) {
-      final line = parts[i] + (i < parts.length - 1 ? ' \\' : '');
-      // ignore: avoid_print
-      print('flutter: $line');
-    }
+
+    // ignore: avoid_print
+    log('${buffer.toString()}');
   }
 
-  void _printResponse(http.Response response) {
-    // ignore: avoid_print
-    print('flutter: Response: ${response.statusCode}');
-    final bodyStr = response.body.isEmpty
-        ? '(empty)'
-        : _formatBody(response.body);
-    for (final line in bodyStr.split('\n')) {
-      // ignore: avoid_print
-      print('flutter: $line');
+ void _printResponse(http.Response response) {
+      final bodyStr = response.body.isEmpty
+          ? '(empty)'
+          : _formatBody(response.body);
+
+      final fullLog = '''
+  flutter: Response: ${response.statusCode}
+  flutter: $bodyStr
+  ''';
+
+      if (kDebugMode && debugPrintRequest) {
+        // ignore: avoid_print
+        print(fullLog);
+      }
     }
-  }
 
   String _formatBody(String body) {
     try {

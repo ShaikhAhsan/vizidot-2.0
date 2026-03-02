@@ -6,10 +6,21 @@ import 'dart:developer' as developer;
 import '../models/live_stream_model.dart';
 import '../views/broadcast_page.dart';
 import '../../music_player/controllers/music_player_controller.dart';
+import '../../../core/utils/app_config.dart';
+import '../../../core/utils/selected_artist_service.dart';
+import '../../../core/network/apis/notifications_api.dart';
 
 class LiveStreamController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  /// Make image URL absolute when relative. baseUrl has no trailing slash.
+  String _absoluteImageUrl(String? url, String baseUrl) {
+    if (url == null || url.trim().isEmpty) return '';
+    final u = url.trim();
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    return baseUrl + (u.startsWith('/') ? u : '/$u');
+  }
 
   Future<void> startLiveStream() async {
     developer.log('🎥 [LiveStream] Starting live stream...', name: 'LiveStreamController');
@@ -65,30 +76,75 @@ class LiveStreamController extends GetxController {
 
       developer.log('👤 [LiveStream] User authenticated: ${user.uid}', name: 'LiveStreamController');
 
-      // Use user data directly from login (no Firestore fetch needed)
-      final artistId = user.uid; // Use user UID as artistId/channel
+      // Only artists can start a live stream (use artist detail, not user detail)
+      if (!Get.isRegistered<SelectedArtistService>()) {
+        developer.log('❌ [LiveStream] SelectedArtistService not registered', name: 'LiveStreamController');
+        Get.snackbar(
+          'Artist required',
+          'Only artists can start a live stream. Link an artist to your account first.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+      final artist = Get.find<SelectedArtistService>().selectedArtist;
+      if (artist == null) {
+        developer.log('❌ [LiveStream] No assigned artist', name: 'LiveStreamController');
+        Get.snackbar(
+          'Artist required',
+          'Only artists can start a live stream. Link an artist to your account first.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
       final now = DateTime.now().millisecondsSinceEpoch;
+      final config = AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+
+      // Use global selected artist (from settings API); only artists can broadcast
+      int streamArtistId = artist.artistId;
+      String streamArtistName = artist.name;
+      String displayName = artist.name;
+      String imageUrl = user.photoURL ?? '';
+      if (artist.imageUrl != null && artist.imageUrl!.trim().isNotEmpty) {
+        imageUrl = _absoluteImageUrl(artist.imageUrl, baseUrl);
+      }
+
+      // broadcasterUid: artist id (string) when artist, else Firebase UID — so "Streaming now" can filter
+      final broadcasterUidValue = streamArtistId > 0 ? streamArtistId.toString() : user.uid;
 
       developer.log('📺 [LiveStream] Creating live stream model...', name: 'LiveStreamController');
-      developer.log('📺 [LiveStream] Channel: $artistId', name: 'LiveStreamController');
-      developer.log('📺 [LiveStream] Name: ${user.displayName ?? 'Live Stream'}', name: 'LiveStreamController');
+      developer.log('📺 [LiveStream] Name: $displayName, photo length: ${imageUrl.length}', name: 'LiveStreamController');
+      developer.log('📺 [LiveStream] broadcasterUid: $broadcasterUidValue, artistId: $streamArtistId', name: 'LiveStreamController');
 
-      // Create live stream using user data from login
       final liveStream = LiveStreamModel(
-        name: user.displayName ?? 'Live Stream',
-        photo: user.photoURL ?? '',
+        name: displayName,
+        photo: imageUrl,
         desc: '',
-        identifier: '',
+        identifier: '', // Set after Firestore add
         dateAdded: now,
-        channel: artistId,
+        channel: '', // Set after Firestore add (unique channel = doc id)
         dateUpdated: now + 30000,
+        broadcasterUid: broadcasterUidValue,
+        artistId: streamArtistId,
+        artistName: streamArtistName,
       );
 
-      // Add to Firestore
+      // Add to Firestore (channel and identifier set after we have doc id)
       developer.log('💾 [LiveStream] Adding live stream to Firestore...', name: 'LiveStreamController');
       final docRef = await _firestore.collection('LiveStreams').add(liveStream.toMap());
       liveStream.identifier = docRef.id;
-      developer.log('✅ [LiveStream] Live stream created with ID: ${liveStream.identifier}', name: 'LiveStreamController');
+      liveStream.channel = docRef.id; // Unique Agora channel per stream (max 64 bytes; Firestore id is 20 chars)
+      await docRef.update(liveStream.toMap());
+      developer.log('✅ [LiveStream] Live stream created with ID: ${liveStream.identifier}, channel: ${liveStream.channel}', name: 'LiveStreamController');
+
+      // Notify everyone except the broadcaster (push + save to notification history); fire-and-forget
+      _notifyLiveStreamStarted(
+        liveStreamId: liveStream.identifier,
+        artistId: streamArtistId,
+        artistName: streamArtistName,
+        imageUrl: imageUrl,
+      );
 
       // Pause any playing audio before starting live stream
       try {
@@ -117,5 +173,30 @@ class LiveStreamController extends GetxController {
     }
   }
 
+  /// Calls API to send live stream push to everyone except the artist and record in notification history.
+  void _notifyLiveStreamStarted({
+    required String liveStreamId,
+    required int artistId,
+    required String artistName,
+    required String imageUrl,
+  }) {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    user.getIdToken().then((token) async {
+      if (token == null || token.isEmpty) return;
+      final config = AppConfig.fromEnv();
+      final baseUrl = config.baseUrl.replaceFirst(RegExp(r'/$'), '');
+      if (baseUrl.isEmpty) return;
+      try {
+        final api = NotificationsApi(baseUrl: baseUrl, authToken: token, debugPrintRequest: false);
+        await api.notifyLiveStream(
+          liveStreamId: liveStreamId,
+          artistId: artistId,
+          artistName: artistName,
+          imageUrl: imageUrl.isEmpty ? null : imageUrl,
+        );
+      } catch (_) {}
+    });
+  }
 }
 
