@@ -25,15 +25,13 @@ class LiveStreamController extends GetxController {
   Future<void> startLiveStream() async {
     developer.log('🎥 [LiveStream] Starting live stream...', name: 'LiveStreamController');
     try {
-      // Request permissions
+      // Request permissions. On iOS the system shows one dialog at a time, so request camera then microphone
+      // sequentially so both prompts appear (batch request can leave microphone never asked).
       developer.log('📷 [LiveStream] Requesting camera and microphone permissions...', name: 'LiveStreamController');
-      final permissions = await [Permission.camera, Permission.microphone].request();
-      
-      final cameraStatus = permissions[Permission.camera] ?? PermissionStatus.denied;
-      final microphoneStatus = permissions[Permission.microphone] ?? PermissionStatus.denied;
-      
-      developer.log('📷 [LiveStream] Camera status: ${cameraStatus.toString()}', name: 'LiveStreamController');
-      developer.log('🎤 [LiveStream] Microphone status: ${microphoneStatus.toString()}', name: 'LiveStreamController');
+      final cameraStatus = await Permission.camera.request();
+      developer.log('📷 [LiveStream] Camera status: $cameraStatus', name: 'LiveStreamController');
+      final microphoneStatus = await Permission.microphone.request();
+      developer.log('🎤 [LiveStream] Microphone status: $microphoneStatus', name: 'LiveStreamController');
 
       // If permanently denied, open settings
       if (cameraStatus.isPermanentlyDenied || microphoneStatus.isPermanentlyDenied) {

@@ -447,7 +447,9 @@ class _ChatPanelState extends State<_ChatPanel> {
           child: child,
         ),
       ),
-    );
+
+      
+    );  
   }
 
   @override
