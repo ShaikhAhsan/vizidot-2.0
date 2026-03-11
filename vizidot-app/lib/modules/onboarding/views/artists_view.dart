@@ -6,6 +6,9 @@ import '../controllers/artists_controller.dart';
 class ArtistsView extends GetView<ArtistsController> {
   const ArtistsView({super.key});
 
+
+
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -20,9 +23,9 @@ class ArtistsView extends GetView<ArtistsController> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 24),
-              Text('Artists', style: textTheme.headlineLarge, textAlign: TextAlign.center),
+              Text('Creatives', style: textTheme.headlineLarge, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              Text('Select three or more artists to follow', style: textTheme.bodyLarge, textAlign: TextAlign.center),
+              Text('Select three or more creatives to follow', style: textTheme.bodyLarge, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               Expanded(
                 child: Obx(() {
@@ -32,7 +35,7 @@ class ArtistsView extends GetView<ArtistsController> {
                   if (controller.items.isEmpty) {
                     return Center(
                       child: Text(
-                        'No artists available',
+                        'No creatives available',
                         style: textTheme.bodyLarge?.copyWith(
                           color: colors.onSurface.withOpacity(0.6),
                         ),
